@@ -1,9 +1,12 @@
 package unifi
 
 type Site struct {
-	ID       string `json:"_id,omitempty"`
-	HiddenID string `json:"attr_hidden_id,omitempty"`
-	NoDelete bool   `json:"attr_no_delete,omitempty"`
+	ID string `json:"_id,omitempty"`
+
+	// Hidden   bool   `json:"attr_hidden,omitempty"`
+	// HiddenID string `json:"attr_hidden_id,omitempty"`
+	// NoDelete bool   `json:"attr_no_delete,omitempty"`
+	// NoEdit   bool   `json:"attr_no_edit,omitempty"`
 
 	Name        string `json:"name"`
 	Description string `json:"desc"`
@@ -13,9 +16,7 @@ type Site struct {
 
 func (c *Client) ListSites() ([]Site, error) {
 	var respBody struct {
-		Meta struct {
-			RC string `json:"rc"`
-		} `json:"meta"`
+		Meta meta   `json:"meta"`
 		Data []Site `json:"data"`
 	}
 

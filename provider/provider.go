@@ -38,6 +38,7 @@ func Provider() terraform.ResourceProvider {
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"unifi_network": resourceNetwork(),
+			"unifi_wlan":    resourceWLAN(),
 		},
 	}
 	p.ConfigureFunc = configure(p)
