@@ -14,19 +14,11 @@ func resourceNetwork() *schema.Resource {
 		Read:   resourceNetworkRead,
 		Update: resourceNetworkUpdate,
 		Delete: resourceNetworkDelete,
-
-		// TODO: handle site + ID (or name)
-		// Importer: &schema.ResourceImporter{
-		// 	State: schema.ImportStatePassthrough,
-		// },
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"site": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "default",
-				ForceNew: true,
-			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -75,8 +67,6 @@ func resourceNetwork() *schema.Resource {
 func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	site := d.Get("site").(string)
-
 	req := &unifi.Network{
 		Name:           d.Get("name").(string),
 		Purpose:        d.Get("purpose").(string),
@@ -96,7 +86,7 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		// IPV6PDStop        string `json:"ipv6_pd_stop"`        // "::7d1"
 	}
 
-	resp, err := c.c.CreateNetwork(site, req)
+	resp, err := c.c.CreateNetwork(c.site, req)
 	if err != nil {
 		return err
 	}
@@ -109,10 +99,9 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	site := d.Get("site").(string)
 	id := d.Id()
 
-	_, err := c.c.GetNetwork(site, id)
+	_, err := c.c.GetNetwork(c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -131,11 +120,10 @@ func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	site := d.Get("site").(string)
 	name := d.Get("name").(string)
 	id := d.Id()
 
-	err := c.c.DeleteNetwork(site, id, name)
+	err := c.c.DeleteNetwork(c.site, id, name)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

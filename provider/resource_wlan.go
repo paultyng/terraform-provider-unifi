@@ -14,19 +14,11 @@ func resourceWLAN() *schema.Resource {
 		Read:   resourceWLANRead,
 		Update: resourceWLANUpdate,
 		Delete: resourceWLANDelete,
-
-		// TODO: handle site + ID (or name)
-		// Importer: &schema.ResourceImporter{
-		// 	State: schema.ImportStatePassthrough,
-		// },
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"site": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "default",
-				ForceNew: true,
-			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -48,10 +40,8 @@ func resourceWLAN() *schema.Resource {
 func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	site := d.Get("site").(string)
-
 	// TODO: allow passing these defaults
-	wlanGroups, err := c.c.ListWLANGroup(site)
+	wlanGroups, err := c.c.ListWLANGroup(c.site)
 	if err != nil {
 		return err
 	}
@@ -66,7 +56,7 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("unable to find default WLAN group")
 	}
 
-	userGroups, err := c.c.ListUserGroup(site)
+	userGroups, err := c.c.ListUserGroup(c.site)
 	if err != nil {
 		return err
 	}
@@ -107,7 +97,7 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 		MinrateNgMgmtRateKbps:    1000,
 	}
 
-	resp, err := c.c.CreateWLAN(site, req)
+	resp, err := c.c.CreateWLAN(c.site, req)
 	if err != nil {
 		return err
 	}
@@ -120,10 +110,9 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	site := d.Get("site").(string)
 	id := d.Id()
 
-	_, err := c.c.GetWLAN(site, id)
+	_, err := c.c.GetWLAN(c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -142,10 +131,9 @@ func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceWLANDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	site := d.Get("site").(string)
 	id := d.Id()
 
-	err := c.c.DeleteWLAN(site, id)
+	err := c.c.DeleteWLAN(c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

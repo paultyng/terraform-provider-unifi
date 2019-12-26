@@ -1,8 +1,8 @@
 package provider
 
 import (
-	"testing"
 	"os"
+	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -37,4 +37,19 @@ func importStep(name string, ignore ...string) resource.TestStep {
 	}
 
 	return step
+}
+
+func preCheck(t *testing.T) {
+	variables := []string{
+		"UNIFI_USERNAME",
+		"UNIFI_PASSWORD",
+		"UNIFI_API",
+	}
+
+	for _, variable := range variables {
+		value := os.Getenv(variable)
+		if value == "" {
+			t.Fatalf("`%s` must be set for acceptance tests!", variable)
+		}
+	}
 }
