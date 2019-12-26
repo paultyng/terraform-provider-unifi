@@ -25,7 +25,7 @@ resource "unifi_network" "test" {
 
 Example:
 
-```
+```terraform
 resource "unifi_wlan" "test" {
 	name       = "foo"
 	vlan_id    = 202
