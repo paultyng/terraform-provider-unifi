@@ -2,6 +2,8 @@
 
 This is very much WIP, just adding functionality as I need it for my local setup.
 
+**Note** You can't (for obvious reasons) configure your network while connected to something that may disconnect (like the WiFi). Use a hard-wired connection to your controller to use this provider.
+
 ## unifi_network
 
 Example:
@@ -18,3 +20,9 @@ resource "unifi_network" "test" {
 	dhcp_enabled = true
 }
 ```
+
+## TODO
+
+* [ ] Move site to provider level? (or use 2 value IDs?)
+* [ ] WLAN Groups (data source for default?)
+* [ ] User Groups (data source for default?)
