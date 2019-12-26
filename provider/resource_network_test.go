@@ -23,14 +23,18 @@ func TestAccNetwork_basic(t *testing.T) {
 }
 
 const testAccNetworkConfig = `
+variable "subnet" {
+	default = "10.0.202.1/24"
+}
+
 resource "unifi_network" "test" {
 	name    = "foo"
 	purpose = "corporate"
 
-	subnet       = "10.0.202.1/24"
+	subnet       = var.subnet
 	vlan_id      = 202
-	dhcp_start   = "10.0.202.6"
-	dhcp_stop    = "10.0.202.254"
+	dhcp_start   = cidrhost(var.subnet, 6)
+	dhcp_stop    = cidrhost(var.subnet, 254)
 	dhcp_enabled = true
 }
 `
