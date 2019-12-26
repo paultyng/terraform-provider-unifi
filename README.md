@@ -35,6 +35,5 @@ resource "unifi_wlan" "test" {
 
 ## TODO
 
-* [ ] Move site to provider level? (or use 2 value IDs?)
 * [ ] WLAN Groups (data source for default?)
 * [ ] User Groups (data source for default?)

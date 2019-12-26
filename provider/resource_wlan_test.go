@@ -8,6 +8,7 @@ import (
 
 func TestAccWLAN_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:  func() { preCheck(t) },
 		Providers: providers,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
@@ -17,7 +18,7 @@ func TestAccWLAN_basic(t *testing.T) {
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
-			// importStep("unifi_wlan.test"),
+			importStep("unifi_wlan.test"),
 		},
 	})
 }

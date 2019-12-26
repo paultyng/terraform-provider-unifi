@@ -27,11 +27,16 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_API", ""),
 			},
-			"allow_insecure": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+			"site": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("UNIFI_SITE", "default"),
 			},
+			// "allow_insecure": {
+			// 	Type:     schema.TypeBool,
+			// 	Optional: true,
+			// 	Default:  false,
+			// },
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			// "scaffolding_data_source": dataSourceScaffolding(),
@@ -50,10 +55,12 @@ func configure(p *schema.Provider) schema.ConfigureFunc {
 		user := d.Get("username").(string)
 		pass := d.Get("password").(string)
 		baseURL := d.Get("api_url").(string)
+		site := d.Get("site").(string)
 		//insecure := d.Get("allow_insecure").(bool)
 
 		c := &client{
-			c: &unifi.Client{},
+			c:    &unifi.Client{},
+			site: site,
 		}
 
 		c.c.SetBaseURL(baseURL)
@@ -69,5 +76,6 @@ func configure(p *schema.Provider) schema.ConfigureFunc {
 }
 
 type client struct {
-	c *unifi.Client
+	c    *unifi.Client
+	site string
 }
