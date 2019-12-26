@@ -5,9 +5,12 @@ import (
 )
 
 type Network struct {
-	ID       string `json:"_id,omitempty"`
-	HiddenID string `json:"attr_hidden_id,omitempty"`
-	NoDelete bool   `json:"attr_no_delete,omitempty"`
+	ID string `json:"_id,omitempty"`
+
+	// Hidden   bool   `json:"attr_hidden,omitempty"`
+	// HiddenID string `json:"attr_hidden_id,omitempty"`
+	// NoDelete bool   `json:"attr_no_delete,omitempty"`
+	// NoEdit   bool   `json:"attr_no_edit,omitempty"`
 
 	Purpose      string `json:"purpose"`      // "corporate"
 	NetworkGroup string `json:"networkgroup"` // "LAN"
@@ -34,11 +37,9 @@ type Network struct {
 	IPV6PDStop        string `json:"ipv6_pd_stop"`        // "::7d1"
 }
 
-func (c *Client) ListNetworks(site string) ([]Network, error) {
+func (c *Client) ListNetwork(site string) ([]Network, error) {
 	var respBody struct {
-		Meta struct {
-			RC string `json:"rc"`
-		} `json:"meta"`
+		Meta meta      `json:"meta"`
 		Data []Network `json:"data"`
 	}
 
@@ -51,35 +52,22 @@ func (c *Client) ListNetworks(site string) ([]Network, error) {
 }
 
 func (c *Client) GetNetwork(site, id string) (*Network, error) {
-	list, err := c.ListNetworks(site)
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Network `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/networkconf/%s", site, id), nil, &respBody)
 	if err != nil {
 		return nil, err
 	}
-	for _, net := range list {
-		if net.ID == id {
-			return &net, nil
-		}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
 	}
-	return nil, &NotFoundError{}
 
-	// 	var respBody struct {
-	// 		Meta struct {
-	// 			RC string `json:"rc"`
-	// 		} `json:"meta"`
-	// 		Data []Network `json:"data"`
-	// 	}
-
-	// 	err := c.do("GET", fmt.Sprintf("s/%s/rest/networkconf/%s", site, id), nil, &respBody)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	if len(respBody.Data) != 1 {
-	// 		return nil, &NotFoundError{}
-	// 	}
-
-	// 	net := respBody.Data[0]
-	// 	return &net, nil
+	d := respBody.Data[0]
+	return &d, nil
 }
 
 func (c *Client) DeleteNetwork(site, id, name string) error {
@@ -94,15 +82,13 @@ func (c *Client) DeleteNetwork(site, id, name string) error {
 	return nil
 }
 
-func (c *Client) CreateNetwork(site string, network *Network) (*Network, error) {
+func (c *Client) CreateNetwork(site string, d *Network) (*Network, error) {
 	var respBody struct {
-		Meta struct {
-			RC string `json:"rc"`
-		} `json:"meta"`
+		Meta meta      `json:"meta"`
 		Data []Network `json:"data"`
 	}
 
-	err := c.do("POST", fmt.Sprintf("s/%s/rest/networkconf", site), network, &respBody)
+	err := c.do("POST", fmt.Sprintf("s/%s/rest/networkconf", site), d, &respBody)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +97,7 @@ func (c *Client) CreateNetwork(site string, network *Network) (*Network, error) 
 		return nil, &NotFoundError{}
 	}
 
-	newNetwork := respBody.Data[0]
+	new := respBody.Data[0]
 
-	return &newNetwork, nil
+	return &new, nil
 }

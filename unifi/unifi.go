@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	// "io/ioutil"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -73,9 +72,14 @@ func (c *Client) Login(user, pass string) error {
 }
 
 func (c *Client) do(method, relativeURL string, reqBody interface{}, respBody interface{}) error {
-	var reqReader io.Reader
+	var (
+		reqReader io.Reader
+		err       error
+		reqBytes  []byte
+	)
 	if reqBody != nil {
-		reqBytes, err := json.Marshal(reqBody)
+
+		reqBytes, err = json.Marshal(reqBody)
 		if err != nil {
 			return err
 		}
@@ -101,11 +105,12 @@ func (c *Client) do(method, relativeURL string, reqBody interface{}, respBody in
 	}
 
 	if resp.StatusCode != 200 {
-		// body, _ := ioutil.ReadAll(resp.Body)
-		//TODO: debug logging?
-		// fmt.Printf("%s %s\nStatus: %s\n%s", method, url.String(), resp.Status, string(body))
-
-		return fmt.Errorf("error from API %s", resp.Status)
+		fmt.Printf("Request Body:\n%s\n", string(reqBytes))
+		errBody := struct {
+			Meta meta `json:"meta"`
+		}{}
+		err = json.NewDecoder(resp.Body).Decode(&errBody)
+		return fmt.Errorf("%s %s (%s) for %s %s", errBody.Meta.RC, errBody.Meta.Message, resp.Status, method, url.String())
 	}
 
 	if respBody == nil || resp.ContentLength == 0 {
@@ -120,4 +125,9 @@ func (c *Client) do(method, relativeURL string, reqBody interface{}, respBody in
 	}
 
 	return nil
+}
+
+type meta struct {
+	RC      string `json:"rc"`
+	Message string `json:"msg"`
 }
