@@ -21,6 +21,18 @@ resource "unifi_network" "test" {
 }
 ```
 
+## unifi_wlan
+
+Example:
+
+```
+resource "unifi_wlan" "test" {
+	name       = "foo"
+	vlan_id    = 202
+	passphrase = "12345678"
+}
+```
+
 ## TODO
 
 * [ ] Move site to provider level? (or use 2 value IDs?)
