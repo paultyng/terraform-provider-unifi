@@ -6,6 +6,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
+func wlanImportStep() resource.TestStep {
+	return importStep("unifi_wlan.test",
+		"name", "passphrase", "vlan_id", "wlan_group_id",
+		"user_group_id", "security",
+	)
+}
+
 func TestAccWLAN_wpapsk(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:  func() { preCheck(t) },
@@ -18,10 +25,7 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
-			importStep("unifi_wlan.test",
-				"name", "passphrase", "vlan_id", "wlan_group_id",
-				"user_group_id", "security",
-			),
+			wlanImportStep(),
 		},
 	})
 }
@@ -38,10 +42,7 @@ func TestAccWLAN_open(t *testing.T) {
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
-			importStep("unifi_wlan.test",
-				"name", "passphrase", "vlan_id", "wlan_group_id",
-				"user_group_id", "security",
-			),
+			wlanImportStep(),
 		},
 	})
 }
