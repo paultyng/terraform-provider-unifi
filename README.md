@@ -4,6 +4,19 @@ This is very much WIP, just adding functionality as I need it for my local setup
 
 **Note** You can't (for obvious reasons) configure your network while connected to something that may disconnect (like the WiFi). Use a hard-wired connection to your controller to use this provider.
 
+## Provider configuration
+
+```terraform
+provider "unifi" {
+	username = "user" // optionally use UNIFI_USERNAME env var
+	password = "pass" // optionally use UNIFI_PASSWORD env var
+	api_url  = "https://localhost:8443/api/" // optionally use UNIFI_API env var
+
+	// if you are not configuring the default site, you can change the site
+	site = "foo" // optionally use UNIFI_SITE env var
+}
+```
+
 ## unifi_network
 
 Example:
