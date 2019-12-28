@@ -33,6 +33,14 @@ func resourceWLAN() *schema.Resource {
 				Required:  true,
 				Sensitive: true,
 			},
+			"wlan_group_id": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"user_group_id": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
 		},
 	}
 }
@@ -40,44 +48,13 @@ func resourceWLAN() *schema.Resource {
 func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	// TODO: allow passing these defaults
-	wlanGroups, err := c.c.ListWLANGroup(c.site)
-	if err != nil {
-		return err
-	}
-	var defaultWLANGroup *unifi.WLANGroup
-	for _, wg := range wlanGroups {
-		if wg.HiddenID == "Default" {
-			defaultWLANGroup = &wg
-			break
-		}
-	}
-	if defaultWLANGroup == nil {
-		return fmt.Errorf("unable to find default WLAN group")
-	}
-
-	userGroups, err := c.c.ListUserGroup(c.site)
-	if err != nil {
-		return err
-	}
-	var defaultUserGroup *unifi.UserGroup
-	for _, ug := range userGroups {
-		if ug.HiddenID == "Default" {
-			defaultUserGroup = &ug
-			break
-		}
-	}
-	if defaultUserGroup == nil {
-		return fmt.Errorf("unable to find default user group")
-	}
-
 	req := &unifi.WLAN{
 		Name:        d.Get("name").(string),
 		VLAN:        fmt.Sprintf("%d", d.Get("vlan_id").(int)),
 		XPassphrase: d.Get("passphrase").(string),
 
-		WLANGroupID: defaultWLANGroup.ID,
-		UserGroupID: defaultUserGroup.ID,
+		WLANGroupID: d.Get("wlan_group_id").(string),
+		UserGroupID: d.Get("user_group_id").(string),
 
 		Enabled:                  true,
 		VLANEnabled:              true,

@@ -18,7 +18,7 @@ func TestAccNetwork_basic(t *testing.T) {
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
-			importStep("unifi_network.test"),
+			importStep("unifi_network.test", "dhcp_enabled", "dhcp_lease", "dhcp_start", "dhcp_stop", "name", "network_group", "purpose", "subnet", "vlan_id"),
 		},
 	})
 }

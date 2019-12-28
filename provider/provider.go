@@ -39,7 +39,8 @@ func Provider() terraform.ResourceProvider {
 			// },
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			// "scaffolding_data_source": dataSourceScaffolding(),
+			"unifi_user_group": dataUserGroup(),
+			"unifi_wlan_group": dataWLANGroup(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"unifi_network": resourceNetwork(),
