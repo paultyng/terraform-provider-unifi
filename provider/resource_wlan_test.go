@@ -18,7 +18,10 @@ func TestAccWLAN_basic(t *testing.T) {
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
-			importStep("unifi_wlan.test", "name", "passphrase", "vlan_id", "wlan_group_id", "user_group_id"),
+			importStep("unifi_wlan.test",
+				"name", "passphrase", "vlan_id", "wlan_group_id",
+				"user_group_id", "security",
+			),
 		},
 	})
 }
@@ -36,5 +39,6 @@ resource "unifi_wlan" "test" {
 	passphrase    = "12345678"
 	wlan_group_id = data.unifi_wlan_group.default.id
 	user_group_id = data.unifi_user_group.default.id
+	security      = "wpapsk"
 }
 `

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
 	"github.com/paultyng/terraform-provider-unifi/unifi"
 )
@@ -28,11 +29,6 @@ func resourceWLAN() *schema.Resource {
 				Optional: true,
 				Default:  1,
 			},
-			"passphrase": {
-				Type:      schema.TypeString,
-				Required:  true,
-				Sensitive: true,
-			},
 			"wlan_group_id": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -41,6 +37,25 @@ func resourceWLAN() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"security": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringInSlice([]string{"wpapsk", "wpaeap", "open"}, false),
+			},
+			"passphrase": {
+				Type: schema.TypeString,
+				// only required if security != open
+				Optional:  true,
+				Sensitive: true,
+			},
+			"hide_ssid": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"is_guest": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -48,30 +63,30 @@ func resourceWLAN() *schema.Resource {
 func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
+	vlan := d.Get("vlan_id").(int)
+
 	req := &unifi.WLAN{
 		Name:        d.Get("name").(string),
-		VLAN:        fmt.Sprintf("%d", d.Get("vlan_id").(int)),
+		VLAN:        fmt.Sprintf("%d", vlan),
 		XPassphrase: d.Get("passphrase").(string),
-
+		HideSSID:    d.Get("hide_ssid").(bool),
+		IsGuest:     d.Get("is_guest").(bool),
 		WLANGroupID: d.Get("wlan_group_id").(string),
 		UserGroupID: d.Get("user_group_id").(string),
+		Security:    d.Get("security").(string),
 
-		Enabled:                  true,
-		VLANEnabled:              true,
-		WPAEnc:                   "ccmp",
-		Security:                 "wpapsk",
-		WPAMode:                  "wpa2",
-		NameCombineEnabled:       true,
+		VLANEnabled: vlan != 0,
+
+		// TODO: add to schema
+		WPAEnc:             "ccmp",
+		WPAMode:            "wpa2",
+		Enabled:            true,
+		NameCombineEnabled: true,
+
 		GroupRekey:               3600,
 		DTIMMode:                 "default",
 		No2GhzOui:                true,
-		MinrateNaBeaconRateKbps:  6000,
-		MinrateNaDataRateKbps:    6000,
-		MinrateNaMgmtRateKbps:    6000,
-		MinrateNgBeaconRateKbps:  1000,
 		MinrateNgCckRatesEnabled: true,
-		MinrateNgDataRateKbps:    1000,
-		MinrateNgMgmtRateKbps:    1000,
 	}
 
 	resp, err := c.c.CreateWLAN(c.site, req)
