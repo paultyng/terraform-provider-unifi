@@ -1,23 +1,43 @@
 package provider
 
 import (
+	"os"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func wlanImportStep() resource.TestStep {
-	return importStep("unifi_wlan.test",
-		"name", "passphrase", "vlan_id", "wlan_group_id",
-		"user_group_id", "security",
-	)
+var wlanConcurrency chan struct{}
+
+func init() {
+	wcs := os.Getenv("UNIFI_ACC_WLAN_CONCURRENCY")
+	if wcs == "" {
+		// default concurrent SSIDs
+		wcs = "1"
+	}
+	wc, err := strconv.Atoi(wcs)
+	if err != nil {
+		panic(err)
+	}
+	wlanConcurrency = make(chan struct{}, wc)
 }
 
 func TestAccWLAN_wpapsk(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { preCheck(t) },
 		Providers: providers,
-		// TODO: CheckDestroy: ,
+		PreCheck: func() {
+			preCheck(t)
+
+			wlanConcurrency <- struct{}{}
+		},
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_wpapsk,
@@ -25,16 +45,25 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
-			wlanImportStep(),
+			importStep("unifi_wlan.test"),
 		},
 	})
 }
 
 func TestAccWLAN_open(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { preCheck(t) },
 		Providers: providers,
-		// TODO: CheckDestroy: ,
+		PreCheck: func() {
+			preCheck(t)
+
+			wlanConcurrency <- struct{}{}
+		},
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_open,
@@ -42,7 +71,7 @@ func TestAccWLAN_open(t *testing.T) {
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
-			wlanImportStep(),
+			importStep("unifi_wlan.test"),
 		},
 	})
 }
