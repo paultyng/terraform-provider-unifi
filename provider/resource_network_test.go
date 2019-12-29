@@ -6,17 +6,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func networkImportStep() resource.TestStep {
-	return importStep("unifi_network.test",
-		"dhcp_enabled", "dhcp_lease", "dhcp_start", "dhcp_stop", "name",
-		"network_group", "purpose", "subnet", "vlan_id",
-	)
-}
-
 func TestAccNetwork_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { preCheck(t) },
 		Providers: providers,
+		PreCheck:  func() { preCheck(t) },
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -25,7 +18,7 @@ func TestAccNetwork_basic(t *testing.T) {
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
-			networkImportStep(),
+			importStep("unifi_network.test"),
 		},
 	})
 }
