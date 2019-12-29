@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -96,6 +97,28 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(resp.ID)
 
+	return resourceWLANSetResourceData(resp, d)
+}
+
+func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error {
+	var err error
+	vlan := 0
+	if resp.VLANEnabled {
+		vlan, err = strconv.Atoi(resp.VLAN)
+		if err != nil {
+			return err
+		}
+	}
+
+	d.Set("name", resp.Name)
+	d.Set("vlan_id", vlan)
+	d.Set("passphrase", resp.XPassphrase)
+	d.Set("hide_ssid", resp.HideSSID)
+	d.Set("is_guest", resp.IsGuest)
+	d.Set("wlan_group_id", resp.WLANGroupID)
+	d.Set("user_group_id", resp.UserGroupID)
+	d.Set("security", resp.Security)
+
 	return nil
 }
 
@@ -104,7 +127,7 @@ func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	_, err := c.c.GetWLAN(c.site, id)
+	resp, err := c.c.GetWLAN(c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -113,7 +136,7 @@ func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return nil
+	return resourceWLANSetResourceData(resp, d)
 }
 
 func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
