@@ -4,6 +4,46 @@ This is very much WIP, just adding functionality as I need it for my local setup
 
 **Note** You can't (for obvious reasons) configure your network while connected to something that may disconnect (like the WiFi). Use a hard-wired connection to your controller to use this provider.
 
+## Example
+
+This example sets up a WIFI SSID and VLAN with bandwidth throttling:
+
+```terraform
+variable "vlan_id" {
+	default = 10
+}
+
+data "unifi_wlan_group" "default" {
+}
+
+resource "unifi_user_group" "wifi" {
+	name = "wifi"
+
+	qos_rate_max_down = 10000000
+	qos_rate_max_up   = 2000000
+}
+
+resource "unifi_wlan" "wifi" {
+	name          = "myssid"
+	vlan_id       = var.vlan_id
+	passphrase    = "12345678"
+	wlan_group_id = data.unifi_wlan_group.default.id
+	user_group_id = unifi_user_group.wifi.id
+	security      = "wpapsk"
+}
+
+resource "unifi_network" "vlan" {
+	name = "wifi-vlan"
+	purpose = "corporate"
+
+	subnet       = "10.0.0.1/24"
+	vlan_id      = var.vlan_id
+	dhcp_start   = "10.0.0.6"
+	dhcp_stop    = "10.0.0.254"
+	dhcp_enabled = true
+}
+```
+
 ## Provider configuration
 
 ```terraform
@@ -17,7 +57,9 @@ provider "unifi" {
 }
 ```
 
-## unifi_network
+## Resources
+
+### unifi_network
 
 Example:
 
@@ -34,7 +76,7 @@ resource "unifi_network" "test" {
 }
 ```
 
-## unifi_user_group
+### unifi_user_group
 
 Example:
 
@@ -47,7 +89,7 @@ resource "unifi_user_group" "test" {
 }
 ```
 
-## unifi_wlan
+### unifi_wlan
 
 Example:
 
