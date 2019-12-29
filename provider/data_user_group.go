@@ -16,6 +16,15 @@ func dataUserGroup() *schema.Resource {
 				Optional: true,
 				Default:  "Default",
 			},
+
+			"qos_rate_max_down": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"qos_rate_max_up": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -32,6 +41,10 @@ func dataUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 	for _, g := range groups {
 		if g.Name == name {
 			d.SetId(g.ID)
+
+			d.Set("qos_rate_max_down", g.QOSRateMaxDown)
+			d.Set("qos_rate_max_up", g.QOSRateMaxUp)
+
 			return nil
 		}
 	}

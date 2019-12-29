@@ -34,6 +34,19 @@ resource "unifi_network" "test" {
 }
 ```
 
+## unifi_user_group
+
+Example:
+
+```terraform
+resource "unifi_user_group" "test" {
+	name = "foo"
+
+	qos_rate_max_down = 2000 # 2mbps
+	qos_rate_max_up   = 10   # 10kbps
+}
+```
+
 ## unifi_wlan
 
 Example:
@@ -56,3 +69,7 @@ resource "unifi_wlan" "test" {
 ```
 
 ## TODO
+
+* [ ] automatically fixup subnet cidrs from .0 to .1?
+* [ ] update support for wlan
+* [ ] update support for network

@@ -29,7 +29,7 @@ variable "subnet" {
 }
 
 resource "unifi_network" "test" {
-	name    = "foo"
+	name    = "tfacc"
 	purpose = "corporate"
 
 	subnet       = var.subnet
