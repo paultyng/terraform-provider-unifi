@@ -76,7 +76,7 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 		UserGroupID: d.Get("user_group_id").(string),
 		Security:    d.Get("security").(string),
 
-		VLANEnabled: vlan != 0,
+		VLANEnabled: vlan != 0 && vlan != 1,
 
 		// TODO: add to schema
 		WPAEnc:             "ccmp",

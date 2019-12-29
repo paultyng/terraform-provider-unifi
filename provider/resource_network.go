@@ -34,7 +34,6 @@ func resourceNetwork() *schema.Resource {
 			"vlan_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  1,
 			},
 			"subnet": {
 				Type:     schema.TypeString,
@@ -82,7 +81,7 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
 		DHCPDLeaseTime: d.Get("dhcp_lease").(int),
 
-		VLANEnabled: vlan != 0,
+		VLANEnabled: vlan != 0 && vlan != 1,
 
 		Enabled:           true,
 		IPV6InterfaceType: "none",
@@ -111,6 +110,11 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 		}
 	}
 
+	dhcpLease := resp.DHCPDLeaseTime
+	if resp.DHCPDEnabled && dhcpLease == 0 {
+		dhcpLease = 86400
+	}
+
 	d.Set("name", resp.Name)
 	d.Set("purpose", resp.Purpose)
 	d.Set("vlan_id", vlan)
@@ -119,7 +123,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("dhcp_start", resp.DHCPDStart)
 	d.Set("dhcp_stop", resp.DHCPDStop)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
-	d.Set("dhcp_lease", resp.DHCPDLeaseTime)
+	d.Set("dhcp_lease", dhcpLease)
 
 	return nil
 }
