@@ -2,8 +2,10 @@ package provider
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
 	"github.com/paultyng/terraform-provider-unifi/unifi"
 )
@@ -24,10 +26,10 @@ func resourceNetwork() *schema.Resource {
 				Required: true,
 			},
 			"purpose": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				//"corporate", "guest", "vlan-only"
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "vlan-only"}, false),
 			},
 			"vlan_id": {
 				Type:     schema.TypeInt,
@@ -67,6 +69,8 @@ func resourceNetwork() *schema.Resource {
 func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
+	vlan := d.Get("vlan_id").(int)
+
 	req := &unifi.Network{
 		Name:           d.Get("name").(string),
 		Purpose:        d.Get("purpose").(string),
@@ -78,8 +82,9 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
 		DHCPDLeaseTime: d.Get("dhcp_lease").(int),
 
+		VLANEnabled: vlan != 0,
+
 		Enabled:           true,
-		VLANEnabled:       true,
 		IPV6InterfaceType: "none",
 		// IPV6InterfaceType string `json:"ipv6_interface_type"` // "none"
 		// IPV6PDStart       string `json:"ipv6_pd_start"`       // "::2"
@@ -93,6 +98,29 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(resp.ID)
 
+	return resourceNetworkSetResourceData(resp, d)
+}
+
+func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData) error {
+	var err error
+	vlan := 0
+	if resp.VLANEnabled {
+		vlan, err = strconv.Atoi(resp.VLAN)
+		if err != nil {
+			return err
+		}
+	}
+
+	d.Set("name", resp.Name)
+	d.Set("purpose", resp.Purpose)
+	d.Set("vlan_id", vlan)
+	d.Set("subnet", resp.IPSubnet)
+	d.Set("network_group", resp.NetworkGroup)
+	d.Set("dhcp_start", resp.DHCPDStart)
+	d.Set("dhcp_stop", resp.DHCPDStop)
+	d.Set("dhcp_enabled", resp.DHCPDEnabled)
+	d.Set("dhcp_lease", resp.DHCPDLeaseTime)
+
 	return nil
 }
 
@@ -101,7 +129,7 @@ func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	_, err := c.c.GetNetwork(c.site, id)
+	resp, err := c.c.GetNetwork(c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -110,7 +138,7 @@ func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return nil
+	return resourceNetworkSetResourceData(resp, d)
 }
 
 func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
