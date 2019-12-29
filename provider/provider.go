@@ -43,8 +43,9 @@ func Provider() terraform.ResourceProvider {
 			"unifi_wlan_group": dataWLANGroup(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"unifi_network": resourceNetwork(),
-			"unifi_wlan":    resourceWLAN(),
+			"unifi_network":    resourceNetwork(),
+			"unifi_user_group": resourceUserGroup(),
+			"unifi_wlan":       resourceWLAN(),
 		},
 	}
 	p.ConfigureFunc = configure(p)
@@ -74,6 +75,10 @@ func configure(p *schema.Provider) schema.ConfigureFunc {
 
 type unifiClient interface {
 	ListUserGroup(site string) ([]unifi.UserGroup, error)
+	DeleteUserGroup(site, id string) error
+	CreateUserGroup(site string, d *unifi.UserGroup) (*unifi.UserGroup, error)
+	GetUserGroup(site, id string) (*unifi.UserGroup, error)
+	UpdateUserGroup(site string, d *unifi.UserGroup) (*unifi.UserGroup, error)
 
 	ListWLANGroup(site string) ([]unifi.WLANGroup, error)
 
