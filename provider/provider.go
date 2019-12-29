@@ -60,23 +60,33 @@ func configure(p *schema.Provider) schema.ConfigureFunc {
 		//insecure := d.Get("allow_insecure").(bool)
 
 		c := &client{
-			c:    &unifi.Client{},
+			c: &lazyClient{
+				user:    user,
+				pass:    pass,
+				baseURL: baseURL,
+			},
 			site: site,
-		}
-
-		c.c.SetBaseURL(baseURL)
-
-		// TODO: defer this to first call?
-		err := c.c.Login(user, pass)
-		if err != nil {
-			return nil, err
 		}
 
 		return c, nil
 	}
 }
 
+type unifiClient interface {
+	ListUserGroup(site string) ([]unifi.UserGroup, error)
+
+	ListWLANGroup(site string) ([]unifi.WLANGroup, error)
+
+	DeleteNetwork(site, id, name string) error
+	CreateNetwork(site string, d *unifi.Network) (*unifi.Network, error)
+	GetNetwork(site, id string) (*unifi.Network, error)
+
+	DeleteWLAN(site, id string) error
+	CreateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error)
+	GetWLAN(site, id string) (*unifi.WLAN, error)
+}
+
 type client struct {
-	c    *unifi.Client
+	c    unifiClient
 	site string
 }
