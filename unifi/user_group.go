@@ -5,8 +5,8 @@ import (
 )
 
 type UserGroup struct {
-	ID     string `json:"_id"`
-	SiteID string `json:"site_id"`
+	ID     string `json:"_id,omitempty"`
+	SiteID string `json:"site_id,omitempty"`
 	Name   string `json:"name"`
 
 	//Hidden   bool   `json:"attr_hidden,omitempty"`
