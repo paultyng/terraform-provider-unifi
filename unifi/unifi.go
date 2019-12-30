@@ -21,6 +21,15 @@ func (err *NotFoundError) Error() string {
 	return "not found"
 }
 
+type APIError struct {
+	RC      string
+	Message string
+}
+
+func (err *APIError) Error() string {
+	return err.Message
+}
+
 type Client struct {
 	c       *http.Client
 	baseURL *url.URL
@@ -130,4 +139,15 @@ func (c *Client) do(method, relativeURL string, reqBody interface{}, respBody in
 type meta struct {
 	RC      string `json:"rc"`
 	Message string `json:"msg"`
+}
+
+func (m *meta) error() error {
+	if m.RC != "ok" {
+		return &APIError{
+			RC:      m.RC,
+			Message: m.Message,
+		}
+	}
+
+	return nil
 }
