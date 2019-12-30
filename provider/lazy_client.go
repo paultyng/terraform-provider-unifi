@@ -46,6 +46,10 @@ func (c *lazyClient) GetNetwork(site, id string) (*unifi.Network, error) {
 	c.init()
 	return c.inner.GetNetwork(site, id)
 }
+func (c *lazyClient) UpdateNetwork(site string, d *unifi.Network) (*unifi.Network, error) {
+	c.init()
+	return c.inner.UpdateNetwork(site, d)
+}
 func (c *lazyClient) DeleteWLAN(site, id string) error {
 	c.init()
 	return c.inner.DeleteWLAN(site, id)

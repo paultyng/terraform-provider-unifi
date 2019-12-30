@@ -113,5 +113,3 @@ resource "unifi_wlan" "test" {
 ## TODO
 
 * [ ] automatically fixup subnet cidrs from .0 to .1?
-* [ ] update support for wlan
-* [ ] update support for network

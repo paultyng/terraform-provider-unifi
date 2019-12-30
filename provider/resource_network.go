@@ -68,9 +68,25 @@ func resourceNetwork() *schema.Resource {
 func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
+	req, err := resourceNetworkGetResourceData(d)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.c.CreateNetwork(c.site, req)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(resp.ID)
+
+	return resourceNetworkSetResourceData(resp, d)
+}
+
+func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, error) {
 	vlan := d.Get("vlan_id").(int)
 
-	req := &unifi.Network{
+	return &unifi.Network{
 		Name:           d.Get("name").(string),
 		Purpose:        d.Get("purpose").(string),
 		VLAN:           fmt.Sprintf("%d", d.Get("vlan_id").(int)),
@@ -88,16 +104,7 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		// IPV6InterfaceType string `json:"ipv6_interface_type"` // "none"
 		// IPV6PDStart       string `json:"ipv6_pd_start"`       // "::2"
 		// IPV6PDStop        string `json:"ipv6_pd_stop"`        // "::7d1"
-	}
-
-	resp, err := c.c.CreateNetwork(c.site, req)
-	if err != nil {
-		return err
-	}
-
-	d.SetId(resp.ID)
-
-	return resourceNetworkSetResourceData(resp, d)
+	}, nil
 }
 
 func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData) error {
@@ -146,7 +153,22 @@ func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
-	panic("not implemented")
+	c := meta.(*client)
+
+	req, err := resourceNetworkGetResourceData(d)
+	if err != nil {
+		return err
+	}
+
+	req.ID = d.Id()
+	req.SiteID = c.site
+
+	resp, err := c.c.UpdateNetwork(c.site, req)
+	if err != nil {
+		return err
+	}
+
+	return resourceNetworkSetResourceData(resp, d)
 }
 
 func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {

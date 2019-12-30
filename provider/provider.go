@@ -85,6 +85,7 @@ type unifiClient interface {
 	DeleteNetwork(site, id, name string) error
 	CreateNetwork(site string, d *unifi.Network) (*unifi.Network, error)
 	GetNetwork(site, id string) (*unifi.Network, error)
+	UpdateNetwork(site string, d *unifi.Network) (*unifi.Network, error)
 
 	DeleteWLAN(site, id string) error
 	CreateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error)

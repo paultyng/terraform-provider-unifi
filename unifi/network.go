@@ -5,7 +5,9 @@ import (
 )
 
 type Network struct {
-	ID string `json:"_id,omitempty"`
+	ID     string `json:"_id,omitempty"`
+	SiteID string `json:"site_id,omitempty"`
+	Name   string `json:"name"`
 
 	// Hidden   bool   `json:"attr_hidden,omitempty"`
 	// HiddenID string `json:"attr_hidden_id,omitempty"`
@@ -14,7 +16,6 @@ type Network struct {
 
 	Purpose      string `json:"purpose"`      // "corporate"
 	NetworkGroup string `json:"networkgroup"` // "LAN"
-	Name         string `json:"name"`
 	VLAN         string `json:"vlan"`
 	VLANEnabled  bool   `json:"vlan_enabled"`
 	IPSubnet     string `json:"ip_subnet"`
@@ -89,6 +90,26 @@ func (c *Client) CreateNetwork(site string, d *Network) (*Network, error) {
 	}
 
 	err := c.do("POST", fmt.Sprintf("s/%s/rest/networkconf", site), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+
+func (c *Client) UpdateNetwork(site string, d *Network) (*Network, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Network `json:"data"`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%s/rest/networkconf/%s", site, d.ID), d, &respBody)
 	if err != nil {
 		return nil, err
 	}

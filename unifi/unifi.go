@@ -117,7 +117,7 @@ func (c *Client) do(method, relativeURL string, reqBody interface{}, respBody in
 		return nil
 	}
 
-	// TODO: check rc?
+	// TODO: check rc in addition to status code?
 
 	err = json.NewDecoder(resp.Body).Decode(respBody)
 	if err != nil {
