@@ -45,6 +45,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"unifi_network":    resourceNetwork(),
 			"unifi_user_group": resourceUserGroup(),
+			"unifi_user":       resourceUser(),
 			"unifi_wlan":       resourceWLAN(),
 		},
 	}
@@ -90,6 +91,14 @@ type unifiClient interface {
 	DeleteWLAN(site, id string) error
 	CreateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error)
 	GetWLAN(site, id string) (*unifi.WLAN, error)
+
+	GetUser(site, id string) (*unifi.User, error)
+	// GetUserByMAC(site, mac string) (*unifi.User, error)
+	CreateUser(site string, d *unifi.User) (*unifi.User, error)
+	BlockUserByMAC(site, mac string) error
+	UnblockUserByMAC(site, mac string) error
+	UpdateUser(site string, d *unifi.User) (*unifi.User, error)
+	DeleteUserByMAC(site, mac string) error
 }
 
 type client struct {

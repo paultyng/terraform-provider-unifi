@@ -78,3 +78,27 @@ func (c *lazyClient) UpdateUserGroup(site string, d *unifi.UserGroup) (*unifi.Us
 	c.init()
 	return c.inner.UpdateUserGroup(site, d)
 }
+func (c *lazyClient) GetUser(site, id string) (*unifi.User, error) {
+	c.init()
+	return c.inner.GetUser(site, id)
+}
+func (c *lazyClient) CreateUser(site string, d *unifi.User) (*unifi.User, error) {
+	c.init()
+	return c.inner.CreateUser(site, d)
+}
+func (c *lazyClient) UpdateUser(site string, d *unifi.User) (*unifi.User, error) {
+	c.init()
+	return c.inner.UpdateUser(site, d)
+}
+func (c *lazyClient) DeleteUserByMAC(site, mac string) error {
+	c.init()
+	return c.inner.DeleteUserByMAC(site, mac)
+}
+func (c *lazyClient) BlockUserByMAC(site, mac string) error {
+	c.init()
+	return c.inner.BlockUserByMAC(site, mac)
+}
+func (c *lazyClient) UnblockUserByMAC(site, mac string) error {
+	c.init()
+	return c.inner.UnblockUserByMAC(site, mac)
+}
