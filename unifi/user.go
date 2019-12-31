@@ -122,7 +122,7 @@ func (c *Client) CreateUser(site string, d *User) (*User, error) {
 	return &new, nil
 }
 
-func (c *Client) stamgr(site, cmd string, data map[string]interface{}) error {
+func (c *Client) stamgr(site, cmd string, data map[string]interface{}) ([]User, error) {
 	reqBody := map[string]interface{}{}
 
 	for k, v := range data {
@@ -138,24 +138,36 @@ func (c *Client) stamgr(site, cmd string, data map[string]interface{}) error {
 
 	err := c.do("POST", fmt.Sprintf("s/%s/cmd/stamgr", site), reqBody, &respBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// TODO: confirm count/state of returned Data?
-
-	return nil
+	return respBody.Data, nil
 }
 
 func (c *Client) BlockUserByMAC(site, mac string) error {
-	return c.stamgr(site, "block-sta", map[string]interface{}{
+	users, err := c.stamgr(site, "block-sta", map[string]interface{}{
 		"mac": mac,
 	})
+	if err != nil {
+		return err
+	}
+	if len(users) != 1 {
+		return &NotFoundError{}
+	}
+	return nil
 }
 
 func (c *Client) UnblockUserByMAC(site, mac string) error {
-	return c.stamgr(site, "unblock-sta", map[string]interface{}{
+	users, err := c.stamgr(site, "unblock-sta", map[string]interface{}{
 		"mac": mac,
 	})
+	if err != nil {
+		return err
+	}
+	if len(users) != 1 {
+		return &NotFoundError{}
+	}
+	return nil
 }
 
 func (c *Client) UpdateUser(site string, d *User) (*User, error) {
@@ -179,7 +191,14 @@ func (c *Client) UpdateUser(site string, d *User) (*User, error) {
 }
 
 func (c *Client) DeleteUserByMAC(site, mac string) error {
-	return c.stamgr(site, "forget-sta", map[string]interface{}{
+	users, err := c.stamgr(site, "forget-sta", map[string]interface{}{
 		"macs": []string{mac},
 	})
+	if err != nil {
+		return err
+	}
+	if len(users) != 1 {
+		return &NotFoundError{}
+	}
+	return nil
 }
