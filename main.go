@@ -3,7 +3,7 @@ package main // import "github.com/paultyng/terraform-provider-unifi"
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/plugin"
 
-	"github.com/paultyng/terraform-provider-unifi/provider"
+	"github.com/paultyng/terraform-provider-unifi/internal/provider"
 )
 
 func main() {
