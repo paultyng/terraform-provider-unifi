@@ -112,6 +112,8 @@ func (c *Client) do(method, relativeURL string, reqBody interface{}, respBody in
 		return err
 	}
 
+	req.Header.Set("User-Agent", "terraform-provider-unifi/0.1")
+
 	resp, err := c.c.Do(req)
 	if err != nil {
 		return err
