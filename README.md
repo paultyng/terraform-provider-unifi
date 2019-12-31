@@ -76,6 +76,23 @@ resource "unifi_network" "test" {
 }
 ```
 
+### unifi_user
+
+User's (called "Clients" in the UI), are unique as they are "created" when observed, so the resource defaults to allowing itself to just take over management of a MAC address, but this can be turned off.
+
+Example:
+
+```terraform
+resource "unifi_user" "test" {
+	mac  = "00:00:5e:00:53:10"
+	name = "some client"
+	note = "my note"
+
+	fixed_ip   = "10.1.10.50"
+	network_id = unifi_network.my_vlan.id
+}
+```
+
 ### unifi_user_group
 
 Example:
