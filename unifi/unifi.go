@@ -35,8 +35,13 @@ type Client struct {
 	baseURL *url.URL
 }
 
-func (c *Client) SetBaseURL(base string) {
-	c.baseURL, _ = url.Parse(base)
+func (c *Client) SetBaseURL(base string) error {
+	var err error
+	c.baseURL, err = url.Parse(base)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Client) Login(user, pass string) error {
@@ -95,7 +100,11 @@ func (c *Client) do(method, relativeURL string, reqBody interface{}, respBody in
 		reqReader = bytes.NewReader(reqBytes)
 	}
 
-	reqURL, _ := url.Parse(relativeURL)
+	reqURL, err := url.Parse(relativeURL)
+	if err != nil {
+		return err
+	}
+
 	url := c.baseURL.ResolveReference(reqURL)
 
 	req, err := http.NewRequest(method, url.String(), reqReader)

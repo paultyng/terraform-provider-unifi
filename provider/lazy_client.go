@@ -19,7 +19,10 @@ func (c *lazyClient) init() error {
 	var err error
 	c.once.Do(func() {
 		c.inner = &unifi.Client{}
-		c.inner.SetBaseURL(c.baseURL)
+		err = c.inner.SetBaseURL(c.baseURL)
+		if err != nil {
+			return
+		}
 
 		err = c.inner.Login(c.user, c.pass)
 	})
@@ -81,6 +84,10 @@ func (c *lazyClient) UpdateUserGroup(site string, d *unifi.UserGroup) (*unifi.Us
 func (c *lazyClient) GetUser(site, id string) (*unifi.User, error) {
 	c.init()
 	return c.inner.GetUser(site, id)
+}
+func (c *lazyClient) GetUserByMAC(site, mac string) (*unifi.User, error) {
+	c.init()
+	return c.inner.GetUserByMAC(site, mac)
 }
 func (c *lazyClient) CreateUser(site string, d *unifi.User) (*unifi.User, error) {
 	c.init()

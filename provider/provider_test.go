@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	pass := os.Getenv("UNIFI_PASSWORD")
 	baseURL := os.Getenv("UNIFI_API")
 
-	testClient := &unifi.Client{}
+	testClient = &unifi.Client{}
 	testClient.SetBaseURL(baseURL)
 	err := testClient.Login(user, pass)
 	if err != nil {

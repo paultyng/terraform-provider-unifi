@@ -93,7 +93,7 @@ type unifiClient interface {
 	GetWLAN(site, id string) (*unifi.WLAN, error)
 
 	GetUser(site, id string) (*unifi.User, error)
-	// GetUserByMAC(site, mac string) (*unifi.User, error)
+	GetUserByMAC(site, mac string) (*unifi.User, error)
 	CreateUser(site string, d *unifi.User) (*unifi.User, error)
 	BlockUserByMAC(site, mac string) error
 	UnblockUserByMAC(site, mac string) error

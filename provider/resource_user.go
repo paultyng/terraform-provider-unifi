@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -57,13 +56,17 @@ func resourceUser() *schema.Resource {
 				Optional: true,
 			},
 
-			// this is a "meta" attribute that controls TF UX
+			// these are "meta" attributes that control TF UX
 			"allow_existing": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			// TODO: "skip_forget_on_destroy": {
+			"skip_forget_on_destroy": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -81,11 +84,24 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 	resp, err := c.c.CreateUser(c.site, req)
 	if err != nil {
 		apiErr, ok := err.(*unifi.APIError)
-		if !ok || (apiErr.Message != "api.err.MacUsed" && !allowExisting) {
+		if !ok || (apiErr.Message != "api.err.MacUsed" || !allowExisting) {
 			return err
 		}
-		// TODO: handle mac in use flow
-		return fmt.Errorf("allow_existing not yet implemented")
+
+		// mac in use, just absorb it
+		mac := d.Get("mac").(string)
+		existing, err := c.c.GetUserByMAC(c.site, mac)
+		if err != nil {
+			return err
+		}
+
+		req.ID = existing.ID
+		req.SiteID = existing.SiteID
+
+		resp, err = c.c.UpdateUser(c.site, req)
+		if err != nil {
+			return err
+		}
 	}
 
 	d.SetId(resp.ID)
@@ -189,6 +205,11 @@ func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
+	if d.Get("skip_forget_on_destroy").(bool) {
+		return nil
+	}
+
+	// lookup MAC instead of trusting state
 	u, err := c.c.GetUser(c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
