@@ -1,0 +1,6 @@
+{
+    "map_id": "",
+    "type": "download|upload",
+    "name": ".*[^\\s]+.*",
+    "description": ""
+}

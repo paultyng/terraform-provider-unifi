@@ -1,0 +1,10 @@
+{
+    "interface": "wan|wan2",
+    "service": "afraid|changeip|cloudflare|dnspark|dslreports|dyndns|easydns|googledomains|namecheap|noip|sitelutions|zoneedit|custom",
+    "custom_service": "^[^\"' ]+$",
+    "host_name": "^[^\"' ]+$",
+    "login": "^[^\"' ]+$",
+    "x_password": "^[^\"' ]+$",
+    "server": "^[^\"' ]+$|^$",
+    "options": ["^[^\"' ]+$"]
+}

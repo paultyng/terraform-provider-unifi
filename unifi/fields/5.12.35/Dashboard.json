@@ -1,0 +1,12 @@
+{
+  "name": "",
+  "desc": "",
+  "is_public": "true|false",
+  "controller_version": "",
+  "modules":[{
+    "id": "",
+    "module_id": "",
+    "config": "",
+    "restrictions": ""
+  }]
+}

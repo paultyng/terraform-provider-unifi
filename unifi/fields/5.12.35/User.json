@@ -1,0 +1,12 @@
+{
+    "mac": "^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$",
+    "name": "",
+    "note": "",
+    "blocked": "",
+    "hostname": "",
+    "last_seen": "",
+    "usergroup_id": "",
+    "use_fixedip": "false|true",
+    "network_id": "",
+    "fixed_ip": ""
+}
