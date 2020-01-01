@@ -1,0 +1,15 @@
+{
+    "name": "",
+    "mapTypeId": "satellite|roadmap|hybrid|terrain",
+    "tilt": "[\\d]+",
+    "type": "designerMap|imageMap|googleMap",
+    "upp": "^([\\d]+[.]?[\\d]*)$",
+    "unit": "m|f",
+    "lat": "^([-]?[\\d]+[.]?[\\d]*([eE][-+]?[\\d]+)?)$",
+    "lng": "^([-]?[\\d]+[.]?[\\d]*([eE][-+]?[\\d]+)?)$",
+    "selected": "true|false",
+    "zoom": "[\\d]+",
+    "offset_top": "^([-]?[\\d]+[.]?[\\d]*)$",
+    "offset_left": "^([-]?[\\d]+[.]?[\\d]*)$",
+    "opacity": "^(0(\\.[\\d]{1,2})?|1)$|^$"
+}

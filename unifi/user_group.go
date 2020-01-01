@@ -4,20 +4,6 @@ import (
 	"fmt"
 )
 
-type UserGroup struct {
-	ID     string `json:"_id,omitempty"`
-	SiteID string `json:"site_id,omitempty"`
-	Name   string `json:"name"`
-
-	//Hidden   bool   `json:"attr_hidden,omitempty"`
-	HiddenID string `json:"attr_hidden_id,omitempty"`
-	NoDelete bool   `json:"attr_no_delete,omitempty"`
-	//NoEdit   bool   `json:"attr_no_edit,omitempty"`
-
-	QOSRateMaxDown int `json:"qos_rate_max_down"` // -1 for disabled
-	QOSRateMaxUp   int `json:"qos_rate_max_up"`   // -1 for disabled
-}
-
 func (c *Client) ListUserGroup(site string) ([]UserGroup, error) {
 	var respBody struct {
 		Meta meta        `json:"meta"`

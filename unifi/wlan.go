@@ -133,66 +133,6 @@ import (
 }
 */
 
-type WLAN struct {
-	ID      string `json:"_id,omitempty"`
-	SiteID  string `json:"site_id,omitempty"`
-	Enabled bool   `json:"enabled"`
-	Name    string `json:"name"`
-
-	Security    string `json:"security"` // "wpapsk", "wpaeap", "open"
-	WPAEnc      string `json:"wpa_enc"`  // "ccmp", "tkip"?
-	WPAMode     string `json:"wpa_mode"` // "wpa2"
-	XPassphrase string `json:"x_passphrase,omitempty"`
-	HideSSID    bool   `json:"hide_ssid"`
-	IsGuest     bool   `json:"is_guest"`
-
-	// create only?
-	MulticastEnhanceEnabled bool `json:"mcastenhance_enabled,omitempty"`
-	FastRoamingEnabled      bool `json:"fast_roaming_enabled,omitempty"`
-
-	RADIUSDasEnabled bool `json:"radius_das_enabled"`
-
-	WLANGroupID string `json:"wlangroup_id"`
-	UserGroupID string `json:"usergroup_id"`
-
-	NameCombineEnabled bool   `json:"name_combine_enabled"`
-	NameCombineSuffix  string `json:"name_combine_suffix,omitempty"`
-
-	XIappKey string `json:"x_iapp_key,omitempty"`
-
-	No2GhzOui bool   `json:"no2ghz_oui"`
-	WEPIdx    int    `json:"wep_idx,omitempty"`
-	DTIMMode  string `json:"dtim_mode"`
-	DTIMNg    int    `json:"dtim_ng,omitempty"`
-	DTIMNa    int    `json:"dtim_na,omitempty"`
-
-	MinrateNgEnabled          bool `json:"minrate_ng_enabled"`
-	MinrateNgBeaconRateKbps   int  `json:"minrate_ng_beacon_rate_kbps,omitempty"`
-	MinrateNgDataRateKbps     int  `json:"minrate_ng_data_rate_kbps,omitempty"`
-	MinrateNgAdvertisingRates bool `json:"minrate_ng_advertising_rates"`
-	MinrateNgCckRatesEnabled  bool `json:"minrate_ng_cck_rates_enabled"`
-	MinrateNaEnabled          bool `json:"minrate_na_enabled"`
-	MinrateNaAdvertisingRates bool `json:"minrate_na_advertising_rates"`
-	MinrateNaDataRateKbps     int  `json:"minrate_na_data_rate_kbps,omitempty"`
-	MinrateNgMgmtRateKbps     int  `json:"minrate_ng_mgmt_rate_kbps,omitempty"`
-	MinrateNaMgmtRateKbps     int  `json:"minrate_na_mgmt_rate_kbps,omitempty"`
-	MinrateNaBeaconRateKbps   int  `json:"minrate_na_beacon_rate_kbps,omitempty"`
-
-	MACFilterEnabled bool     `json:"mac_filter_enabled"`
-	MACFilterPolicy  string   `json:"mac_filter_policy,omitempty"`
-	MACFilterList    []string `json:"mac_filter_list,omitempty"`
-
-	BroadcastFilterEnabled bool     `json:"bc_filter_enabled"`
-	BroadcastFilterList    []string `json:"bc_filter_list,omitempty"`
-
-	GroupRekey int `json:"group_rekey"`
-
-	VLANEnabled bool   `json:"vlan_enabled"`
-	VLAN        string `json:"vlan"`
-
-	Schedule []string `json:"schedule"`
-}
-
 func (c *Client) ListWLAN(site string) ([]WLAN, error) {
 	var respBody struct {
 		Meta meta   `json:"meta"`

@@ -1,0 +1,8 @@
+{
+    "type": "uap|usg|usw",
+    "map_id": "",
+    "x": "",
+    "y": "",
+    "heightInMeters": "^([-]?[\\d]+[.]?[\\d]*)$",
+    "locked": "true|false"
+}

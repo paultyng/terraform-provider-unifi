@@ -1,0 +1,14 @@
+{
+    "cron_expr": "",
+    "action": "stream|upgrade",
+    "execute_only_once": "true|false",
+    "name": "",
+    "broadcastgroup_id": "",
+    "stream_type": "media|sample",
+    "upgrade_targets": [{
+        "mac":"^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$"
+    }],
+    "mediafile_id": "",
+    "sample_filename": "",
+    "additional_sounds_enabled": "true|false"
+}
