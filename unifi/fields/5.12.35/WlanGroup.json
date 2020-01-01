@@ -1,0 +1,10 @@
+{
+    "name":".{1,128}",
+    "loadbalance_enabled": "false|true",
+    "minrssi": "",
+    "minrssi_enabled": "true|false",
+    "loadbalance_enabled": "true|false",
+    "maxsta": "[1-9]|[1-9][0-9]|1[0-9]{2}|200|^$",
+    "b_supported": "false|true",
+    "pmf_mode": "disabled|optional|required"
+}

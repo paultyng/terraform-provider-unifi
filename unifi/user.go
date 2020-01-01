@@ -10,23 +10,6 @@ import "fmt"
 // { note: "my note", usergroup_id: "", name: "Google WiFi alias"}
 // {"meta":{"rc":"ok"},"data":[{"_id":"5deeac76439adf048407dd01","mac":"e4:f0:42:bf:bd:11","site_id":"5d6d8b07439adf048407dcd9","oui":"Google","is_guest":false,"first_seen":1575922805,"last_seen":1577889639,"is_wired":true,"fingerprint_engine":"tdts","dev_cat":6,"dev_family":9,"os_class":16,"os_name":56,"dev_vendor":7,"dev_id":2822,"priority":101,"fingerprint_source":0,"name":"Google WiFi","usergroup_id":"","noted":true,"fixed_ip":"10.0.6.11","note":"","confidence":100,"network_id":"5df7f70f1e801c052a1ab032","use_fixedip":true}]}
 
-type User struct {
-	ID     string `json:"_id,omitempty"`
-	SiteID string `json:"site_id,omitempty"`
-	Name   string `json:"name"`
-	MAC    string `json:"mac"`
-
-	UserGroupID string `json:"user_group_id"`
-	Note        string `json:"note"`
-	UseFixedIP  bool   `json:"use_fixedip"`
-	FixedIP     string `json:"fixed_ip,omitempty"`
-	NetworkID   string `json:"network_id"`
-
-	// not sure if you can end this for create/update, etc, only
-	// observed modifying via stamgr
-	Blocked bool `json:"blocked,omitempty"`
-}
-
 func (c *Client) ListUser(site string) ([]User, error) {
 	var respBody struct {
 		Meta meta   `json:"meta"`

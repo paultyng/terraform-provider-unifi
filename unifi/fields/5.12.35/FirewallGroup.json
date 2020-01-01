@@ -1,0 +1,5 @@
+{
+    "name": ".{1,64}",
+    "group_type": "address-group|port-group|ipv6-address-group",
+    "group_members": [ "" ]
+}

@@ -1,0 +1,5 @@
+{
+    "name":".{1,128}",
+    "enabled": "false|true",
+    "dpiapp_ids": [ "[\\d\\w]+" ]
+}

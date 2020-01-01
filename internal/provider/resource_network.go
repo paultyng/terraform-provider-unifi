@@ -1,9 +1,6 @@
 package provider
 
 import (
-	"fmt"
-	"strconv"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
@@ -89,7 +86,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 	return &unifi.Network{
 		Name:           d.Get("name").(string),
 		Purpose:        d.Get("purpose").(string),
-		VLAN:           fmt.Sprintf("%d", d.Get("vlan_id").(int)),
+		VLAN:           vlan,
 		IPSubnet:       d.Get("subnet").(string),
 		NetworkGroup:   d.Get("network_group").(string),
 		DHCPDStart:     d.Get("dhcp_start").(string),
@@ -108,13 +105,9 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 }
 
 func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData) error {
-	var err error
 	vlan := 0
 	if resp.VLANEnabled {
-		vlan, err = strconv.Atoi(resp.VLAN)
-		if err != nil {
-			return err
-		}
+		vlan = resp.VLAN
 	}
 
 	dhcpLease := resp.DHCPDLeaseTime

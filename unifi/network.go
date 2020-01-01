@@ -1,41 +1,31 @@
 package unifi
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
-type Network struct {
-	ID     string `json:"_id,omitempty"`
-	SiteID string `json:"site_id,omitempty"`
-	Name   string `json:"name"`
-
-	// Hidden   bool   `json:"attr_hidden,omitempty"`
-	// HiddenID string `json:"attr_hidden_id,omitempty"`
-	// NoDelete bool   `json:"attr_no_delete,omitempty"`
-	// NoEdit   bool   `json:"attr_no_edit,omitempty"`
-
-	Purpose      string `json:"purpose"`      // "corporate"
-	NetworkGroup string `json:"networkgroup"` // "LAN"
-	VLAN         string `json:"vlan"`
-	VLANEnabled  bool   `json:"vlan_enabled"`
-	IPSubnet     string `json:"ip_subnet"`
-	Enabled      bool   `json:"enabled"`
-	IsNAT        bool   `json:"is_nat"`
-	DomainName   string `json:"domain_name"`
-
-	DHCPRelayEnabled bool `json:"dhcp_relay_enabled"`
-
-	DHCPDStart             string `json:"dhcpd_start"`     // "10.0.0.6"
-	DHCPDStop              string `json:"dhcpd_stop"`      // "10.0.0.254"
-	DHCPDEnabled           bool   `json:"dhcpd_enabled"`   // true
-	DHCPDLeaseTime         int    `json:"dhcpd_leasetime"` // 86400
-	DHCPDDNSEnabled        bool   `json:"dhcpd_dns_enabled"`
-	DHCPDGatewayEnabled    bool   `json:"dhcpd_gateway_enabled"`
-	DHCPDTimeOffsetEnabled bool   `json:"dhcpd_time_offset_enabled"`
-
-	IPV6InterfaceType string `json:"ipv6_interface_type"` // "none"
-	IPV6PDStart       string `json:"ipv6_pd_start"`       // "::2"
-	IPV6PDStop        string `json:"ipv6_pd_stop"`        // "::7d1"
+func (n *Network) UnmarshalJSON(b []byte) error {
+	type Alias Network
+	aux := &struct {
+		VLAN json.Number `json:"vlan"`
+		*Alias
+	}{
+		Alias: (*Alias)(n),
+	}
+	err := json.Unmarshal(b, &aux)
+	if err != nil {
+		return err
+	}
+	n.VLAN = 0
+	if aux.VLAN.String() != "" {
+		vlan, err := aux.VLAN.Int64()
+		if err != nil {
+			return err
+		}
+		n.VLAN = int(vlan)
+	}
+	return nil
 }
 
 func (c *Client) ListNetwork(site string) ([]Network, error) {
