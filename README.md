@@ -159,7 +159,3 @@ resource "unifi_wlan" "test" {
 	security      = "wpapsk"
 }
 ```
-
-## TODO
-
-* [ ] automatically fixup subnet cidrs from .0 to .1?
