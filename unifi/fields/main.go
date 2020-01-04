@@ -14,14 +14,6 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-// TODO: this is really gross, I could switch to
-// using the java classes in the jar like scala2go
-// but the jar is obfuscated and I couldn't find a
-// way to extract that information from anywhere
-// else. Maybe it exists somewhere in the web UI,
-// but I was unable to find it in there in a way
-// that was extractable in a practical way.
-
 type replacement struct {
 	Old string
 	New string
