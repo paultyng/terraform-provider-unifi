@@ -58,6 +58,10 @@ func resourceNetwork() *schema.Resource {
 				Optional: true,
 				Default:  86400,
 			},
+			"domain_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -93,6 +97,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		DHCPDStop:      d.Get("dhcp_stop").(string),
 		DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
 		DHCPDLeaseTime: d.Get("dhcp_lease").(int),
+		DomainName:     d.Get("domain_name").(string),
 
 		VLANEnabled: vlan != 0 && vlan != 1,
 
@@ -124,6 +129,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("dhcp_stop", resp.DHCPDStop)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
 	d.Set("dhcp_lease", dhcpLease)
+	d.Set("domain_name", resp.DomainName)
 
 	return nil
 }

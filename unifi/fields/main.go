@@ -28,6 +28,8 @@ var fieldReps = []replacement{
 	{"Nat", "NAT"},
 	{"Wlangroup", "WLANGroup"},
 	{"Dns", "DNS"},
+	{"Tftp", "TFTP"},
+	{"Dhcpdv6", "DHCPDV6"},
 	{"Dhcpd", "DHCPD"},
 	{"Dhcp", "DHCP"},
 	{"Wlan", "WLAN"},
@@ -45,10 +47,14 @@ var fieldReps = []replacement{
 	{"Bc", "Broadcast"},
 	{"Radius", "RADIUS"},
 	{"Fixedip", "FixedIP"},
+	{"Ipsec", "IPSec"},
 	{"Ip", "IP"},
 	{"Pmf", "PMF"},
 	{"Minrssi", "MinRSSI"},
 	{"Qos", "QOS"},
+	{"Wan", "WAN"},
+	{"Vpn", "VPN"},
+	{"Igmp", "IGMP"},
 }
 
 var fileReps = []replacement{

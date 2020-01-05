@@ -23,7 +23,7 @@ type FirewallRule struct {
 	Enabled               bool     `json:"enabled"`
 	IcmpTypename          string   `json:"icmp_typename"`   // ^$|communication-prohibited|destination-unreachable|echo-reply|echo-request|fragmentation-needed|host-precedence-violation|host-prohibited|host-redirect|host-unknown|host-unreachable|ip-header-bad|network-prohibited|network-redirect|network-unknown|network-unreachable|parameter-problem|port-unreachable|protocol-unreachable|redirect|required-option-missing|router-advertisement|router-solicitation|source-route-failed|timestamp-reply|timestamp-request|TOS-host-redirect|TOS-host-unreachable|TOS-network-redirect|TOS-network-unreachable|ttl-exceeded|ttl-zero-during-reassembly|ttl-zero-during-transit
 	Icmpv6Typename        string   `json:"icmpv6_typename"` // ^$|address-unreachable|bad-header|communication-prohibited|destination-unreachable|echo-reply|echo-request|neighbor-advertisement|neighbor-solicitation|no-route|packet-too-big|parameter-problem|port-unreachable|redirect|router-advertisement|router-solicitation|time-exceeded|ttl-zero-during-reassembly|ttl-zero-during-transit|unknown-header-type|unknown-option
-	IPsec                 string   `json:"ipsec"`           // match-ipsec|match-none|^$
+	IPSec                 string   `json:"ipsec"`           // match-ipsec|match-none|^$
 	Logging               bool     `json:"logging"`
 	Monthdays             string   `json:"monthdays"` // ^$|^(([1-9]|[12][0-9]|3[01])(,([1-9]|[12][0-9]|3[01])){0,30})$
 	MonthdaysNegate       bool     `json:"monthdays_negate"`
