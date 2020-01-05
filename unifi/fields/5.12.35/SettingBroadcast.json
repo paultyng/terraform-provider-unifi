@@ -1,0 +1,8 @@
+{
+  "sound_before_enabled": "true|false",
+  "sound_before_type": "sample|media",
+  "sound_before_resource": "",
+  "sound_after_enabled": "true|false",
+  "sound_after_type": "sample|media",
+  "sound_after_resource": ""
+}

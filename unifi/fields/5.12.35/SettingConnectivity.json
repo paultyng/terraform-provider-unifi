@@ -1,0 +1,8 @@
+{
+  "enable_isolated_wlan": "true|false",
+  "enabled": "true|false",
+  "x_mesh_essid": "",
+  "x_mesh_psk": "",
+  "uplink_host": "",
+  "uplink_type": ""
+}

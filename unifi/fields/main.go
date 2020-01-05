@@ -55,6 +55,8 @@ var fieldReps = []replacement{
 	{"Wan", "WAN"},
 	{"Vpn", "VPN"},
 	{"Igmp", "IGMP"},
+	{"Tcp", "TCP"},
+	{"Udp", "UDP"},
 }
 
 var fileReps = []replacement{
@@ -98,6 +100,10 @@ func main() {
 		ext := filepath.Ext(name)
 
 		if filepath.Ext(name) != ".json" {
+			continue
+		}
+
+		if name == "Setting.json" {
 			continue
 		}
 
@@ -157,8 +163,14 @@ type %s struct {
 	sort.Strings(fieldNames)
 
 	for _, name := range fieldNames {
-		if structName == "User" && name == "blocked" {
+		switch {
+		case structName == "User" && name == "blocked":
 			code += "\tBlocked bool `json:\"blocked,omitempty\"`\n"
+			continue
+		case structName == "SettingUsg" && strings.HasSuffix(name, "_timeout"):
+			field := strcase.ToCamel(name)
+			field = cleanName(field, fieldReps)
+			code += fmt.Sprintf("\t%s int `json:\"%s,omitempty\"`\n", field, name)
 			continue
 		}
 

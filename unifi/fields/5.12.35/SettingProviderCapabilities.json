@@ -1,0 +1,5 @@
+{
+  "enabled": "false|true",
+  "download": "^[1-9][0-9]*$",
+  "upload": "^[1-9][0-9]*$"
+}
