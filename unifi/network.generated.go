@@ -36,7 +36,7 @@ type Network struct {
 	DHCPDNtpEnabled         bool     `json:"dhcpd_ntp_enabled"`
 	DHCPDStart              string   `json:"dhcpd_start"` // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
 	DHCPDStop               string   `json:"dhcpd_stop"`  // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
-	DHCPDTftpServer         string   `json:"dhcpd_tftp_server,omitempty"`
+	DHCPDTFTPServer         string   `json:"dhcpd_tftp_server,omitempty"`
 	DHCPDTimeOffset         int      `json:"dhcpd_time_offset,omitempty"` // ^0$|^-?([1-9]([0-9]{1,3})?|[1-7][0-9]{4}|[8][0-5][0-9]{3}|86[0-3][0-9]{2}|86400)$
 	DHCPDTimeOffsetEnabled  bool     `json:"dhcpd_time_offset_enabled"`
 	DHCPDUnifiController    string   `json:"dhcpd_unifi_controller"` // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
@@ -44,41 +44,41 @@ type Network struct {
 	DHCPDWins2              string   `json:"dhcpd_wins_2"`           // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
 	DHCPDWinsEnabled        bool     `json:"dhcpd_wins_enabled"`
 	DHCPDWPAdUrl            string   `json:"dhcpd_wpad_url,omitempty"`
-	DHCPDv6DNS1             string   `json:"dhcpdv6_dns_1,omitempty"`
-	DHCPDv6DNS2             string   `json:"dhcpdv6_dns_2,omitempty"`
-	DHCPDv6DNS3             string   `json:"dhcpdv6_dns_3,omitempty"`
-	DHCPDv6DNS4             string   `json:"dhcpdv6_dns_4,omitempty"`
-	DHCPDv6DNSAuto          bool     `json:"dhcpdv6_dns_auto"`
-	DHCPDv6Enabled          bool     `json:"dhcpdv6_enabled"`
-	DHCPDv6LeaseTime        int      `json:"dhcpdv6_leasetime,omitempty"`
-	DHCPDv6Start            string   `json:"dhcpdv6_start,omitempty"`
-	DHCPDv6Stop             string   `json:"dhcpdv6_stop,omitempty"`
+	DHCPDV6DNS1             string   `json:"dhcpdv6_dns_1,omitempty"`
+	DHCPDV6DNS2             string   `json:"dhcpdv6_dns_2,omitempty"`
+	DHCPDV6DNS3             string   `json:"dhcpdv6_dns_3,omitempty"`
+	DHCPDV6DNS4             string   `json:"dhcpdv6_dns_4,omitempty"`
+	DHCPDV6DNSAuto          bool     `json:"dhcpdv6_dns_auto"`
+	DHCPDV6Enabled          bool     `json:"dhcpdv6_enabled"`
+	DHCPDV6LeaseTime        int      `json:"dhcpdv6_leasetime,omitempty"`
+	DHCPDV6Start            string   `json:"dhcpdv6_start,omitempty"`
+	DHCPDV6Stop             string   `json:"dhcpdv6_stop,omitempty"`
 	DHCPguardEnabled        bool     `json:"dhcpguard_enabled"`
 	DomainName              string   `json:"domain_name,omitempty"` // (?=^.{3,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)|^$|[a-zA-Z0-9-]{1,63}
 	DPIEnabled              bool     `json:"dpi_enabled"`
 	DPIgroupID              string   `json:"dpigroup_id"` // [\d\w]+|^$
 	Enabled                 bool     `json:"enabled"`
-	ExposedToSiteVpn        bool     `json:"exposed_to_site_vpn"`
-	IgmpFastleave           bool     `json:"igmp_fastleave"`
-	IgmpGroupmembership     int      `json:"igmp_groupmembership,omitempty"` // [2-9]|[1-9][0-9]{1,2}|[1-2][0-9]{3}|3[0-5][0-9]{2}|3600|^$
-	IgmpMaxresponse         int      `json:"igmp_maxresponse,omitempty"`     // [1-9]|1[0-9]|2[0-5]|^$
-	IgmpMcrtrexpiretime     int      `json:"igmp_mcrtrexpiretime,omitempty"` // [0-9]|[1-9][0-9]{1,2}|[1-2][0-9]{3}|3[0-5][0-9]{2}|3600|^$
-	IgmpQuerier             string   `json:"igmp_querier"`                   // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
-	IgmpSnooping            bool     `json:"igmp_snooping"`
-	IgmpSupression          bool     `json:"igmp_supression"`
+	ExposedToSiteVPN        bool     `json:"exposed_to_site_vpn"`
+	IGMPFastleave           bool     `json:"igmp_fastleave"`
+	IGMPGroupmembership     int      `json:"igmp_groupmembership,omitempty"` // [2-9]|[1-9][0-9]{1,2}|[1-2][0-9]{3}|3[0-5][0-9]{2}|3600|^$
+	IGMPMaxresponse         int      `json:"igmp_maxresponse,omitempty"`     // [1-9]|1[0-9]|2[0-5]|^$
+	IGMPMcrtrexpiretime     int      `json:"igmp_mcrtrexpiretime,omitempty"` // [0-9]|[1-9][0-9]{1,2}|[1-2][0-9]{3}|3[0-5][0-9]{2}|3600|^$
+	IGMPQuerier             string   `json:"igmp_querier"`                   // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
+	IGMPSnooping            bool     `json:"igmp_snooping"`
+	IGMPSupression          bool     `json:"igmp_supression"`
 	IPSubnet                string   `json:"ip_subnet,omitempty"`      // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\/([1-9]|[1-2][0-9]|30)$
-	IPsecDhGroup            int      `json:"ipsec_dh_group,omitempty"` // 2|5|14|15|16|19|20|21|25|26
-	IPsecDynamicRouting     bool     `json:"ipsec_dynamic_routing"`
-	IPsecEncryption         string   `json:"ipsec_encryption,omitempty"`   // aes128|aes192|aes256|3des
-	IPsecEspDhGroup         int      `json:"ipsec_esp_dh_group,omitempty"` // 1|2|5|14|15|16|17|18
-	IPsecHash               string   `json:"ipsec_hash,omitempty"`         // sha1|md5|sha256|sha384|sha512
-	IPsecIkeDhGroup         int      `json:"ipsec_ike_dh_group,omitempty"` // 1|2|5|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32
-	IPsecInterface          string   `json:"ipsec_interface,omitempty"`    // wan|wan2
-	IPsecKeyExchange        string   `json:"ipsec_key_exchange,omitempty"` // ikev1|ikev2
-	IPsecLocalIP            string   `json:"ipsec_local_ip,omitempty"`     // ^any$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
-	IPsecPeerIP             string   `json:"ipsec_peer_ip,omitempty"`      // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
-	IPsecPfs                bool     `json:"ipsec_pfs"`
-	IPsecProfile            string   `json:"ipsec_profile,omitempty"`       // customized|azure_dynamic|azure_static
+	IPSecDhGroup            int      `json:"ipsec_dh_group,omitempty"` // 2|5|14|15|16|19|20|21|25|26
+	IPSecDynamicRouting     bool     `json:"ipsec_dynamic_routing"`
+	IPSecEncryption         string   `json:"ipsec_encryption,omitempty"`   // aes128|aes192|aes256|3des
+	IPSecEspDhGroup         int      `json:"ipsec_esp_dh_group,omitempty"` // 1|2|5|14|15|16|17|18
+	IPSecHash               string   `json:"ipsec_hash,omitempty"`         // sha1|md5|sha256|sha384|sha512
+	IPSecIkeDhGroup         int      `json:"ipsec_ike_dh_group,omitempty"` // 1|2|5|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32
+	IPSecInterface          string   `json:"ipsec_interface,omitempty"`    // wan|wan2
+	IPSecKeyExchange        string   `json:"ipsec_key_exchange,omitempty"` // ikev1|ikev2
+	IPSecLocalIP            string   `json:"ipsec_local_ip,omitempty"`     // ^any$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+	IPSecPeerIP             string   `json:"ipsec_peer_ip,omitempty"`      // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+	IPSecPfs                bool     `json:"ipsec_pfs"`
+	IPSecProfile            string   `json:"ipsec_profile,omitempty"`       // customized|azure_dynamic|azure_static
 	IPV6InterfaceType       string   `json:"ipv6_interface_type,omitempty"` // static|pd|none
 	IPV6PDInterface         string   `json:"ipv6_pd_interface,omitempty"`   // wan|wan2
 	IPV6PDPrefixid          string   `json:"ipv6_pd_prefixid"`              // ^$|[a-fA-F0-9]{1,4}
@@ -110,42 +110,42 @@ type Network struct {
 	RADIUSprofileID         string   `json:"radiusprofile_id"`
 	RemoteSiteID            string   `json:"remote_site_id"`
 	RemoteSiteSubnets       []string `json:"remote_site_subnets,omitempty"` // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\/([1-9]|[1-2][0-9]|30)$|^$
-	RemoteVpnSubnets        []string `json:"remote_vpn_subnets,omitempty"`  // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\/([1-9]|[1-2][0-9]|30)$|^$
-	ReportWanEvent          bool     `json:"report_wan_event"`
+	RemoteVPNSubnets        []string `json:"remote_vpn_subnets,omitempty"`  // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\/([1-9]|[1-2][0-9]|30)$|^$
+	ReportWANEvent          bool     `json:"report_wan_event"`
 	RequireMschapv2         bool     `json:"require_mschapv2"`
 	RouteDistance           int      `json:"route_distance,omitempty"` // ^[1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]$|^$
 	UpnpLanEnabled          bool     `json:"upnp_lan_enabled"`
 	UserGroupID             string   `json:"usergroup_id"`
 	VLAN                    int      `json:"vlan,omitempty"` // [2-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|400[0-9]|^$
 	VLANEnabled             bool     `json:"vlan_enabled"`
-	VpnClientDefaultRoute   bool     `json:"vpn_client_default_route"`
-	VpnClientPullDNS        bool     `json:"vpn_client_pull_dns"`
-	VpnType                 string   `json:"vpn_type,omitempty"`                // auto|ipsec-vpn|openvpn-vpn|pptp-client|l2tp-server|pptp-server
-	WanDHCPv6PDSize         int      `json:"wan_dhcpv6_pd_size,omitempty"`      // ^(4[89]|5[0-9]|6[0-4])$|^$
-	WanDNS1                 string   `json:"wan_dns1"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
-	WanDNS2                 string   `json:"wan_dns2"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
-	WanDNS3                 string   `json:"wan_dns3"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
-	WanDNS4                 string   `json:"wan_dns4"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
-	WanEgressQOS            int      `json:"wan_egress_qos,omitempty"`          // [1-7]|^$
-	WanGateway              string   `json:"wan_gateway"`                       // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
-	WanGatewayV6            string   `json:"wan_gateway_v6"`                    // ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$|^$
-	WanIP                   string   `json:"wan_ip,omitempty"`                  // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
-	WanIPV6                 string   `json:"wan_ipv6"`                          // ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$|^$
-	WanLoadBalanceType      string   `json:"wan_load_balance_type,omitempty"`   // failover-only|weighted
-	WanLoadBalanceWeight    int      `json:"wan_load_balance_weight,omitempty"` // [1-9]|[1-9][0-9]
-	WanNetmask              string   `json:"wan_netmask,omitempty"`             // ^((128|192|224|240|248|252|254)\.0\.0\.0)|(255\.(((0|128|192|224|240|248|252|254)\.0\.0)|(255\.(((0|128|192|224|240|248|252|254)\.0)|255\.(0|128|192|224|240|248|252|254)))))$
-	WanNetworkGroup         string   `json:"wan_networkgroup,omitempty"`        // WAN[2]?|WAN_LTE_FAILOVER
-	WanPrefixlen            int      `json:"wan_prefixlen,omitempty"`           // ^([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-8])$|^$
-	WanSmartqDownRate       int      `json:"wan_smartq_down_rate,omitempty"`    // [0-9]{1,6}|1000000
-	WanSmartqEnabled        bool     `json:"wan_smartq_enabled"`
-	WanSmartqUpRate         int      `json:"wan_smartq_up_rate,omitempty"` // [0-9]{1,6}|1000000
-	WanType                 string   `json:"wan_type,omitempty"`           // disabled|dhcp|static|pppoe
-	WanTypeV6               string   `json:"wan_type_v6,omitempty"`        // disabled|dhcpv6|static
-	WanUsername             string   `json:"wan_username,omitempty"`       // [^"' ]+
-	WanVLAN                 int      `json:"wan_vlan,omitempty"`           // [0-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-4]|^$
-	WanVLANEnabled          bool     `json:"wan_vlan_enabled"`
-	XIPsecPreSharedKey      string   `json:"x_ipsec_pre_shared_key,omitempty"`      // [^\"\' ]+
+	VPNClientDefaultRoute   bool     `json:"vpn_client_default_route"`
+	VPNClientPullDNS        bool     `json:"vpn_client_pull_dns"`
+	VPNType                 string   `json:"vpn_type,omitempty"`                // auto|ipsec-vpn|openvpn-vpn|pptp-client|l2tp-server|pptp-server
+	WANDHCPv6PDSize         int      `json:"wan_dhcpv6_pd_size,omitempty"`      // ^(4[89]|5[0-9]|6[0-4])$|^$
+	WANDNS1                 string   `json:"wan_dns1"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
+	WANDNS2                 string   `json:"wan_dns2"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
+	WANDNS3                 string   `json:"wan_dns3"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
+	WANDNS4                 string   `json:"wan_dns4"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
+	WANEgressQOS            int      `json:"wan_egress_qos,omitempty"`          // [1-7]|^$
+	WANGateway              string   `json:"wan_gateway"`                       // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
+	WANGatewayV6            string   `json:"wan_gateway_v6"`                    // ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$|^$
+	WANIP                   string   `json:"wan_ip,omitempty"`                  // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+	WANIPV6                 string   `json:"wan_ipv6"`                          // ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$|^$
+	WANLoadBalanceType      string   `json:"wan_load_balance_type,omitempty"`   // failover-only|weighted
+	WANLoadBalanceWeight    int      `json:"wan_load_balance_weight,omitempty"` // [1-9]|[1-9][0-9]
+	WANNetmask              string   `json:"wan_netmask,omitempty"`             // ^((128|192|224|240|248|252|254)\.0\.0\.0)|(255\.(((0|128|192|224|240|248|252|254)\.0\.0)|(255\.(((0|128|192|224|240|248|252|254)\.0)|255\.(0|128|192|224|240|248|252|254)))))$
+	WANNetworkGroup         string   `json:"wan_networkgroup,omitempty"`        // WAN[2]?|WAN_LTE_FAILOVER
+	WANPrefixlen            int      `json:"wan_prefixlen,omitempty"`           // ^([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-8])$|^$
+	WANSmartqDownRate       int      `json:"wan_smartq_down_rate,omitempty"`    // [0-9]{1,6}|1000000
+	WANSmartqEnabled        bool     `json:"wan_smartq_enabled"`
+	WANSmartqUpRate         int      `json:"wan_smartq_up_rate,omitempty"` // [0-9]{1,6}|1000000
+	WANType                 string   `json:"wan_type,omitempty"`           // disabled|dhcp|static|pppoe
+	WANTypeV6               string   `json:"wan_type_v6,omitempty"`        // disabled|dhcpv6|static
+	WANUsername             string   `json:"wan_username,omitempty"`       // [^"' ]+
+	WANVLAN                 int      `json:"wan_vlan,omitempty"`           // [0-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-4]|^$
+	WANVLANEnabled          bool     `json:"wan_vlan_enabled"`
+	XIPSecPreSharedKey      string   `json:"x_ipsec_pre_shared_key,omitempty"`      // [^\"\' ]+
 	XOpenVPNSharedSecretKey string   `json:"x_openvpn_shared_secret_key,omitempty"` // [0-9A-Fa-f]{512}
 	XPptpcPassword          string   `json:"x_pptpc_password,omitempty"`            // [^\"\' ]+
-	XWanPassword            string   `json:"x_wan_password,omitempty"`              // [^"' ]+
+	XWANPassword            string   `json:"x_wan_password,omitempty"`              // [^"' ]+
 }

@@ -20,6 +20,7 @@ func TestAccNetwork_basic(t *testing.T) {
 				Config: testAccNetworkConfig("10.0.202.1/24", 202),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
+					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
 					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.202.1/24"),
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "202"),
 				),
@@ -73,6 +74,7 @@ resource "unifi_network" "test" {
 	dhcp_start   = cidrhost(var.subnet, 6)
 	dhcp_stop    = cidrhost(var.subnet, 254)
 	dhcp_enabled = true
+	domain_name  = "foo.local"
 }
 `, subnet, vlan)
 }
