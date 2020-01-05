@@ -1,0 +1,11 @@
+{
+  "enabled": "true|false",
+  "ip": "",
+  "port": "[1-9][0-9]{0,3}|[1-5][0-9]{4}|[6][0-4][0-9]{3}|[6][5][0-4][0-9]{2}|[6][5][5][0-2][0-9]|[6][5][5][3][0-5]",
+  "debug": "false|true",
+  "this_controller": "false|true",
+  "this_controller_encrypted_only": "false|true",
+  "netconsole_enabled": "true|false",
+  "netconsole_host": "",
+  "netconsole_port": "[1-9][0-9]{0,3}|[1-5][0-9]{4}|[6][0-4][0-9]{3}|[6][5][0-4][0-9]{2}|[6][5][5][0-2][0-9]|[6][5][5][3][0-5]"
+}

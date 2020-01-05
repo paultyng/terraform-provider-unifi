@@ -1,0 +1,9 @@
+{
+  "enabled": "true|false",
+  "x_certificate_arn": "",
+  "x_certificate_pem": "",
+  "device_id": "",
+  "device_auth": "",
+  "x_private_key": "",
+  "ubic_uuid": ""
+}

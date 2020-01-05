@@ -1,0 +1,14 @@
+{
+  "enabled": "true|false",
+  "migrated": "true|false",
+  "ubic_uuid": "",
+  "auth_token": "",
+  "device_id": "",
+  "oauth_enabled": "true|false",
+  "oauth_redirect_uris": [
+    ""
+  ],
+  "oauth_app_id": "",
+  "x_oauth_app_secret": "",
+  "sso_login_enabled": ""
+}

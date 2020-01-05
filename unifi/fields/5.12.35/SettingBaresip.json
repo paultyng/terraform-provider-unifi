@@ -1,0 +1,6 @@
+{
+  "enabled": "true|false",
+  "server": "",
+  "outbound_proxy": "",
+  "package_url": ""
+}
