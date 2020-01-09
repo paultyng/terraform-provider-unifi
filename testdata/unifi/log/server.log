@@ -1,0 +1,118 @@
+[2019-12-26T11:08:18,941] <launcher> WARN  system - reload system.properties failed: file not found
+[2019-12-26T11:08:18,949] <launcher> WARN  system - reload system.properties.bk failed: file not found
+[2019-12-26T11:08:18,950] <launcher> INFO  system - *** Running for the first time, creating identity ***
+[2019-12-26T11:08:18,950] <launcher> INFO  system - UUID: ddca3e72-b230-4424-9706-02f1aaffaab7
+[2019-12-26T11:08:18,950] <launcher> WARN  system - reload system.properties failed: file not found
+[2019-12-26T11:08:18,950] <launcher> WARN  system - reload system.properties.bk failed: file not found
+[2019-12-26T11:08:18,957] <launcher> INFO  system - Reporter UUID:
+[2019-12-26T11:08:21,245] <localhost-startStop-1> INFO  system - ======================================================================
+[2019-12-26T11:08:21,245] <localhost-startStop-1> INFO  system - UniFi 5.12.35 (build atag_5.12.35_12979 - release/release) is started
+[2019-12-26T11:08:21,245] <localhost-startStop-1> INFO  system - ======================================================================
+[2019-12-26T11:08:21,246] <localhost-startStop-1> INFO  system - BASE dir:/usr/lib/unifi
+[2019-12-26T11:08:21,290] <localhost-startStop-1> INFO  system - Current System IP: 172.17.0.2
+[2019-12-26T11:08:21,291] <localhost-startStop-1> INFO  system - Hostname: ef2c8dfe3e03
+[2019-12-26T11:08:21,517] <localhost-startStop-1> WARN  system - Valid keystore is missing or invalid. Generating one ...
+[2019-12-26T11:08:21,517] <localhost-startStop-1> INFO  system - Generating Certificate[UniFi]... please wait...
+[2019-12-26T11:08:21,929] <localhost-startStop-1> INFO  system - Certificate[UniFi] generated!
+[2019-12-26T11:08:22,078] <localhost-startStop-1> INFO  db     - waiting for db connection...
+[2019-12-26T11:08:23,581] <localhost-startStop-1> INFO  db     - Connecting to mongodb://localhost:27117
+[2019-12-26T11:08:27,217] <localhost-startStop-1> INFO  db     - Connecting to mongodb://localhost:27117
+[2019-12-26T11:08:27,791] <localhost-startStop-1> INFO  productinfo - Using controller channel=RELEASE, firmware channel=RELEASE. Available controller channels=[RELEASE], available firmware channels=[RELEASE]. SSO is disabled.
+[2019-12-26T11:08:28,320] <localhost-startStop-1> INFO  webrtc - WebRTC library version: EvoStream Media Server (www.evostream.com) build v2.2.2 - Gladiator - (built for Debian-8.2.0-x86_64 on 2018-12-15T00:25:29.000) OpenSSL version: 1.0.2n usrsctp version: v0.0.3 libx264 version: v0.0.2-alpha.1 libav name: libav libav version: v0.0.1-alpha.4 compiled on machine: Linux debian-8-2-0-64 3.16.0-6-amd64 #1 SMP Debian 3.16.57-2 (2018-07-14) x86_64 GNU/Linux
+[2019-12-26T11:08:28,367] <localhost-startStop-1> INFO  remote - Created directory: /usr/lib/unifi/logs/remote
+[2019-12-26T11:08:28,699] <localhost-startStop-1> INFO  sdn    - Removed fingerbank token
+[2019-12-26T11:09:38,399] <autoupdate-check> WARN  system - update site - cannot resolve the host
+[2019-12-26T11:09:48,433] <autoupdate-check> WARN  fwupdate - unable to get update info for channel RELEASE: java.net.UnknownHostException: fw-update.ubnt.com
+[2019-12-26T11:13:38,413] <check-iot-certificate> WARN  sdn    - failed to get connectivity details: config.ubnt.com
+[2019-12-27T21:02:07,940] <localhost-startStop-1> INFO  system - ======================================================================
+[2019-12-27T21:02:07,945] <localhost-startStop-1> INFO  system - UniFi 5.12.35 (build atag_5.12.35_12979 - release/release) is started
+[2019-12-27T21:02:07,945] <localhost-startStop-1> INFO  system - ======================================================================
+[2019-12-27T21:02:07,947] <localhost-startStop-1> INFO  system - BASE dir:/usr/lib/unifi
+[2019-12-27T21:02:08,003] <localhost-startStop-1> INFO  system - Current System IP: 172.17.0.2
+[2019-12-27T21:02:08,003] <localhost-startStop-1> INFO  system - Hostname: f4f0ee6557bb
+[2019-12-27T21:02:08,490] <localhost-startStop-1> INFO  db     - waiting for db connection...
+[2019-12-27T21:02:09,994] <localhost-startStop-1> INFO  db     - Connecting to mongodb://localhost:27117
+[2019-12-27T21:02:11,175] <localhost-startStop-1> INFO  db     - *** Factory Default *** Database exists. Clean it
+[2019-12-27T21:02:11,931] <localhost-startStop-1> INFO  db     - Connecting to mongodb://localhost:27117
+[2019-12-27T21:02:11,962] <localhost-startStop-1> INFO  stat   - *** Factory Default *** Stat Database exists. Clean it
+[2019-12-27T21:02:12,101] <localhost-startStop-1> INFO  productinfo - Using controller channel=RELEASE, firmware channel=RELEASE. Available controller channels=[RELEASE], available firmware channels=[RELEASE]. SSO is disabled.
+[2019-12-27T21:02:12,798] <localhost-startStop-1> INFO  webrtc - WebRTC library version: EvoStream Media Server (www.evostream.com) build v2.2.2 - Gladiator - (built for Debian-8.2.0-x86_64 on 2018-12-15T00:25:29.000) OpenSSL version: 1.0.2n usrsctp version: v0.0.3 libx264 version: v0.0.2-alpha.1 libav name: libav libav version: v0.0.1-alpha.4 compiled on machine: Linux debian-8-2-0-64 3.16.0-6-amd64 #1 SMP Debian 3.16.57-2 (2018-07-14) x86_64 GNU/Linux
+[2019-12-27T21:02:12,867] <localhost-startStop-1> INFO  remote - Directory '/usr/lib/unifi/logs/remote' present
+[2019-12-27T21:02:13,183] <localhost-startStop-1> INFO  sdn    - Removed fingerbank token
+[2019-12-27T21:03:15,293] <autoupdate-check> INFO  productinfo - firmware[BZ2] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,295] <autoupdate-check> INFO  productinfo - firmware[BZ2LR] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,295] <autoupdate-check> INFO  productinfo - firmware[S216150] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,295] <autoupdate-check> INFO  productinfo - firmware[S224250] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,295] <autoupdate-check> INFO  productinfo - firmware[S224500] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,295] <autoupdate-check> INFO  productinfo - firmware[S248500] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,295] <autoupdate-check> INFO  productinfo - firmware[S248750] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,296] <autoupdate-check> INFO  productinfo - firmware[S28150] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,296] <autoupdate-check> INFO  productinfo - firmware[U2HSR] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,296] <autoupdate-check> INFO  productinfo - firmware[U2IW] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,296] <autoupdate-check> INFO  productinfo - firmware[U2Lv2] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,296] <autoupdate-check> INFO  productinfo - firmware[U2O] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,296] <autoupdate-check> INFO  productinfo - firmware[U2Sv2] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,296] <autoupdate-check> INFO  productinfo - firmware[U5O] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,296] <autoupdate-check> INFO  productinfo - firmware[U7EDU] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7HD] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7IW] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7IWP] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7LR] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7LT] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7MP] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7MSH] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7NHD] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,297] <autoupdate-check> INFO  productinfo - firmware[U7P] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[U7PG2] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[U7SHD] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[UBB] new version (1.0.5.41706) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[UCXG] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[UDM] new version (1.5.0.1974) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[UDMB] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[UDMPRO] new version (1.5.0.1974) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[UFLHD] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,298] <autoupdate-check> INFO  productinfo - firmware[UGW3] new version (4.4.44.5213844) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[UGW4] new version (4.4.44.5213871) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[UGWXG] new version (4.4.44.5213871) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[UHDIW] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[ULTE] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[US16P150] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[US24] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[US24P250] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[US24P500] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,299] <autoupdate-check> INFO  productinfo - firmware[US24PL2] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,300] <autoupdate-check> INFO  productinfo - firmware[US24PRO] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,300] <autoupdate-check> INFO  productinfo - firmware[US48] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,300] <autoupdate-check> INFO  productinfo - firmware[US48P500] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,300] <autoupdate-check> INFO  productinfo - firmware[US48P750] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,300] <autoupdate-check> INFO  productinfo - firmware[US48PL2] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,300] <autoupdate-check> INFO  productinfo - firmware[US48PRO] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,300] <autoupdate-check> INFO  productinfo - firmware[US6XG150] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,300] <autoupdate-check> INFO  productinfo - firmware[US8] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,301] <autoupdate-check> INFO  productinfo - firmware[US8P150] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,301] <autoupdate-check> INFO  productinfo - firmware[US8P60] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,301] <autoupdate-check> INFO  productinfo - firmware[USC8] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,301] <autoupdate-check> INFO  productinfo - firmware[USC8P450] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,301] <autoupdate-check> INFO  productinfo - firmware[USF5P] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,301] <autoupdate-check> INFO  productinfo - firmware[USL16P] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,301] <autoupdate-check> INFO  productinfo - firmware[USL24P] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,301] <autoupdate-check> INFO  productinfo - firmware[USXG] new version (4.0.66.10832) is available
+[2019-12-27T21:03:15,302] <autoupdate-check> INFO  productinfo - firmware[UXBSDM] new version (4.0.69.10871) is available
+[2019-12-27T21:03:15,302] <autoupdate-check> INFO  productinfo - firmware[UXSDM] new version (4.0.69.10871) is available
+[2020-01-09T12:40:04,183] <localhost-startStop-1> INFO  system - ======================================================================
+[2020-01-09T12:40:04,199] <localhost-startStop-1> INFO  system - UniFi 5.12.35 (build atag_5.12.35_12979 - release/release) is started
+[2020-01-09T12:40:04,200] <localhost-startStop-1> INFO  system - ======================================================================
+[2020-01-09T12:40:04,203] <localhost-startStop-1> INFO  system - BASE dir:/usr/lib/unifi
+[2020-01-09T12:40:04,277] <localhost-startStop-1> INFO  system - Current System IP: 172.17.0.2
+[2020-01-09T12:40:04,278] <localhost-startStop-1> INFO  system - Hostname: 8fb8a83e8a9b
+[2020-01-09T12:40:05,131] <localhost-startStop-1> INFO  db     - waiting for db connection...
+[2020-01-09T12:40:07,135] <localhost-startStop-1> INFO  db     - Connecting to mongodb://localhost:27117
+[2020-01-09T12:40:08,445] <localhost-startStop-1> INFO  db     - *** Factory Default *** Database exists. Clean it
+[2020-01-09T12:40:09,224] <localhost-startStop-1> INFO  db     - Connecting to mongodb://localhost:27117
+[2020-01-09T12:40:09,276] <localhost-startStop-1> INFO  stat   - *** Factory Default *** Stat Database exists. Clean it
+[2020-01-09T12:40:09,455] <localhost-startStop-1> INFO  productinfo - Using controller channel=RELEASE, firmware channel=RELEASE. Available controller channels=[RELEASE], available firmware channels=[RELEASE]. SSO is disabled.
+[2020-01-09T12:40:10,351] <localhost-startStop-1> INFO  webrtc - WebRTC library version: EvoStream Media Server (www.evostream.com) build v2.2.2 - Gladiator - (built for Debian-8.2.0-x86_64 on 2018-12-15T00:25:29.000) OpenSSL version: 1.0.2n usrsctp version: v0.0.3 libx264 version: v0.0.2-alpha.1 libav name: libav libav version: v0.0.1-alpha.4 compiled on machine: Linux debian-8-2-0-64 3.16.0-6-amd64 #1 SMP Debian 3.16.57-2 (2018-07-14) x86_64 GNU/Linux
+[2020-01-09T12:40:10,408] <localhost-startStop-1> INFO  remote - Directory '/usr/lib/unifi/logs/remote' present
+[2020-01-09T12:40:11,087] <localhost-startStop-1> INFO  sdn    - Removed fingerbank token
+[2020-01-09T12:44:00,009] <schedule-optimize> INFO  schedule - Not forcing multicast block on any SSIDs since none had >= 100 clients in last hour
+[2020-01-09T12:44:00,010] <schedule-optimize> WARN  schedule - No gateway device was detected so we cannot enable multicast block
