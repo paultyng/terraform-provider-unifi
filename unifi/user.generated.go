@@ -15,7 +15,7 @@ type User struct {
 	Blocked     bool   `json:"blocked,omitempty"`
 	FixedIP     string `json:"fixed_ip,omitempty"`
 	Hostname    string `json:"hostname,omitempty"`
-	LastSeen    string `json:"last_seen,omitempty"`
+	LastSeen    int    `json:"last_seen,omitempty"`
 	MAC         string `json:"mac,omitempty"` // ^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$
 	Name        string `json:"name,omitempty"`
 	NetworkID   string `json:"network_id"`

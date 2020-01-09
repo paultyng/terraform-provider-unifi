@@ -167,6 +167,9 @@ type %s struct {
 		case structName == "User" && name == "blocked":
 			code += "\tBlocked bool `json:\"blocked,omitempty\"`\n"
 			continue
+		case structName == "User" && name == "last_seen":
+			code += "\tLastSeen int `json:\"last_seen,omitempty\"`\n"
+			continue
 		case structName == "SettingUsg" && strings.HasSuffix(name, "_timeout"):
 			field := strcase.ToCamel(name)
 			field = cleanName(field, fieldReps)
