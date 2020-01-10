@@ -89,6 +89,7 @@ type unifiClient interface {
 	DeleteWLAN(site, id string) error
 	CreateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error)
 	GetWLAN(site, id string) (*unifi.WLAN, error)
+	UpdateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error)
 
 	GetUser(site, id string) (*unifi.User, error)
 	GetUserByMAC(site, mac string) (*unifi.User, error)
