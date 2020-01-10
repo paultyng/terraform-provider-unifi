@@ -2,39 +2,6 @@ package unifi
 
 import "fmt"
 
-func (c *Client) ListUser(site string) ([]User, error) {
-	var respBody struct {
-		Meta meta   `json:"meta"`
-		Data []User `json:"data"`
-	}
-
-	err := c.do("GET", fmt.Sprintf("s/%s/rest/user", site), nil, &respBody)
-	if err != nil {
-		return nil, err
-	}
-
-	return respBody.Data, nil
-}
-
-func (c *Client) GetUser(site, id string) (*User, error) {
-	var respBody struct {
-		Meta meta   `json:"meta"`
-		Data []User `json:"data"`
-	}
-
-	err := c.do("GET", fmt.Sprintf("s/%s/rest/user/%s", site, id), nil, &respBody)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(respBody.Data) != 1 {
-		return nil, &NotFoundError{}
-	}
-
-	d := respBody.Data[0]
-	return &d, nil
-}
-
 func (c *Client) GetUserByMAC(site, mac string) (*User, error) {
 	var respBody struct {
 		Meta meta   `json:"meta"`
@@ -145,26 +112,6 @@ func (c *Client) UnblockUserByMAC(site, mac string) error {
 	return nil
 }
 
-func (c *Client) UpdateUser(site string, d *User) (*User, error) {
-	var respBody struct {
-		Meta meta   `json:"meta"`
-		Data []User `json:"data"`
-	}
-
-	err := c.do("PUT", fmt.Sprintf("s/%s/rest/user/%s", site, d.ID), d, &respBody)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(respBody.Data) != 1 {
-		return nil, &NotFoundError{}
-	}
-
-	new := respBody.Data[0]
-
-	return &new, nil
-}
-
 func (c *Client) DeleteUserByMAC(site, mac string) error {
 	users, err := c.stamgr(site, "forget-sta", map[string]interface{}{
 		"macs": []string{mac},
@@ -176,4 +123,16 @@ func (c *Client) DeleteUserByMAC(site, mac string) error {
 		return &NotFoundError{}
 	}
 	return nil
+}
+
+func (c *Client) ListUser(site string) ([]User, error) {
+	return c.listUser(site)
+}
+
+func (c *Client) GetUser(site, id string) (*User, error) {
+	return c.getUser(site, id)
+}
+
+func (c *Client) UpdateUser(site string, d *User) (*User, error) {
+	return c.updateUser(site, d)
 }

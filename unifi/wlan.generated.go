@@ -3,6 +3,13 @@
 
 package unifi
 
+import (
+	"fmt"
+)
+
+// just to fix compile issues with the import
+var _ fmt.Formatter
+
 type WLAN struct {
 	ID     string `json:"_id,omitempty"`
 	SiteID string `json:"site_id,omitempty"`
@@ -71,4 +78,85 @@ type WLAN struct {
 	XIappKey                  string   `json:"x_iapp_key,omitempty"`   // [0-9A-Fa-f]{32}
 	XPassphrase               string   `json:"x_passphrase,omitempty"` // [\x20-\x7E]{8,63}|[0-9a-fA-F]{64}
 	XWEP                      string   `json:"x_wep,omitempty"`
+}
+
+func (c *Client) listWLAN(site string) ([]WLAN, error) {
+	var respBody struct {
+		Meta meta   `json:"meta"`
+		Data []WLAN `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/wlanconf", site), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody.Data, nil
+}
+
+func (c *Client) getWLAN(site, id string) (*WLAN, error) {
+	var respBody struct {
+		Meta meta   `json:"meta"`
+		Data []WLAN `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/wlanconf/%s", site, id), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	d := respBody.Data[0]
+	return &d, nil
+}
+
+func (c *Client) deleteWLAN(site, id string) error {
+	err := c.do("DELETE", fmt.Sprintf("s/%s/rest/wlanconf/%s", site, id), struct{}{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) createWLAN(site string, d *WLAN) (*WLAN, error) {
+	var respBody struct {
+		Meta meta   `json:"meta"`
+		Data []WLAN `json:"data"`
+	}
+
+	err := c.do("POST", fmt.Sprintf("s/%s/rest/wlanconf", site), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+
+func (c *Client) updateWLAN(site string, d *WLAN) (*WLAN, error) {
+	var respBody struct {
+		Meta meta   `json:"meta"`
+		Data []WLAN `json:"data"`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%s/rest/wlanconf/%s", site, d.ID), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
 }

@@ -3,6 +3,13 @@
 
 package unifi
 
+import (
+	"fmt"
+)
+
+// just to fix compile issues with the import
+var _ fmt.Formatter
+
 type PortConf struct {
 	ID     string `json:"_id,omitempty"`
 	SiteID string `json:"site_id,omitempty"`
@@ -45,4 +52,85 @@ type PortConf struct {
 	StpPortMode                  bool     `json:"stp_port_mode"`
 	TaggedNetworkconfIDs         []string `json:"tagged_networkconf_ids,omitempty"`
 	VoiceNetworkconfID           string   `json:"voice_networkconf_id"`
+}
+
+func (c *Client) listPortConf(site string) ([]PortConf, error) {
+	var respBody struct {
+		Meta meta       `json:"meta"`
+		Data []PortConf `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/portconf", site), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody.Data, nil
+}
+
+func (c *Client) getPortConf(site, id string) (*PortConf, error) {
+	var respBody struct {
+		Meta meta       `json:"meta"`
+		Data []PortConf `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/portconf/%s", site, id), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	d := respBody.Data[0]
+	return &d, nil
+}
+
+func (c *Client) deletePortConf(site, id string) error {
+	err := c.do("DELETE", fmt.Sprintf("s/%s/rest/portconf/%s", site, id), struct{}{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) createPortConf(site string, d *PortConf) (*PortConf, error) {
+	var respBody struct {
+		Meta meta       `json:"meta"`
+		Data []PortConf `json:"data"`
+	}
+
+	err := c.do("POST", fmt.Sprintf("s/%s/rest/portconf", site), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+
+func (c *Client) updatePortConf(site string, d *PortConf) (*PortConf, error) {
+	var respBody struct {
+		Meta meta       `json:"meta"`
+		Data []PortConf `json:"data"`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%s/rest/portconf/%s", site, d.ID), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
 }

@@ -3,6 +3,13 @@
 
 package unifi
 
+import (
+	"fmt"
+)
+
+// just to fix compile issues with the import
+var _ fmt.Formatter
+
 type FirewallRule struct {
 	ID     string `json:"_id,omitempty"`
 	SiteID string `json:"site_id,omitempty"`
@@ -51,4 +58,85 @@ type FirewallRule struct {
 	Utc                   bool     `json:"utc"`
 	Weekdays              string   `json:"weekdays"` // ^$|^((Mon|Tue|Wed|Thu|Fri|Sat|Sun)(,(Mon|Tue|Wed|Thu|Fri|Sat|Sun)){0,6})$
 	WeekdaysNegate        bool     `json:"weekdays_negate"`
+}
+
+func (c *Client) listFirewallRule(site string) ([]FirewallRule, error) {
+	var respBody struct {
+		Meta meta           `json:"meta"`
+		Data []FirewallRule `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/firewallrule", site), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody.Data, nil
+}
+
+func (c *Client) getFirewallRule(site, id string) (*FirewallRule, error) {
+	var respBody struct {
+		Meta meta           `json:"meta"`
+		Data []FirewallRule `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/firewallrule/%s", site, id), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	d := respBody.Data[0]
+	return &d, nil
+}
+
+func (c *Client) deleteFirewallRule(site, id string) error {
+	err := c.do("DELETE", fmt.Sprintf("s/%s/rest/firewallrule/%s", site, id), struct{}{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) createFirewallRule(site string, d *FirewallRule) (*FirewallRule, error) {
+	var respBody struct {
+		Meta meta           `json:"meta"`
+		Data []FirewallRule `json:"data"`
+	}
+
+	err := c.do("POST", fmt.Sprintf("s/%s/rest/firewallrule", site), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+
+func (c *Client) updateFirewallRule(site string, d *FirewallRule) (*FirewallRule, error) {
+	var respBody struct {
+		Meta meta           `json:"meta"`
+		Data []FirewallRule `json:"data"`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%s/rest/firewallrule/%s", site, d.ID), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
 }

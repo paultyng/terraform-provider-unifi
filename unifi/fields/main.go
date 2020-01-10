@@ -109,10 +109,11 @@ func main() {
 
 		name = name[:len(name)-len(ext)]
 
+		urlPath := strings.ToLower(name)
 		structName := cleanName(name, fileReps)
 
 		goFile := strcase.ToSnake(structName) + ".generated.go"
-		code, err := generateCode(filepath.Join(fieldsDir, fieldsFile.Name()), structName)
+		code, err := generateCode(filepath.Join(fieldsDir, fieldsFile.Name()), structName, urlPath)
 		if err != nil {
 			fmt.Printf("skipping file %s: %s", fieldsFile.Name(), err)
 			continue
@@ -126,7 +127,7 @@ func main() {
 	fmt.Printf("%s\n", outDir)
 }
 
-func generateCode(fieldsFile string, structName string) (string, error) {
+func generateCode(fieldsFile string, structName string, urlPath string) (string, error) {
 	b, err := ioutil.ReadFile(fieldsFile)
 	if err != nil {
 		return "", err
@@ -142,6 +143,13 @@ func generateCode(fieldsFile string, structName string) (string, error) {
 // DO NOT EDIT.
 
 package unifi
+
+import (
+	"fmt"
+)
+
+// just to fix compile issues with the import
+var _ fmt.Formatter
 
 type %s struct {
 	ID     string `+"`json:\"_id,omitempty\"`"+`
@@ -186,6 +194,93 @@ type %s struct {
 	}
 
 	code = code + "}\n"
+
+	if strings.HasPrefix(structName, "Setting") {
+		return code, nil
+	}
+
+	code = code + fmt.Sprintf(`
+func (c *Client) list%[1]s(site string) ([]%[1]s, error) {
+	var respBody struct {
+		Meta meta `+"`"+`json:"meta"`+"`"+`
+		Data []%[1]s `+"`"+`json:"data"`+"`"+`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%%s/rest/%[2]s", site), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody.Data, nil
+}
+
+func (c *Client) get%[1]s(site, id string) (*%[1]s, error) {
+	var respBody struct {
+		Meta meta `+"`"+`json:"meta"`+"`"+`
+		Data []%[1]s `+"`"+`json:"data"`+"`"+`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%%s/rest/%[2]s/%%s", site, id), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	d := respBody.Data[0]
+	return &d, nil
+}
+
+func (c *Client) delete%[1]s(site, id string) error {
+	err := c.do("DELETE", fmt.Sprintf("s/%%s/rest/%[2]s/%%s", site, id), struct{}{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) create%[1]s(site string, d *%[1]s) (*%[1]s, error) {
+	var respBody struct {
+		Meta meta `+"`"+`json:"meta"`+"`"+`
+		Data []%[1]s `+"`"+`json:"data"`+"`"+`
+	}
+
+	err := c.do("POST", fmt.Sprintf("s/%%s/rest/%[2]s", site), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+
+func (c *Client) update%[1]s(site string, d *%[1]s) (*%[1]s, error) {
+	var respBody struct {
+		Meta meta `+"`"+`json:"meta"`+"`"+`
+		Data []%[1]s `+"`"+`json:"data"`+"`"+`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%%s/rest/%[2]s/%%s", site, d.ID), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+`, structName, urlPath)
 
 	return code, nil
 }

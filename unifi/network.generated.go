@@ -3,6 +3,13 @@
 
 package unifi
 
+import (
+	"fmt"
+)
+
+// just to fix compile issues with the import
+var _ fmt.Formatter
+
 type Network struct {
 	ID     string `json:"_id,omitempty"`
 	SiteID string `json:"site_id,omitempty"`
@@ -148,4 +155,85 @@ type Network struct {
 	XOpenVPNSharedSecretKey string   `json:"x_openvpn_shared_secret_key,omitempty"` // [0-9A-Fa-f]{512}
 	XPptpcPassword          string   `json:"x_pptpc_password,omitempty"`            // [^\"\' ]+
 	XWANPassword            string   `json:"x_wan_password,omitempty"`              // [^"' ]+
+}
+
+func (c *Client) listNetwork(site string) ([]Network, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Network `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/networkconf", site), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody.Data, nil
+}
+
+func (c *Client) getNetwork(site, id string) (*Network, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Network `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/networkconf/%s", site, id), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	d := respBody.Data[0]
+	return &d, nil
+}
+
+func (c *Client) deleteNetwork(site, id string) error {
+	err := c.do("DELETE", fmt.Sprintf("s/%s/rest/networkconf/%s", site, id), struct{}{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) createNetwork(site string, d *Network) (*Network, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Network `json:"data"`
+	}
+
+	err := c.do("POST", fmt.Sprintf("s/%s/rest/networkconf", site), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+
+func (c *Client) updateNetwork(site string, d *Network) (*Network, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Network `json:"data"`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%s/rest/networkconf/%s", site, d.ID), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
 }
