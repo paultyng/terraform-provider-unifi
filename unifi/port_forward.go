@@ -1,4 +1,21 @@
 package unifi
 
-// curl 'https://73.212.25.176:8443/api/s/default/rest/portforward' --data-binary '{"name":"test name","enabled":true,"src":"200.200.200.200/24","dst_port":"90","fwd":"10.1.5.7","fwd_port":"90","proto":"tcp","log":true}' --compressed --insecure
-// {"meta":{"rc":"ok"},"data":[{"name":"test name","enabled":true,"src":"200.200.200.200/24","dst_port":"90","fwd":"10.1.5.7","fwd_port":"90","proto":"tcp","log":true,"site_id":"5d6d8b07439adf048407dcd9","_id":"5e0f4ffa1e801c052a25d953"}]}
+func (c *Client) ListPortForward(site string) ([]PortForward, error) {
+	return c.listPortForward(site)
+}
+
+func (c *Client) GetPortForward(site, id string) (*PortForward, error) {
+	return c.getPortForward(site, id)
+}
+
+func (c *Client) DeletePortForward(site, id string) error {
+	return c.deletePortForward(site, id)
+}
+
+func (c *Client) CreatePortForward(site string, d *PortForward) (*PortForward, error) {
+	return c.createPortForward(site, d)
+}
+
+func (c *Client) UpdatePortForward(site string, d *PortForward) (*PortForward, error) {
+	return c.updatePortForward(site, d)
+}

@@ -3,6 +3,13 @@
 
 package unifi
 
+import (
+	"fmt"
+)
+
+// just to fix compile issues with the import
+var _ fmt.Formatter
+
 type PortForward struct {
 	ID     string `json:"_id,omitempty"`
 	SiteID string `json:"site_id,omitempty"`
@@ -21,4 +28,85 @@ type PortForward struct {
 	PfwdInterface string `json:"pfwd_interface,omitempty"` // wan|wan2|both
 	Proto         string `json:"proto,omitempty"`          // tcp_udp|tcp|udp
 	Src           string `json:"src,omitempty"`            // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])-(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])/([0-9]|[1-2][0-9]|3[0-2])$|^!(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^!(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])-(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^!(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])/([0-9]|[1-2][0-9]|3[0-2])$|^any$
+}
+
+func (c *Client) listPortForward(site string) ([]PortForward, error) {
+	var respBody struct {
+		Meta meta          `json:"meta"`
+		Data []PortForward `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/portforward", site), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody.Data, nil
+}
+
+func (c *Client) getPortForward(site, id string) (*PortForward, error) {
+	var respBody struct {
+		Meta meta          `json:"meta"`
+		Data []PortForward `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/portforward/%s", site, id), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	d := respBody.Data[0]
+	return &d, nil
+}
+
+func (c *Client) deletePortForward(site, id string) error {
+	err := c.do("DELETE", fmt.Sprintf("s/%s/rest/portforward/%s", site, id), struct{}{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) createPortForward(site string, d *PortForward) (*PortForward, error) {
+	var respBody struct {
+		Meta meta          `json:"meta"`
+		Data []PortForward `json:"data"`
+	}
+
+	err := c.do("POST", fmt.Sprintf("s/%s/rest/portforward", site), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+
+func (c *Client) updatePortForward(site string, d *PortForward) (*PortForward, error) {
+	var respBody struct {
+		Meta meta          `json:"meta"`
+		Data []PortForward `json:"data"`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%s/rest/portforward/%s", site, d.ID), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
 }

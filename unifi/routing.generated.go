@@ -3,6 +3,13 @@
 
 package unifi
 
+import (
+	"fmt"
+)
+
+// just to fix compile issues with the import
+var _ fmt.Formatter
+
 type Routing struct {
 	ID     string `json:"_id,omitempty"`
 	SiteID string `json:"site_id,omitempty"`
@@ -20,4 +27,85 @@ type Routing struct {
 	StaticRouteNexthop   string `json:"static-route_nexthop"`            // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^([a-fA-F0-9:]+)$|^$
 	StaticRouteType      string `json:"static-route_type,omitempty"`     // nexthop-route|interface-route|blackhole
 	Type                 string `json:"type,omitempty"`                  // static-route
+}
+
+func (c *Client) listRouting(site string) ([]Routing, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Routing `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/routing", site), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody.Data, nil
+}
+
+func (c *Client) getRouting(site, id string) (*Routing, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Routing `json:"data"`
+	}
+
+	err := c.do("GET", fmt.Sprintf("s/%s/rest/routing/%s", site, id), nil, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	d := respBody.Data[0]
+	return &d, nil
+}
+
+func (c *Client) deleteRouting(site, id string) error {
+	err := c.do("DELETE", fmt.Sprintf("s/%s/rest/routing/%s", site, id), struct{}{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) createRouting(site string, d *Routing) (*Routing, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Routing `json:"data"`
+	}
+
+	err := c.do("POST", fmt.Sprintf("s/%s/rest/routing", site), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}
+
+func (c *Client) updateRouting(site string, d *Routing) (*Routing, error) {
+	var respBody struct {
+		Meta meta      `json:"meta"`
+		Data []Routing `json:"data"`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%s/rest/routing/%s", site, d.ID), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
 }
