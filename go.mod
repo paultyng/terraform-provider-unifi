@@ -18,9 +18,9 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk v1.4.1
 	github.com/hashicorp/terraform-svchost v0.0.0-20191119180714-d2e4933b9136 // indirect
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
-	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
+	github.com/paultyng/go-unifi v1.0.0
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/ulikunitz/xz v0.5.6 // indirect

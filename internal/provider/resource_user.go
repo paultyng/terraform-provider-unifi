@@ -4,8 +4,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-
-	"github.com/paultyng/terraform-provider-unifi/unifi"
+	"github.com/paultyng/go-unifi/unifi"
 )
 
 func resourceUser() *schema.Resource {

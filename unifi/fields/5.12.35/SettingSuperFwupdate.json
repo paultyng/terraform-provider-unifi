@@ -1,5 +1,0 @@
-{
-  "controller_channel": "internal|alpha|beta|release-candidate|release",
-  "firmware_channel": "internal|alpha|beta|release-candidate|release",
-  "sso_enabled": "true|false"
-}
