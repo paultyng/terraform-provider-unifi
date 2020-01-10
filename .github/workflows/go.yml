@@ -19,7 +19,7 @@ jobs:
     # TODO: convert this to `services`
     - name: Start Unifi controller
       run: |
-        ./controller.sh
+        ./controller.sh start
 
     - name: Get dependencies
       run: |

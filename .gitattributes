@@ -1,5 +1,9 @@
 * text=auto
 
+*.go diff=golang
+
+*.sh eol=lf
+
 *.jar binary
 *.wt binary
 *.bson binary
@@ -11,4 +15,3 @@ WiredTiger eol=lf
 WiredTiger.lock eol=lf
 WiredTiger.turtle eol=lf
 
-*.go diff=golang
