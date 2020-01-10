@@ -76,6 +76,45 @@ func TestAccWLAN_open(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_change_security(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		Providers: providers,
+		PreCheck: func() {
+			preCheck(t)
+
+			wlanConcurrency <- struct{}{}
+		},
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_wpapsk,
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_open,
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_wpapsk,
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+		},
+	})
+}
+
 const testAccWLANConfig_wpapsk = `
 data "unifi_wlan_group" "default" {
 }

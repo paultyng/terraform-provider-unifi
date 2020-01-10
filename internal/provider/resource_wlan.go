@@ -58,20 +58,25 @@ func resourceWLAN() *schema.Resource {
 	}
 }
 
-func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*client)
-
+func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 	vlan := d.Get("vlan_id").(int)
+	security := d.Get("security").(string)
+	passphrase := d.Get("passphrase").(string)
 
-	req := &unifi.WLAN{
+	switch security {
+	case "open":
+		passphrase = ""
+	}
+
+	return &unifi.WLAN{
 		Name:        d.Get("name").(string),
 		VLAN:        vlan,
-		XPassphrase: d.Get("passphrase").(string),
+		XPassphrase: passphrase,
 		HideSSID:    d.Get("hide_ssid").(bool),
 		IsGuest:     d.Get("is_guest").(bool),
 		WLANGroupID: d.Get("wlan_group_id").(string),
 		UserGroupID: d.Get("user_group_id").(string),
-		Security:    d.Get("security").(string),
+		Security:    security,
 
 		VLANEnabled: vlan != 0 && vlan != 1,
 
@@ -85,6 +90,15 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 		DTIMMode:                 "default",
 		No2GhzOui:                true,
 		MinrateNgCckRatesEnabled: true,
+	}, nil
+}
+
+func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*client)
+
+	req, err := resourceWLANGetResourceData(d)
+	if err != nil {
+		return err
 	}
 
 	resp, err := c.c.CreateWLAN(c.site, req)
@@ -103,14 +117,22 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error
 		vlan = resp.VLAN
 	}
 
+	security := resp.Security
+	passphrase := resp.XPassphrase
+
+	switch security {
+	case "open":
+		passphrase = ""
+	}
+
 	d.Set("name", resp.Name)
 	d.Set("vlan_id", vlan)
-	d.Set("passphrase", resp.XPassphrase)
+	d.Set("passphrase", passphrase)
 	d.Set("hide_ssid", resp.HideSSID)
 	d.Set("is_guest", resp.IsGuest)
 	d.Set("wlan_group_id", resp.WLANGroupID)
 	d.Set("user_group_id", resp.UserGroupID)
-	d.Set("security", resp.Security)
+	d.Set("security", security)
 
 	return nil
 }
@@ -133,7 +155,22 @@ func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
-	panic("not implemented")
+	c := meta.(*client)
+
+	req, err := resourceWLANGetResourceData(d)
+	if err != nil {
+		return err
+	}
+
+	req.ID = d.Id()
+	req.SiteID = c.site
+
+	resp, err := c.c.UpdateWLAN(c.site, req)
+	if err != nil {
+		return err
+	}
+
+	return resourceWLANSetResourceData(resp, d)
 }
 
 func resourceWLANDelete(d *schema.ResourceData, meta interface{}) error {

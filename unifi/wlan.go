@@ -92,3 +92,23 @@ func (c *Client) CreateWLAN(site string, d *WLAN) (*WLAN, error) {
 
 	return &new, nil
 }
+
+func (c *Client) UpdateWLAN(site string, d *WLAN) (*WLAN, error) {
+	var respBody struct {
+		Meta meta   `json:"meta"`
+		Data []WLAN `json:"data"`
+	}
+
+	err := c.do("PUT", fmt.Sprintf("s/%s/rest/wlanconf/%s", site, d.ID), d, &respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(respBody.Data) != 1 {
+		return nil, &NotFoundError{}
+	}
+
+	new := respBody.Data[0]
+
+	return &new, nil
+}

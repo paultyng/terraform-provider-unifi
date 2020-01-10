@@ -65,6 +65,10 @@ func (c *lazyClient) GetWLAN(site, id string) (*unifi.WLAN, error) {
 	c.init()
 	return c.inner.GetWLAN(site, id)
 }
+func (c *lazyClient) UpdateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error) {
+	c.init()
+	return c.inner.UpdateWLAN(site, d)
+}
 func (c *lazyClient) DeleteUserGroup(site, id string) error {
 	c.init()
 	return c.inner.DeleteUserGroup(site, id)
