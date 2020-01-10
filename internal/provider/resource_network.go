@@ -3,8 +3,7 @@ package provider
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-
-	"github.com/paultyng/terraform-provider-unifi/unifi"
+	"github.com/paultyng/go-unifi/unifi"
 )
 
 func resourceNetwork() *schema.Resource {
