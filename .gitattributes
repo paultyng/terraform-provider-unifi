@@ -1,0 +1,14 @@
+* text=auto
+
+*.jar binary
+*.wt binary
+*.bson binary
+
+testdata/unifi/data/db/journal/*.* binary
+testdata/unifi/data/keystore binary
+testdata/unifi/*.* eol=lf
+WiredTiger eol=lf
+WiredTiger.lock eol=lf
+WiredTiger.turtle eol=lf
+
+*.go diff=golang
