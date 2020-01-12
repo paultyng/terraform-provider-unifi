@@ -149,3 +149,23 @@ func (c *lazyClient) UnblockUserByMAC(site, mac string) error {
 	c.init()
 	return c.inner.UnblockUserByMAC(site, mac)
 }
+func (c *lazyClient) ListFirewallGroup(site string) ([]unifi.FirewallGroup, error) {
+	c.init()
+	return c.inner.ListFirewallGroup(site)
+}
+func (c *lazyClient) DeleteFirewallGroup(site, id string) error {
+	c.init()
+	return c.inner.DeleteFirewallGroup(site, id)
+}
+func (c *lazyClient) CreateFirewallGroup(site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error) {
+	c.init()
+	return c.inner.CreateFirewallGroup(site, d)
+}
+func (c *lazyClient) GetFirewallGroup(site, id string) (*unifi.FirewallGroup, error) {
+	c.init()
+	return c.inner.GetFirewallGroup(site, id)
+}
+func (c *lazyClient) UpdateFirewallGroup(site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error) {
+	c.init()
+	return c.inner.UpdateFirewallGroup(site, d)
+}
