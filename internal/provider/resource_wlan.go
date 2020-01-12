@@ -53,6 +53,10 @@ func resourceWLAN() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"multicast_enhance": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -68,14 +72,15 @@ func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 	}
 
 	return &unifi.WLAN{
-		Name:        d.Get("name").(string),
-		VLAN:        vlan,
-		XPassphrase: passphrase,
-		HideSSID:    d.Get("hide_ssid").(bool),
-		IsGuest:     d.Get("is_guest").(bool),
-		WLANGroupID: d.Get("wlan_group_id").(string),
-		UserGroupID: d.Get("user_group_id").(string),
-		Security:    security,
+		Name:                    d.Get("name").(string),
+		VLAN:                    vlan,
+		XPassphrase:             passphrase,
+		HideSSID:                d.Get("hide_ssid").(bool),
+		IsGuest:                 d.Get("is_guest").(bool),
+		WLANGroupID:             d.Get("wlan_group_id").(string),
+		UserGroupID:             d.Get("user_group_id").(string),
+		Security:                security,
+		MulticastEnhanceEnabled: d.Get("multicast_enhance").(bool),
 
 		VLANEnabled: vlan != 0 && vlan != 1,
 
@@ -132,6 +137,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error
 	d.Set("wlan_group_id", resp.WLANGroupID)
 	d.Set("user_group_id", resp.UserGroupID)
 	d.Set("security", security)
+	d.Set("multicast_enhance", resp.MulticastEnhanceEnabled)
 
 	return nil
 }
