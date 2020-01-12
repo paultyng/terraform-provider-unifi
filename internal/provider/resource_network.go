@@ -61,6 +61,10 @@ func resourceNetwork() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"igmp_snooping": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -97,6 +101,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
 		DHCPDLeaseTime: d.Get("dhcp_lease").(int),
 		DomainName:     d.Get("domain_name").(string),
+		IGMPSnooping:   d.Get("igmp_snooping").(bool),
 
 		VLANEnabled: vlan != 0 && vlan != 1,
 
@@ -129,6 +134,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
 	d.Set("dhcp_lease", dhcpLease)
 	d.Set("domain_name", resp.DomainName)
+	d.Set("igmp_snooping", resp.IGMPSnooping)
 
 	return nil
 }
