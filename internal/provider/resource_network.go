@@ -32,8 +32,9 @@ func resourceNetwork() *schema.Resource {
 				Optional: true,
 			},
 			"subnet": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: cidrDiffSuppress,
 			},
 			"network_group": {
 				Type:     schema.TypeString,
@@ -94,7 +95,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		Name:           d.Get("name").(string),
 		Purpose:        d.Get("purpose").(string),
 		VLAN:           vlan,
-		IPSubnet:       d.Get("subnet").(string),
+		IPSubnet:       cidrOneBased(d.Get("subnet").(string)),
 		NetworkGroup:   d.Get("network_group").(string),
 		DHCPDStart:     d.Get("dhcp_start").(string),
 		DHCPDStop:      d.Get("dhcp_stop").(string),
@@ -127,7 +128,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("name", resp.Name)
 	d.Set("purpose", resp.Purpose)
 	d.Set("vlan_id", vlan)
-	d.Set("subnet", resp.IPSubnet)
+	d.Set("subnet", cidrZeroBased(resp.IPSubnet))
 	d.Set("network_group", resp.NetworkGroup)
 	d.Set("dhcp_start", resp.DHCPDStart)
 	d.Set("dhcp_stop", resp.DHCPDStop)

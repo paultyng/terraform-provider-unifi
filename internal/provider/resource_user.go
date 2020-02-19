@@ -41,6 +41,7 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			// TODO: combine this with output IP for a single attribute ip_address?
 			"fixed_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -65,6 +66,16 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			// computed only attributes
+			"hostname": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"ip": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -145,6 +156,9 @@ func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData) error
 	d.Set("network_id", resp.NetworkID)
 	d.Set("blocked", resp.Blocked)
 
+	d.Set("hostname", resp.Hostname)
+	d.Set("ip", resp.IP)
+
 	return nil
 }
 
@@ -161,6 +175,18 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	// for some reason the IP address is only on this endpoint, so issue another request
+	macResp, err := c.c.GetUserByMAC(c.site, resp.MAC)
+	if _, ok := err.(*unifi.NotFoundError); ok {
+		d.SetId("")
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	resp.IP = macResp.IP
 
 	return resourceUserSetResourceData(resp, d)
 }
