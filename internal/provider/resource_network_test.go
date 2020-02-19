@@ -14,21 +14,38 @@ func TestAccNetwork_basic(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfig("10.0.202.1/24", 202, true),
+				Config: testAccNetworkConfig("10.0.202.0/24", 202, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
-					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.202.1/24"),
+					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.202.0/24"),
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "202"),
 					resource.TestCheckResourceAttr("unifi_network.test", "igmp_snooping", "true"),
 				),
 			},
 			importStep("unifi_network.test"),
 			{
-				Config: testAccNetworkConfig("10.0.203.1/24", 203, false),
+				Config: testAccNetworkConfig("10.0.203.0/24", 203, false),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.203.1/24"),
+					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.203.0/24"),
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "203"),
 					resource.TestCheckResourceAttr("unifi_network.test", "igmp_snooping", "false"),
+				),
+			},
+			importStep("unifi_network.test"),
+		},
+	})
+}
+
+func TestAccNetwork_weird_cidr(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		Providers: providers,
+		PreCheck:  func() { preCheck(t) },
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkConfig("10.0.202.3/24", 202, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.202.0/24"),
 				),
 			},
 			importStep("unifi_network.test"),
