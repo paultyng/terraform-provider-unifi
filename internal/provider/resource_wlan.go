@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
+	"regexp"
 )
 
 func resourceWLAN() *schema.Resource {
@@ -57,6 +58,25 @@ func resourceWLAN() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"mac_filter_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"mac_filter_list": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringMatch(regexp.MustCompile("^([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])$"), "Mac address is invalid"),
+				},
+			},
+			"mac_filter_policy": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "deny",
+				ValidateFunc: validation.StringInSlice([]string{"allow", "deny"}, false),
+			},
 		},
 	}
 }
@@ -81,6 +101,9 @@ func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 		UserGroupID:             d.Get("user_group_id").(string),
 		Security:                security,
 		MulticastEnhanceEnabled: d.Get("multicast_enhance").(bool),
+		MACFilterEnabled:        d.Get("mac_filter_enabled").(bool),
+		MACFilterList:           d.Get("mac_filter_list").([]string),
+		MACFilterPolicy:         d.Get("mac_filter_policy").(string),
 
 		VLANEnabled: vlan != 0 && vlan != 1,
 
@@ -138,6 +161,9 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error
 	d.Set("user_group_id", resp.UserGroupID)
 	d.Set("security", security)
 	d.Set("multicast_enhance", resp.MulticastEnhanceEnabled)
+	d.Set("mac_filter_enabled", resp.MACFilterEnabled)
+	d.Set("mac_filter_list", resp.MACFilterList)
+	d.Set("mac_filter_policy", resp.MACFilterPolicy)
 
 	return nil
 }
