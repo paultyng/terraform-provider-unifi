@@ -46,6 +46,12 @@ case "$1" in
   "update")
     docker pull jacobalberty/unifi:stable
     ;;
+  "reset")
+    git checkout - testdata/unifi/
+    for file in $( git ls-files --others --exclude-standard | grep testdata/unifi ) ; do
+            rm -f ${file}
+    done
+    ;;
   *)
     echo "unrecognized command"
     exit 1
