@@ -29,7 +29,7 @@ case "$1" in
       jacobalberty/unifi:stable
 
     echo "Waiting for login page..."
-    timeout 300 bash -c 'while [[ "$(curl --insecure -s -o /dev/null -w "%{http_code}" https://localhost:${DOCKER_HTTPS_PORT}/manage/account/login)" != "200" ]]; do sleep 5; done'
+    timeout 300 bash -c 'while [[ "$(curl --insecure -s -o /dev/null -w "%{http_code}" '"https://localhost:${DOCKER_HTTPS_PORT}/manage/account/login"')" != "200" ]]; do sleep 5; done'
     echo "Controller running."
     ;;
   "test")
