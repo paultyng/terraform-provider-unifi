@@ -43,7 +43,7 @@ func TestAccNetwork_weird_cidr(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfig("10.0.202.3/24", 202, true),
+				Config: testAccNetworkConfig("10.0.202.3/24", 204, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.202.0/24"),
 				),
