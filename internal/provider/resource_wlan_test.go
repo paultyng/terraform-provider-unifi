@@ -72,6 +72,20 @@ func TestAccWLAN_open(t *testing.T) {
 				),
 			},
 			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_open_mac_filter,
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_open,
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
 		},
 	})
 }
@@ -147,5 +161,25 @@ resource "unifi_wlan" "test" {
 	wlan_group_id = data.unifi_wlan_group.default.id
 	user_group_id = data.unifi_user_group.default.id
 	security      = "open"
+}
+`
+
+const testAccWLANConfig_open_mac_filter = `
+data "unifi_wlan_group" "default" {
+}
+
+data "unifi_user_group" "default" {
+}
+
+resource "unifi_wlan" "test" {
+	name          = "tfacc-open"
+	vlan_id       = 202
+	wlan_group_id = data.unifi_wlan_group.default.id
+	user_group_id = data.unifi_user_group.default.id
+	security      = "open"
+
+	mac_filter_enabled = true
+	mac_filter_list    = ["ab:cd:ef:12:34:56"]
+	mac_filter_policy  = "allow"
 }
 `
