@@ -4,7 +4,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
-	"regexp"
 )
 
 func resourceWLAN() *schema.Resource {
@@ -61,14 +60,14 @@ func resourceWLAN() *schema.Resource {
 			"mac_filter_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
 			},
 			"mac_filter_list": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile("^([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])$"), "Mac address is invalid"),
+					Type:             schema.TypeString,
+					ValidateFunc:     validation.StringMatch(macAddressRegexp, "Mac address is invalid"),
+					DiffSuppressFunc: macDiffSuppressFunc,
 				},
 			},
 			"mac_filter_policy": {
@@ -83,12 +82,21 @@ func resourceWLAN() *schema.Resource {
 
 func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 	vlan := d.Get("vlan_id").(int)
+
 	security := d.Get("security").(string)
 	passphrase := d.Get("passphrase").(string)
-
 	switch security {
 	case "open":
 		passphrase = ""
+	}
+
+	macFilterEnabled := d.Get("mac_filter_enabled").(bool)
+	macFilterList, err := setToStringSlice(d.Get("mac_filter_list").(*schema.Set))
+	if err != nil {
+		return nil, err
+	}
+	if !macFilterEnabled {
+		macFilterList = nil
 	}
 
 	return &unifi.WLAN{
@@ -101,8 +109,8 @@ func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 		UserGroupID:             d.Get("user_group_id").(string),
 		Security:                security,
 		MulticastEnhanceEnabled: d.Get("multicast_enhance").(bool),
-		MACFilterEnabled:        d.Get("mac_filter_enabled").(bool),
-		MACFilterList:           d.Get("mac_filter_list").([]string),
+		MACFilterEnabled:        macFilterEnabled,
+		MACFilterList:           macFilterList,
 		MACFilterPolicy:         d.Get("mac_filter_policy").(string),
 
 		VLANEnabled: vlan != 0 && vlan != 1,
@@ -146,10 +154,17 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error
 
 	security := resp.Security
 	passphrase := resp.XPassphrase
-
 	switch security {
 	case "open":
 		passphrase = ""
+	}
+
+	macFilterEnabled := resp.MACFilterEnabled
+	var macFilterList *schema.Set
+	macFilterPolicy := "deny"
+	if macFilterEnabled {
+		macFilterList = stringSliceToSet(resp.MACFilterList)
+		macFilterPolicy = resp.MACFilterPolicy
 	}
 
 	d.Set("name", resp.Name)
@@ -161,9 +176,9 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error
 	d.Set("user_group_id", resp.UserGroupID)
 	d.Set("security", security)
 	d.Set("multicast_enhance", resp.MulticastEnhanceEnabled)
-	d.Set("mac_filter_enabled", resp.MACFilterEnabled)
-	d.Set("mac_filter_list", resp.MACFilterList)
-	d.Set("mac_filter_policy", resp.MACFilterPolicy)
+	d.Set("mac_filter_enabled", macFilterEnabled)
+	d.Set("mac_filter_list", macFilterList)
+	d.Set("mac_filter_policy", macFilterPolicy)
 
 	return nil
 }

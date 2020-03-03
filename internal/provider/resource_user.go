@@ -1,8 +1,6 @@
 package provider
 
 import (
-	"strings"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
 )
@@ -19,14 +17,10 @@ func resourceUser() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"mac": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					old = strings.TrimSpace(strings.ReplaceAll(strings.ToLower(old), "-", ":"))
-					new = strings.TrimSpace(strings.ReplaceAll(strings.ToLower(new), "-", ":"))
-					return old == new
-				},
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: macDiffSuppressFunc,
 				// Validation:
 			},
 			"name": {
