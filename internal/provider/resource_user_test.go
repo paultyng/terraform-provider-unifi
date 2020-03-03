@@ -37,6 +37,13 @@ func TestAccUser_basic(t *testing.T) {
 				),
 			},
 			userImportStep("unifi_user.test"),
+			{
+				Config: testAccUserConfig("00-00-5e-00-53-00", "tfacc-2", "tfacc note 2 dash and lower"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_user.test", "note", "tfacc note 2 dash and lower"),
+				),
+			},
+			userImportStep("unifi_user.test"),
 		},
 	})
 }
