@@ -2,6 +2,7 @@ package provider
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -21,7 +22,7 @@ func resourceUser() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				DiffSuppressFunc: macDiffSuppressFunc,
-				// Validation:
+				ValidateFunc:     validation.StringMatch(macAddressRegexp, "Mac address is invalid"),
 			},
 			"name": {
 				Type:     schema.TypeString,
@@ -37,8 +38,9 @@ func resourceUser() *schema.Resource {
 			},
 			// TODO: combine this with output IP for a single attribute ip_address?
 			"fixed_ip": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.SingleIP(),
 				// TODO: Validate
 			},
 			"network_id": {
