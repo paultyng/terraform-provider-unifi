@@ -169,3 +169,19 @@ func (c *lazyClient) UpdateFirewallGroup(site string, d *unifi.FirewallGroup) (*
 	c.init()
 	return c.inner.UpdateFirewallGroup(site, d)
 }
+func (c *lazyClient) GetPortForward(site, id string) (*unifi.PortForward, error) {
+	c.init()
+	return c.inner.GetPortForward(site, id)
+}
+func (c *lazyClient) DeletePortForward(site, id string) error {
+	c.init()
+	return c.inner.DeletePortForward(site, id)
+}
+func (c *lazyClient) CreatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error) {
+	c.init()
+	return c.inner.CreatePortForward(site, d)
+}
+func (c *lazyClient) UpdatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error) {
+	c.init()
+	return c.inner.UpdatePortForward(site, d)
+}
