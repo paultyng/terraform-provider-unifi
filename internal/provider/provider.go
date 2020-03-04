@@ -45,6 +45,7 @@ func Provider() terraform.ResourceProvider {
 			"unifi_user_group":     resourceUserGroup(),
 			"unifi_user":           resourceUser(),
 			"unifi_wlan":           resourceWLAN(),
+			"unifi_port_forward":   resourcePortForward(),
 		},
 	}
 	p.ConfigureFunc = configure(p)
@@ -104,6 +105,11 @@ type unifiClient interface {
 	UnblockUserByMAC(site, mac string) error
 	UpdateUser(site string, d *unifi.User) (*unifi.User, error)
 	DeleteUserByMAC(site, mac string) error
+
+	GetPortForward(site, id string) (*unifi.PortForward, error)
+	DeletePortForward(site, id string) error
+	CreatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error)
+	UpdatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error)
 }
 
 type client struct {
