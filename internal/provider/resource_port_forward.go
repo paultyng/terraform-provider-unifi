@@ -1,13 +1,10 @@
 package provider
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
-
 
 func resourcePortForward() *schema.Resource {
 	return &schema.Resource{
@@ -22,25 +19,22 @@ func resourcePortForward() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"dst_port": {
 				Type:         schema.TypeString,
-				Required:     false,
 				Optional:     true,
-				ValidateFunc: validation.StringMatch(portForwardDstPortRegexp, "dst_port is invalid"),
+				ValidateFunc: validatePortRange,
 			},
 			"enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"fwd": {
+			"fwd_ip": {
 				Type:         schema.TypeString,
-				Required:     false,
 				Optional:     true,
-				ValidateFunc: validation.StringMatch(portForwardFwdRegexp, "fwd is invalid"),
+				ValidateFunc: validation.SingleIP(),
 			},
 			"fwd_port": {
 				Type:         schema.TypeString,
-				Required:     false,
 				Optional:     true,
-				ValidateFunc: validation.StringMatch(portForwardFwdPortRegexp, "fwd_port is invalid"),
+				ValidateFunc: validatePortRange,
 			},
 			"log": {
 				Type:     schema.TypeBool,
@@ -49,27 +43,27 @@ func resourcePortForward() *schema.Resource {
 			},
 			"name": {
 				Type:     schema.TypeString,
-				Required: false,
 				Optional: true,
 			},
 			"port_forward_interface": {
 				Type:         schema.TypeString,
-				Required:     false,
 				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"wan", "wan2", "both", ""}, false),
+				ValidateFunc: validation.StringInSlice([]string{"wan", "wan2", "both"}, false),
 			},
-			"proto": {
+			"protocol": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "tcp_udp",
 				ValidateFunc: validation.StringInSlice([]string{"tcp_udp", "tcp", "udp"}, false),
 			},
-			"src": {
-				Type:         schema.TypeString,
-				Required:     false,
-				Optional:     true,
-				Default:      "any",
-				ValidateFunc: validation.StringMatch(portForwardSrcRegexp, "src is invalid"),
+			"src_ip": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "any",
+				ValidateFunc: validation.Any(
+					validation.StringInSlice([]string{"any"}, false),
+					validation.SingleIP(),
+				),
 			},
 		},
 	}
@@ -85,12 +79,7 @@ func resourcePortForwardCreate(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := c.c.CreatePortForward(c.site, req)
 	if err != nil {
-		apiErr, ok := err.(*unifi.APIError)
-		if !ok {
-
-			return fmt.Errorf("ResourcePortForwardCreate api error %w. With %w", apiErr, err)
-		}
-
+		return err
 	}
 
 	d.SetId(resp.ID)
@@ -102,30 +91,26 @@ func resourcePortForwardGetResourceData(d *schema.ResourceData) (*unifi.PortForw
 	return &unifi.PortForward{
 		DstPort:       d.Get("dst_port").(string),
 		Enabled:       d.Get("enabled").(bool),
-		Fwd:           d.Get("fwd").(string),
+		Fwd:           d.Get("fwd_ip").(string),
 		FwdPort:       d.Get("fwd_port").(string),
 		Log:           d.Get("log").(bool),
 		Name:          d.Get("name").(string),
 		PfwdInterface: d.Get("port_forward_interface").(string),
-		Proto:         d.Get("proto").(string),
-		Src:           d.Get("src").(string),
+		Proto:         d.Get("protocol").(string),
+		Src:           d.Get("src_ip").(string),
 	}, nil
 }
 
 func resourcePortForwardSetResourceData(resp *unifi.PortForward, d *schema.ResourceData) error {
-	log := false
-	if resp.Log {
-		log = resp.Log
-	}
 	d.Set("dst_port", resp.DstPort)
 	d.Set("enabled", resp.Enabled)
-	d.Set("fwd", resp.Fwd)
+	d.Set("fwd_ip", resp.Fwd)
 	d.Set("fwd_port", resp.FwdPort)
-	d.Set("log", log)
+	d.Set("log", resp.Log)
 	d.Set("name", resp.Name)
 	d.Set("port_forward_interface", resp.PfwdInterface)
-	d.Set("proto", resp.Proto)
-	d.Set("src", resp.Src)
+	d.Set("protocol", resp.Proto)
+	d.Set("src_ip", resp.Src)
 
 	return nil
 }

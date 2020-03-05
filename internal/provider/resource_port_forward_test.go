@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	//	"github.com/paultyng/go-unifi/unifi"
 )
 
 func TestAccPortForward_basic(t *testing.T) {
@@ -15,36 +14,37 @@ func TestAccPortForward_basic(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPortForwardConfig("22", false, "1.1.1.1", "22", "ssh fwd name"),
+				Config: testAccPortForwardConfig("22", false, "10.1.1.1", "22", "fwd name"),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_port_forward.test", "dst_port", "22"),
 				),
 			},
 			{
-				Config: testAccPortForwardConfig("22", false, "1.1.1.1", "8022", "ssh fwd name"),
+				Config: testAccPortForwardConfig("22", false, "10.1.1.2", "8022", "fwd name"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_port_forward.test", "fwd_port", "8022"),
+					resource.TestCheckResourceAttr("unifi_port_forward.test", "fwd_ip", "10.1.1.2"),
 				),
 			},
 			{
-				Config: testAccPortForwardConfig("22", false, "1.1.1.1", "22", "ssh fwd name 2"),
+				Config: testAccPortForwardConfig("22", false, "10.1.1.1", "22", "fwd name 2"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_port_forward.test", "name", "ssh fwd name 2"),
+					resource.TestCheckResourceAttr("unifi_port_forward.test", "name", "fwd name 2"),
 				),
 			},
 		},
 	})
 }
 
-func testAccPortForwardConfig(dst_port string, enabled bool, fwd string, fwd_port string, name string) string {
+func testAccPortForwardConfig(dstPort string, enabled bool, fwdIP, fwdPort, name string) string {
 	return fmt.Sprintf(`
 resource "unifi_port_forward" "test" {
-	dst_port  = %s
-	enabled = %t
-	fwd = "%s"
-	fwd_port = "%s"
-	name = "%s"
+	dst_port = %q
+	enabled  = %t
+	fwd_ip   = %q
+	fwd_port = %q
+	name     = %q
 }
-`, dst_port, enabled, fwd, fwd_port, name)
+`, dstPort, enabled, fwdIP, fwdPort, name)
 }
