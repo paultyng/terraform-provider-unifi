@@ -42,12 +42,14 @@ func resourceNetwork() *schema.Resource {
 				Default:  "LAN",
 			},
 			"dhcp_start": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.SingleIP(),
 			},
 			"dhcp_stop": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.SingleIP(),
 			},
 			"dhcp_enabled": {
 				Type:     schema.TypeBool,
