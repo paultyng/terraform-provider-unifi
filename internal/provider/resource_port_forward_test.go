@@ -8,8 +8,6 @@ import (
 	//	"github.com/paultyng/go-unifi/unifi"
 )
 
-// for test MAC addresses, see https://tools.ietf.org/html/rfc7042#section-2.1.2
-
 func TestAccPortForward_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		Providers: providers,
