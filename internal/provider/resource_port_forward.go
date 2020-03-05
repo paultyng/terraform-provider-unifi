@@ -8,10 +8,6 @@ import (
 	"github.com/paultyng/go-unifi/unifi"
 )
 
-//	GetPortForward(site string, id string) (*unifi.PortForward, error)
-//	DeletePortForward(site string, id string) (*unifi.PortForward, error)
-//	CreatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error)
-//	UpdatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error)
 
 func resourcePortForward() *schema.Resource {
 	return &schema.Resource{
