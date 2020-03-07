@@ -12,7 +12,7 @@ install: build
 	install -d $(PLUGIN_PATH)
 	install -m 775 $(NAME) $(PLUGIN_PATH)/
 
-test: install
+test:
 	./controller.sh update
 	./controller.sh start
 	./controller.sh test
