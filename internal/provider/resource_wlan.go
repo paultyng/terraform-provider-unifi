@@ -61,7 +61,7 @@ func resourceWLAN() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"mac_filter_list": &schema.Schema{
+			"mac_filter_list": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{

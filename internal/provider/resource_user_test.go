@@ -49,6 +49,7 @@ func TestAccUser_basic(t *testing.T) {
 }
 
 func TestAccUser_fixed_ip(t *testing.T) {
+	vlanID := 301
 	resource.ParallelTest(t, resource.TestCase{
 		Providers: providers,
 		PreCheck:  func() { preCheck(t) },
@@ -63,7 +64,7 @@ func TestAccUser_fixed_ip(t *testing.T) {
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_fixedIP("00:00:5E:00:53:10"),
+				Config: testAccUserConfig_fixedIP(vlanID, "00:00:5E:00:53:10"),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "fixed_ip", "10.1.10.50"),
@@ -74,7 +75,7 @@ func TestAccUser_fixed_ip(t *testing.T) {
 				// this passes the network again even though its not used
 				// to avoid a destroy order of operations issue, can
 				// maybe work it out some other way
-				Config: testAccUserConfig_network + testAccUserConfig("00:00:5E:00:53:10", "tfacc", "tfacc fixed ip"),
+				Config: testAccUserConfig_network(vlanID) + testAccUserConfig("00:00:5E:00:53:10", "tfacc", "tfacc fixed ip"),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "fixed_ip", ""),
@@ -195,7 +196,8 @@ resource "unifi_user" "test" {
 `, mac, name, note)
 }
 
-const testAccUserConfig_network = `
+func testAccUserConfig_network(vlanID int) string {
+	return fmt.Sprintf(`
 variable "subnet" {
 	default = "10.1.10.1/24"
 }
@@ -204,16 +206,17 @@ resource "unifi_network" "test" {
 	name    = "tfaccfixedip"
 	purpose = "corporate"
 
-	vlan_id      = 66
+	vlan_id      = %d
 	subnet       = var.subnet
 	dhcp_start   = cidrhost(var.subnet, 6)
 	dhcp_stop    = cidrhost(var.subnet, 254)
 	dhcp_enabled = true
 }
-`
+`, vlanID)
+}
 
-func testAccUserConfig_fixedIP(mac string) string {
-	return fmt.Sprintf(testAccUserConfig_network+`
+func testAccUserConfig_fixedIP(vlanID int, mac string) string {
+	return fmt.Sprintf(testAccUserConfig_network(vlanID)+`
 resource "unifi_user" "test" {
 	mac  = "%s"
 	name = "tfacc"
