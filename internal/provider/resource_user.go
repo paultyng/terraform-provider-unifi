@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
@@ -87,7 +89,7 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 
 	allowExisting := d.Get("allow_existing").(bool)
 
-	resp, err := c.c.CreateUser(c.site, req)
+	resp, err := c.c.CreateUser(context.TODO(), c.site, req)
 	if err != nil {
 		apiErr, ok := err.(*unifi.APIError)
 		if !ok || (apiErr.Message != "api.err.MacUsed" || !allowExisting) {
@@ -96,7 +98,7 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 
 		// mac in use, just absorb it
 		mac := d.Get("mac").(string)
-		existing, err := c.c.GetUserByMAC(c.site, mac)
+		existing, err := c.c.GetUserByMAC(context.TODO(), c.site, mac)
 		if err != nil {
 			return err
 		}
@@ -104,7 +106,7 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 		req.ID = existing.ID
 		req.SiteID = existing.SiteID
 
-		resp, err = c.c.UpdateUser(c.site, req)
+		resp, err = c.c.UpdateUser(context.TODO(), c.site, req)
 		if err != nil {
 			return err
 		}
@@ -113,7 +115,7 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(resp.ID)
 
 	if d.Get("blocked").(bool) {
-		err := c.c.BlockUserByMAC(c.site, d.Get("mac").(string))
+		err := c.c.BlockUserByMAC(context.TODO(), c.site, d.Get("mac").(string))
 		if err != nil {
 			return err
 		}
@@ -163,7 +165,7 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetUser(c.site, id)
+	resp, err := c.c.GetUser(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -173,7 +175,7 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// for some reason the IP address is only on this endpoint, so issue another request
-	macResp, err := c.c.GetUserByMAC(c.site, resp.MAC)
+	macResp, err := c.c.GetUserByMAC(context.TODO(), c.site, resp.MAC)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -193,12 +195,12 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("blocked") {
 		mac := d.Get("mac").(string)
 		if d.Get("blocked").(bool) {
-			err := c.c.BlockUserByMAC(c.site, mac)
+			err := c.c.BlockUserByMAC(context.TODO(), c.site, mac)
 			if err != nil {
 				return err
 			}
 		} else {
-			err := c.c.UnblockUserByMAC(c.site, mac)
+			err := c.c.UnblockUserByMAC(context.TODO(), c.site, mac)
 			if err != nil {
 				return err
 			}
@@ -213,7 +215,7 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	req.ID = d.Id()
 	req.SiteID = c.site
 
-	resp, err := c.c.UpdateUser(c.site, req)
+	resp, err := c.c.UpdateUser(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -231,7 +233,7 @@ func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// lookup MAC instead of trusting state
-	u, err := c.c.GetUser(c.site, id)
+	u, err := c.c.GetUser(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
@@ -239,6 +241,6 @@ func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	err = c.c.DeleteUserByMAC(c.site, u.MAC)
+	err = c.c.DeleteUserByMAC(context.TODO(), c.site, u.MAC)
 	return err
 }

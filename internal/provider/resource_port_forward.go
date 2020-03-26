@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
@@ -77,7 +79,7 @@ func resourcePortForwardCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := c.c.CreatePortForward(c.site, req)
+	resp, err := c.c.CreatePortForward(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -120,7 +122,7 @@ func resourcePortForwardRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetPortForward(c.site, id)
+	resp, err := c.c.GetPortForward(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -143,7 +145,7 @@ func resourcePortForwardUpdate(d *schema.ResourceData, meta interface{}) error {
 	req.ID = d.Id()
 	req.SiteID = c.site
 
-	resp, err := c.c.UpdatePortForward(c.site, req)
+	resp, err := c.c.UpdatePortForward(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -156,6 +158,6 @@ func resourcePortForwardDelete(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	err := c.c.DeletePortForward(c.site, id)
+	err := c.c.DeletePortForward(context.TODO(), c.site, id)
 	return err
 }

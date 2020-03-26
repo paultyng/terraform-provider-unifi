@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
@@ -80,7 +82,7 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := c.c.CreateNetwork(c.site, req)
+	resp, err := c.c.CreateNetwork(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -147,7 +149,7 @@ func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetNetwork(c.site, id)
+	resp, err := c.c.GetNetwork(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -170,7 +172,7 @@ func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	req.ID = d.Id()
 	req.SiteID = c.site
 
-	resp, err := c.c.UpdateNetwork(c.site, req)
+	resp, err := c.c.UpdateNetwork(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -184,7 +186,7 @@ func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	id := d.Id()
 
-	err := c.c.DeleteNetwork(c.site, id, name)
+	err := c.c.DeleteNetwork(context.TODO(), c.site, id, name)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

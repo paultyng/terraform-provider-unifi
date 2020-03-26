@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -25,7 +26,7 @@ func dataWLANGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Get("name").(string)
 
-	groups, err := c.c.ListWLANGroup(c.site)
+	groups, err := c.c.ListWLANGroup(context.TODO(), c.site)
 	if err != nil {
 		return err
 	}
