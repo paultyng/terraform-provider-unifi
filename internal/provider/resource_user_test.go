@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
@@ -128,7 +129,7 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 		PreCheck: func() {
 			preCheck(t)
 
-			_, err := testClient.CreateUser("default", &unifi.User{
+			_, err := testClient.CreateUser(context.Background(), "default", &unifi.User{
 				MAC:  testMAC,
 				Name: "tfacc-existing",
 				Note: "tfacc-existing",
@@ -140,7 +141,7 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: CheckDestroy: ,
 
-			return testClient.DeleteUserByMAC("default", testMAC)
+			return testClient.DeleteUserByMAC(context.Background(), "default", testMAC)
 		},
 		Steps: []resource.TestStep{
 			{
@@ -163,7 +164,7 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 		PreCheck: func() {
 			preCheck(t)
 
-			_, err := testClient.CreateUser("default", &unifi.User{
+			_, err := testClient.CreateUser(context.Background(), "default", &unifi.User{
 				MAC:  testMAC,
 				Name: "tfacc-existing",
 				Note: "tfacc-existing",
@@ -175,7 +176,7 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: CheckDestroy: ,
 
-			return testClient.DeleteUserByMAC("default", testMAC)
+			return testClient.DeleteUserByMAC(context.Background(), "default", testMAC)
 		},
 		Steps: []resource.TestStep{
 			{

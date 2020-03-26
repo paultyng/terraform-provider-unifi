@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"crypto/tls"
 	"net"
 	"net/http"
@@ -49,7 +50,7 @@ func setHTTPClient(c *unifi.Client) {
 	c.SetHTTPClient(httpClient)
 }
 
-func (c *lazyClient) init() error {
+func (c *lazyClient) init(ctx context.Context) error {
 	var err error
 	c.once.Do(func() {
 		c.inner = &unifi.Client{}
@@ -60,128 +61,148 @@ func (c *lazyClient) init() error {
 			return
 		}
 
-		err = c.inner.Login(c.user, c.pass)
+		err = c.inner.Login(ctx, c.user, c.pass)
 	})
 	return err
 }
 
-func (c *lazyClient) ListUserGroup(site string) ([]unifi.UserGroup, error) {
-	c.init()
-	return c.inner.ListUserGroup(site)
+func (c *lazyClient) ListUserGroup(ctx context.Context, site string) ([]unifi.UserGroup, error) {
+	c.init(ctx)
+	return c.inner.ListUserGroup(ctx, site)
 }
-func (c *lazyClient) ListWLANGroup(site string) ([]unifi.WLANGroup, error) {
-	c.init()
-	return c.inner.ListWLANGroup(site)
+func (c *lazyClient) ListWLANGroup(ctx context.Context, site string) ([]unifi.WLANGroup, error) {
+	c.init(ctx)
+	return c.inner.ListWLANGroup(ctx, site)
 }
-func (c *lazyClient) DeleteNetwork(site, id, name string) error {
-	c.init()
-	return c.inner.DeleteNetwork(site, id, name)
+func (c *lazyClient) DeleteNetwork(ctx context.Context, site, id, name string) error {
+	c.init(ctx)
+	return c.inner.DeleteNetwork(ctx, site, id, name)
 }
-func (c *lazyClient) CreateNetwork(site string, d *unifi.Network) (*unifi.Network, error) {
-	c.init()
-	return c.inner.CreateNetwork(site, d)
+func (c *lazyClient) CreateNetwork(ctx context.Context, site string, d *unifi.Network) (*unifi.Network, error) {
+	c.init(ctx)
+	return c.inner.CreateNetwork(ctx, site, d)
 }
-func (c *lazyClient) GetNetwork(site, id string) (*unifi.Network, error) {
-	c.init()
-	return c.inner.GetNetwork(site, id)
+func (c *lazyClient) GetNetwork(ctx context.Context, site, id string) (*unifi.Network, error) {
+	c.init(ctx)
+	return c.inner.GetNetwork(ctx, site, id)
 }
-func (c *lazyClient) UpdateNetwork(site string, d *unifi.Network) (*unifi.Network, error) {
-	c.init()
-	return c.inner.UpdateNetwork(site, d)
+func (c *lazyClient) UpdateNetwork(ctx context.Context, site string, d *unifi.Network) (*unifi.Network, error) {
+	c.init(ctx)
+	return c.inner.UpdateNetwork(ctx, site, d)
 }
-func (c *lazyClient) DeleteWLAN(site, id string) error {
-	c.init()
-	return c.inner.DeleteWLAN(site, id)
+func (c *lazyClient) DeleteWLAN(ctx context.Context, site, id string) error {
+	c.init(ctx)
+	return c.inner.DeleteWLAN(ctx, site, id)
 }
-func (c *lazyClient) CreateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error) {
-	c.init()
-	return c.inner.CreateWLAN(site, d)
+func (c *lazyClient) CreateWLAN(ctx context.Context, site string, d *unifi.WLAN) (*unifi.WLAN, error) {
+	c.init(ctx)
+	return c.inner.CreateWLAN(ctx, site, d)
 }
-func (c *lazyClient) GetWLAN(site, id string) (*unifi.WLAN, error) {
-	c.init()
-	return c.inner.GetWLAN(site, id)
+func (c *lazyClient) GetWLAN(ctx context.Context, site, id string) (*unifi.WLAN, error) {
+	c.init(ctx)
+	return c.inner.GetWLAN(ctx, site, id)
 }
-func (c *lazyClient) UpdateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error) {
-	c.init()
-	return c.inner.UpdateWLAN(site, d)
+func (c *lazyClient) UpdateWLAN(ctx context.Context, site string, d *unifi.WLAN) (*unifi.WLAN, error) {
+	c.init(ctx)
+	return c.inner.UpdateWLAN(ctx, site, d)
 }
-func (c *lazyClient) DeleteUserGroup(site, id string) error {
-	c.init()
-	return c.inner.DeleteUserGroup(site, id)
+func (c *lazyClient) DeleteUserGroup(ctx context.Context, site, id string) error {
+	c.init(ctx)
+	return c.inner.DeleteUserGroup(ctx, site, id)
 }
-func (c *lazyClient) CreateUserGroup(site string, d *unifi.UserGroup) (*unifi.UserGroup, error) {
-	c.init()
-	return c.inner.CreateUserGroup(site, d)
+func (c *lazyClient) CreateUserGroup(ctx context.Context, site string, d *unifi.UserGroup) (*unifi.UserGroup, error) {
+	c.init(ctx)
+	return c.inner.CreateUserGroup(ctx, site, d)
 }
-func (c *lazyClient) GetUserGroup(site, id string) (*unifi.UserGroup, error) {
-	c.init()
-	return c.inner.GetUserGroup(site, id)
+func (c *lazyClient) GetUserGroup(ctx context.Context, site, id string) (*unifi.UserGroup, error) {
+	c.init(ctx)
+	return c.inner.GetUserGroup(ctx, site, id)
 }
-func (c *lazyClient) UpdateUserGroup(site string, d *unifi.UserGroup) (*unifi.UserGroup, error) {
-	c.init()
-	return c.inner.UpdateUserGroup(site, d)
+func (c *lazyClient) UpdateUserGroup(ctx context.Context, site string, d *unifi.UserGroup) (*unifi.UserGroup, error) {
+	c.init(ctx)
+	return c.inner.UpdateUserGroup(ctx, site, d)
 }
-func (c *lazyClient) GetUser(site, id string) (*unifi.User, error) {
-	c.init()
-	return c.inner.GetUser(site, id)
+func (c *lazyClient) GetUser(ctx context.Context, site, id string) (*unifi.User, error) {
+	c.init(ctx)
+	return c.inner.GetUser(ctx, site, id)
 }
-func (c *lazyClient) GetUserByMAC(site, mac string) (*unifi.User, error) {
-	c.init()
-	return c.inner.GetUserByMAC(site, mac)
+func (c *lazyClient) GetUserByMAC(ctx context.Context, site, mac string) (*unifi.User, error) {
+	c.init(ctx)
+	return c.inner.GetUserByMAC(ctx, site, mac)
 }
-func (c *lazyClient) CreateUser(site string, d *unifi.User) (*unifi.User, error) {
-	c.init()
-	return c.inner.CreateUser(site, d)
+func (c *lazyClient) CreateUser(ctx context.Context, site string, d *unifi.User) (*unifi.User, error) {
+	c.init(ctx)
+	return c.inner.CreateUser(ctx, site, d)
 }
-func (c *lazyClient) UpdateUser(site string, d *unifi.User) (*unifi.User, error) {
-	c.init()
-	return c.inner.UpdateUser(site, d)
+func (c *lazyClient) UpdateUser(ctx context.Context, site string, d *unifi.User) (*unifi.User, error) {
+	c.init(ctx)
+	return c.inner.UpdateUser(ctx, site, d)
 }
-func (c *lazyClient) DeleteUserByMAC(site, mac string) error {
-	c.init()
-	return c.inner.DeleteUserByMAC(site, mac)
+func (c *lazyClient) DeleteUserByMAC(ctx context.Context, site, mac string) error {
+	c.init(ctx)
+	return c.inner.DeleteUserByMAC(ctx, site, mac)
 }
-func (c *lazyClient) BlockUserByMAC(site, mac string) error {
-	c.init()
-	return c.inner.BlockUserByMAC(site, mac)
+func (c *lazyClient) BlockUserByMAC(ctx context.Context, site, mac string) error {
+	c.init(ctx)
+	return c.inner.BlockUserByMAC(ctx, site, mac)
 }
-func (c *lazyClient) UnblockUserByMAC(site, mac string) error {
-	c.init()
-	return c.inner.UnblockUserByMAC(site, mac)
+func (c *lazyClient) UnblockUserByMAC(ctx context.Context, site, mac string) error {
+	c.init(ctx)
+	return c.inner.UnblockUserByMAC(ctx, site, mac)
 }
-func (c *lazyClient) ListFirewallGroup(site string) ([]unifi.FirewallGroup, error) {
-	c.init()
-	return c.inner.ListFirewallGroup(site)
+func (c *lazyClient) ListFirewallGroup(ctx context.Context, site string) ([]unifi.FirewallGroup, error) {
+	c.init(ctx)
+	return c.inner.ListFirewallGroup(ctx, site)
 }
-func (c *lazyClient) DeleteFirewallGroup(site, id string) error {
-	c.init()
-	return c.inner.DeleteFirewallGroup(site, id)
+func (c *lazyClient) DeleteFirewallGroup(ctx context.Context, site, id string) error {
+	c.init(ctx)
+	return c.inner.DeleteFirewallGroup(ctx, site, id)
 }
-func (c *lazyClient) CreateFirewallGroup(site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error) {
-	c.init()
-	return c.inner.CreateFirewallGroup(site, d)
+func (c *lazyClient) CreateFirewallGroup(ctx context.Context, site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error) {
+	c.init(ctx)
+	return c.inner.CreateFirewallGroup(ctx, site, d)
 }
-func (c *lazyClient) GetFirewallGroup(site, id string) (*unifi.FirewallGroup, error) {
-	c.init()
-	return c.inner.GetFirewallGroup(site, id)
+func (c *lazyClient) GetFirewallGroup(ctx context.Context, site, id string) (*unifi.FirewallGroup, error) {
+	c.init(ctx)
+	return c.inner.GetFirewallGroup(ctx, site, id)
 }
-func (c *lazyClient) UpdateFirewallGroup(site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error) {
-	c.init()
-	return c.inner.UpdateFirewallGroup(site, d)
+func (c *lazyClient) UpdateFirewallGroup(ctx context.Context, site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error) {
+	c.init(ctx)
+	return c.inner.UpdateFirewallGroup(ctx, site, d)
 }
-func (c *lazyClient) GetPortForward(site, id string) (*unifi.PortForward, error) {
-	c.init()
-	return c.inner.GetPortForward(site, id)
+func (c *lazyClient) ListFirewallRule(ctx context.Context, site string) ([]unifi.FirewallRule, error) {
+	c.init(ctx)
+	return c.inner.ListFirewallRule(ctx, site)
 }
-func (c *lazyClient) DeletePortForward(site, id string) error {
-	c.init()
-	return c.inner.DeletePortForward(site, id)
+func (c *lazyClient) DeleteFirewallRule(ctx context.Context, site, id string) error {
+	c.init(ctx)
+	return c.inner.DeleteFirewallRule(ctx, site, id)
 }
-func (c *lazyClient) CreatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error) {
-	c.init()
-	return c.inner.CreatePortForward(site, d)
+func (c *lazyClient) CreateFirewallRule(ctx context.Context, site string, d *unifi.FirewallRule) (*unifi.FirewallRule, error) {
+	c.init(ctx)
+	return c.inner.CreateFirewallRule(ctx, site, d)
 }
-func (c *lazyClient) UpdatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error) {
-	c.init()
-	return c.inner.UpdatePortForward(site, d)
+func (c *lazyClient) GetFirewallRule(ctx context.Context, site, id string) (*unifi.FirewallRule, error) {
+	c.init(ctx)
+	return c.inner.GetFirewallRule(ctx, site, id)
+}
+func (c *lazyClient) UpdateFirewallRule(ctx context.Context, site string, d *unifi.FirewallRule) (*unifi.FirewallRule, error) {
+	c.init(ctx)
+	return c.inner.UpdateFirewallRule(ctx, site, d)
+}
+func (c *lazyClient) GetPortForward(ctx context.Context, site, id string) (*unifi.PortForward, error) {
+	c.init(ctx)
+	return c.inner.GetPortForward(ctx, site, id)
+}
+func (c *lazyClient) DeletePortForward(ctx context.Context, site, id string) error {
+	c.init(ctx)
+	return c.inner.DeletePortForward(ctx, site, id)
+}
+func (c *lazyClient) CreatePortForward(ctx context.Context, site string, d *unifi.PortForward) (*unifi.PortForward, error) {
+	c.init(ctx)
+	return c.inner.CreatePortForward(ctx, site, d)
+}
+func (c *lazyClient) UpdatePortForward(ctx context.Context, site string, d *unifi.PortForward) (*unifi.PortForward, error) {
+	c.init(ctx)
+	return c.inner.UpdatePortForward(ctx, site, d)
 }

@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestMain(m *testing.M) {
 	testClient = &unifi.Client{}
 	setHTTPClient(testClient)
 	testClient.SetBaseURL(baseURL)
-	err := testClient.Login(user, pass)
+	err := testClient.Login(context.Background(), user, pass)
 	if err != nil {
 		panic(err)
 	}
