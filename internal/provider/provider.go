@@ -43,6 +43,7 @@ func Provider() terraform.ResourceProvider {
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"unifi_firewall_group": resourceFirewallGroup(),
+			"unifi_firewall_rule":  resourceFirewallRule(),
 			"unifi_network":        resourceNetwork(),
 			"unifi_port_forward":   resourcePortForward(),
 			"unifi_user_group":     resourceUserGroup(),
