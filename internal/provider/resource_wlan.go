@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
@@ -136,7 +138,7 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := c.c.CreateWLAN(c.site, req)
+	resp, err := c.c.CreateWLAN(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -188,7 +190,7 @@ func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetWLAN(c.site, id)
+	resp, err := c.c.GetWLAN(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -211,7 +213,7 @@ func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
 	req.ID = d.Id()
 	req.SiteID = c.site
 
-	resp, err := c.c.UpdateWLAN(c.site, req)
+	resp, err := c.c.UpdateWLAN(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -224,7 +226,7 @@ func resourceWLANDelete(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	err := c.c.DeleteWLAN(c.site, id)
+	err := c.c.DeleteWLAN(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

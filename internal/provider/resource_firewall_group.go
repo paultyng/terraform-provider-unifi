@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
@@ -43,7 +45,7 @@ func resourceFirewallGroupCreate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	resp, err := c.c.CreateFirewallGroup(c.site, req)
+	resp, err := c.c.CreateFirewallGroup(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -79,7 +81,7 @@ func resourceFirewallGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetFirewallGroup(c.site, id)
+	resp, err := c.c.GetFirewallGroup(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -102,7 +104,7 @@ func resourceFirewallGroupUpdate(d *schema.ResourceData, meta interface{}) error
 	req.ID = d.Id()
 	req.SiteID = c.site
 
-	resp, err := c.c.UpdateFirewallGroup(c.site, req)
+	resp, err := c.c.UpdateFirewallGroup(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -115,7 +117,7 @@ func resourceFirewallGroupDelete(d *schema.ResourceData, meta interface{}) error
 
 	id := d.Id()
 
-	err := c.c.DeleteFirewallGroup(c.site, id)
+	err := c.c.DeleteFirewallGroup(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

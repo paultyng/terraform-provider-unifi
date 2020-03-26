@@ -2,6 +2,8 @@ module github.com/paultyng/terraform-provider-unifi
 
 go 1.12
 
+// replace github.com/paultyng/go-unifi => ../go-unifi
+
 require (
 	cloud.google.com/go v0.50.0 // indirect
 	cloud.google.com/go/bigquery v1.3.0 // indirect
@@ -20,7 +22,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
 	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
-	github.com/paultyng/go-unifi v1.1.0
+	github.com/paultyng/go-unifi v1.2.0
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/ulikunitz/xz v0.5.6 // indirect

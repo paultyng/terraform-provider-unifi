@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -34,7 +35,7 @@ func dataUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Get("name").(string)
 
-	groups, err := c.c.ListUserGroup(c.site)
+	groups, err := c.c.ListUserGroup(context.TODO(), c.site)
 	if err != nil {
 		return err
 	}

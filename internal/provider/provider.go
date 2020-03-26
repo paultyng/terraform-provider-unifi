@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/paultyng/go-unifi/unifi"
@@ -74,42 +76,48 @@ func configure(p *schema.Provider) schema.ConfigureFunc {
 }
 
 type unifiClient interface {
-	ListUserGroup(site string) ([]unifi.UserGroup, error)
-	DeleteUserGroup(site, id string) error
-	CreateUserGroup(site string, d *unifi.UserGroup) (*unifi.UserGroup, error)
-	GetUserGroup(site, id string) (*unifi.UserGroup, error)
-	UpdateUserGroup(site string, d *unifi.UserGroup) (*unifi.UserGroup, error)
+	ListUserGroup(ctx context.Context, site string) ([]unifi.UserGroup, error)
+	DeleteUserGroup(ctx context.Context, site, id string) error
+	CreateUserGroup(ctx context.Context, site string, d *unifi.UserGroup) (*unifi.UserGroup, error)
+	GetUserGroup(ctx context.Context, site, id string) (*unifi.UserGroup, error)
+	UpdateUserGroup(ctx context.Context, site string, d *unifi.UserGroup) (*unifi.UserGroup, error)
 
-	ListFirewallGroup(site string) ([]unifi.FirewallGroup, error)
-	DeleteFirewallGroup(site, id string) error
-	CreateFirewallGroup(site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error)
-	GetFirewallGroup(site, id string) (*unifi.FirewallGroup, error)
-	UpdateFirewallGroup(site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error)
+	ListFirewallGroup(ctx context.Context, site string) ([]unifi.FirewallGroup, error)
+	DeleteFirewallGroup(ctx context.Context, site, id string) error
+	CreateFirewallGroup(ctx context.Context, site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error)
+	GetFirewallGroup(ctx context.Context, site, id string) (*unifi.FirewallGroup, error)
+	UpdateFirewallGroup(ctx context.Context, site string, d *unifi.FirewallGroup) (*unifi.FirewallGroup, error)
 
-	ListWLANGroup(site string) ([]unifi.WLANGroup, error)
+	ListFirewallRule(ctx context.Context, site string) ([]unifi.FirewallRule, error)
+	DeleteFirewallRule(ctx context.Context, site, id string) error
+	CreateFirewallRule(ctx context.Context, site string, d *unifi.FirewallRule) (*unifi.FirewallRule, error)
+	GetFirewallRule(ctx context.Context, site, id string) (*unifi.FirewallRule, error)
+	UpdateFirewallRule(ctx context.Context, site string, d *unifi.FirewallRule) (*unifi.FirewallRule, error)
 
-	DeleteNetwork(site, id, name string) error
-	CreateNetwork(site string, d *unifi.Network) (*unifi.Network, error)
-	GetNetwork(site, id string) (*unifi.Network, error)
-	UpdateNetwork(site string, d *unifi.Network) (*unifi.Network, error)
+	ListWLANGroup(ctx context.Context, site string) ([]unifi.WLANGroup, error)
 
-	DeleteWLAN(site, id string) error
-	CreateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error)
-	GetWLAN(site, id string) (*unifi.WLAN, error)
-	UpdateWLAN(site string, d *unifi.WLAN) (*unifi.WLAN, error)
+	DeleteNetwork(ctx context.Context, site, id, name string) error
+	CreateNetwork(ctx context.Context, site string, d *unifi.Network) (*unifi.Network, error)
+	GetNetwork(ctx context.Context, site, id string) (*unifi.Network, error)
+	UpdateNetwork(ctx context.Context, site string, d *unifi.Network) (*unifi.Network, error)
 
-	GetUser(site, id string) (*unifi.User, error)
-	GetUserByMAC(site, mac string) (*unifi.User, error)
-	CreateUser(site string, d *unifi.User) (*unifi.User, error)
-	BlockUserByMAC(site, mac string) error
-	UnblockUserByMAC(site, mac string) error
-	UpdateUser(site string, d *unifi.User) (*unifi.User, error)
-	DeleteUserByMAC(site, mac string) error
+	DeleteWLAN(ctx context.Context, site, id string) error
+	CreateWLAN(ctx context.Context, site string, d *unifi.WLAN) (*unifi.WLAN, error)
+	GetWLAN(ctx context.Context, site, id string) (*unifi.WLAN, error)
+	UpdateWLAN(ctx context.Context, site string, d *unifi.WLAN) (*unifi.WLAN, error)
 
-	GetPortForward(site, id string) (*unifi.PortForward, error)
-	DeletePortForward(site, id string) error
-	CreatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error)
-	UpdatePortForward(site string, d *unifi.PortForward) (*unifi.PortForward, error)
+	GetUser(ctx context.Context, site, id string) (*unifi.User, error)
+	GetUserByMAC(ctx context.Context, site, mac string) (*unifi.User, error)
+	CreateUser(ctx context.Context, site string, d *unifi.User) (*unifi.User, error)
+	BlockUserByMAC(ctx context.Context, site, mac string) error
+	UnblockUserByMAC(ctx context.Context, site, mac string) error
+	UpdateUser(ctx context.Context, site string, d *unifi.User) (*unifi.User, error)
+	DeleteUserByMAC(ctx context.Context, site, mac string) error
+
+	GetPortForward(ctx context.Context, site, id string) (*unifi.PortForward, error)
+	DeletePortForward(ctx context.Context, site, id string) error
+	CreatePortForward(ctx context.Context, site string, d *unifi.PortForward) (*unifi.PortForward, error)
+	UpdatePortForward(ctx context.Context, site string, d *unifi.PortForward) (*unifi.PortForward, error)
 }
 
 type client struct {

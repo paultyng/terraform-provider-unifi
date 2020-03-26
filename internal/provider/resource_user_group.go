@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
 )
@@ -44,7 +46,7 @@ func resourceUserGroupCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := c.c.CreateUserGroup(c.site, req)
+	resp, err := c.c.CreateUserGroup(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -75,7 +77,7 @@ func resourceUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetUserGroup(c.site, id)
+	resp, err := c.c.GetUserGroup(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -98,7 +100,7 @@ func resourceUserGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	req.ID = d.Id()
 	req.SiteID = c.site
 
-	resp, err := c.c.UpdateUserGroup(c.site, req)
+	resp, err := c.c.UpdateUserGroup(context.TODO(), c.site, req)
 	if err != nil {
 		return err
 	}
@@ -111,7 +113,7 @@ func resourceUserGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	err := c.c.DeleteUserGroup(c.site, id)
+	err := c.c.DeleteUserGroup(context.TODO(), c.site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
