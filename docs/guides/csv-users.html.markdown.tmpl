@@ -1,0 +1,16 @@
+---
+subcategory: ""
+page_title: "Manage Users/Clients in a CSV - Unifi Provider"
+description: |-
+    An example of using a CSV to manage all of your users of your network.
+---
+
+# Manage Users in a CSV
+
+Given a CSV file with the following content:
+
+{{ codefile "csv" "examples/csv_users/users.csv" }}
+
+You could create/manage a `unifi_user` for every row/MAC address in the CSV with the following config:
+
+{{ tffile "examples/csv_users/users.tf" }}

@@ -24,48 +24,60 @@ unifi_port_forward manages a port forwarding rule on the gateway.
 
 		Schema: map[string]*schema.Schema{
 			"dst_port": {
+				Description:  "The destination port for the forwarding.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validatePortRange,
 			},
+			// TODO: remove this, disabled rules should just be deleted.
 			"enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Specifies whether the port forwarding rule is enabled or not.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Deprecated: "This will attribute will be removed in a future release. Instead of disabling a " +
+					"port forwarding rule you can remove it from your configuration.",
 			},
 			"fwd_ip": {
+				Description:  "The IPv4 address to forward traffic to.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.IsIPv4Address,
 			},
 			"fwd_port": {
+				Description:  "The port to forward traffic to.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validatePortRange,
 			},
 			"log": {
-				Type:     schema.TypeBool,
-				Default:  false,
-				Optional: true,
+				Description: "Specifies whether to log forwarded traffic or not.",
+				Type:        schema.TypeBool,
+				Default:     false,
+				Optional:    true,
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The name of the port forwarding rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"port_forward_interface": {
+				Description:  "The port forwarding interface. Can be `wan`, `wan2`, or `both`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"wan", "wan2", "both"}, false),
 			},
 			"protocol": {
+				Description:  "The protocol for the port forwarding rule. Can be `tcp`, `udp`, or `tcp_udp`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "tcp_udp",
 				ValidateFunc: validation.StringInSlice([]string{"tcp_udp", "tcp", "udp"}, false),
 			},
 			"src_ip": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "any",
+				Description: "The source IPv4 address of the port forwarding rule. For all traffic, specify `any`.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "any",
 				ValidateFunc: validation.Any(
 					validation.StringInSlice([]string{"any"}, false),
 					validation.IsIPv4Address,

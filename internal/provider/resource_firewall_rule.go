@@ -26,25 +26,33 @@ unifi_firewall_rule manages an individual firewall rule on the gateway.
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The name of the firewall rule.",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"action": {
+				Description:  "The action of the firewall rule. Must be one of `drop`, `accept`, or `reject`.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"drop", "accept", "reject"}, false),
 			},
 			"ruleset": {
+				Description: "The ruleset for the rule. This is from the perspective of the security gateway. " +
+					"Must be one of `WAN_IN`, `WAN_OUT`, `WAN_LOCAL`, `LAN_IN`, `LAN_OUT`, `LAN_LOCAL`, `GUEST_IN`, " +
+					"`GUEST_OUT`, `GUEST_LOCAL`, `WANv6_IN`, `WANv6_OUT`, `WANv6_LOCAL`, `LANv6_IN`, `LANv6_OUT`, " +
+					"`LANv6_LOCAL`, `GUESTv6_IN`, `GUESTv6_OUT`, or `GUESTv6_LOCAL`.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"WAN_IN", "WAN_OUT", "WAN_LOCAL", "LAN_IN", "LAN_OUT", "LAN_LOCAL", "GUEST_IN", "GUEST_OUT", "GUEST_LOCAL", "WANv6_IN", "WANv6_OUT", "WANv6_LOCAL", "LANv6_IN", "LANv6_OUT", "LANv6_LOCAL", "GUESTv6_IN", "GUESTv6_OUT", "GUESTv6_LOCAL"}, false),
 			},
 			"rule_index": {
-				Type:     schema.TypeInt,
-				Required: true,
+				Description: "The index of the rule. Must be >= 2000 < 3000 or >= 4000 < 5000.",
+				Type:        schema.TypeInt,
+				Required:    true,
 				// 2[0-9]{3}|4[0-9]{3}
 			},
 			"protocol": {
+				Description:  "The protocol of the rule.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringMatch(firewallRuleProtocolRegexp, "must be a valid protocol"),
@@ -52,72 +60,87 @@ unifi_firewall_rule manages an individual firewall rule on the gateway.
 
 			// sources
 			"src_network_id": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The source network ID for the firewall rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"src_network_type": {
+				Description:  "The source network type of the firewall rule. Can be one of `ADDRv4` or `NETv4`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "NETv4",
 				ValidateFunc: validation.StringInSlice([]string{"ADDRv4", "NETv4"}, false),
 			},
 			"src_firewall_group_ids": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "The source firewall group IDs for the firewall rule.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"src_address": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The source address for the firewall rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"src_mac": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The source MAC address of the firewall rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 
 			// destinations
 			"dst_network_id": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The destination network ID of the firewall rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"dst_network_type": {
+				Description:  "The destination network type of the firewall rule. Can be one of `ADDRv4` or `NETv4`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "NETv4",
 				ValidateFunc: validation.StringInSlice([]string{"ADDRv4", "NETv4"}, false),
 			},
 			"dst_firewall_group_ids": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "The destination firewall group IDs of the firewall rule.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"dst_address": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The destination address of the firewall rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 
 			// advanced
 			"logging": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Enable logging for the firewall rule.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"state_established": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Match where the state is established.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"state_invalid": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Match where the state is invalid.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"state_new": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Match where the state is new.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"state_related": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Match where the state is related.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"ip_sec": {
+				Description:  "Specify whether the rule matches on IPsec packets. Can be one of `match-ipset` or `match-none`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"match-ipsec", "match-none"}, false),

@@ -31,7 +31,7 @@ unifi_wlan manages a WiFi network / SSID.
 				Required:    true,
 			},
 			"vlan_id": {
-				Description: "VLAN ID for the network, defaults to `1`.",
+				Description: "VLAN ID for the network.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     1,
@@ -97,6 +97,8 @@ unifi_wlan manages a WiFi network / SSID.
 				ValidateFunc: validation.StringInSlice([]string{"allow", "deny"}, false),
 			},
 			"radius_profile_id": {
+				Description: "ID of the RADIUS profile to use when security `wpaeap`. You can query this via the " +
+					"`unifi_radius_profile` data source.",
 				Type:     schema.TypeString,
 				Optional: true,
 			},

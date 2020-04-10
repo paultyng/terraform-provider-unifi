@@ -25,49 +25,60 @@ unifi_network manages LAN/VLAN networks.
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The name of the network.",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"purpose": {
+				Description:  "The purpose of the network. Must be one of `corporate`, `guest`, or `vlan-only`.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "vlan-only"}, false),
 			},
 			"vlan_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Description: "The VLAN ID of the network.",
+				Type:        schema.TypeInt,
+				Optional:    true,
 			},
 			"subnet": {
+				Description:      "The subnet of the network. Must be a valid CIDR address.",
 				Type:             schema.TypeString,
 				Optional:         true,
 				DiffSuppressFunc: cidrDiffSuppress,
 			},
 			"network_group": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "LAN",
+				Description: "The group of the network.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "LAN",
 			},
 			"dhcp_start": {
+				Description:  "The IPv4 address where the DHCP range of addresses starts.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.IsIPv4Address,
 			},
 			"dhcp_stop": {
+				Description:  "The IPv4 address where the DHCP range of addresses stops.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.IsIPv4Address,
 			},
 			"dhcp_enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Specifies whether DHCP is enabled or not on this network.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"dhcp_lease": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  86400,
+				Description: "Specifies the lease time for DHCP addresses.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     86400,
 			},
 			"dhcp_dns": {
+				Description: "Specifies the IPv4 addresses for the DNS server to be returned from the DHCP " +
+					"server. Leave blank to disable this feature.",
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 4,
@@ -81,12 +92,14 @@ unifi_network manages LAN/VLAN networks.
 				},
 			},
 			"domain_name": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The domain name of this network.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"igmp_snooping": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Specifies whether IGMP snooping is enabled or not.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 		},
 	}

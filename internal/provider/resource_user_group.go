@@ -24,19 +24,22 @@ to limit bandwidth for groups of users.
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The name of the user group.",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"qos_rate_max_down": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  -1,
+				Description: "The QOS maximum download rate.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
 				// TODO: validate does not equal 0,1
 			},
 			"qos_rate_max_up": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  -1,
+				Description: "The QOS maximum upload rate.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
 				// TODO: validate does not equal 0,1
 			},
 		},

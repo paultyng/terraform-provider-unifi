@@ -17,9 +17,10 @@ unifi_user_group data source can be used to retrieve the ID for a user group by 
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "Default",
+				Description: "The name of the user group to look up.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "Default",
 			},
 
 			"qos_rate_max_down": {

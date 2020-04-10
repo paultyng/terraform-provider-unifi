@@ -17,9 +17,10 @@ unifi_radius_profile data source can be used to retrieve the ID for a RADIUS pro
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "Default",
+				Description: "The name of the RADIUS profile to look up.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "Default",
 			},
 		},
 	}
