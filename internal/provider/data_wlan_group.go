@@ -17,9 +17,10 @@ unifi_wlan_group data source can be used to retrieve the ID for a WLAN group by 
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "Default",
+				Description: "The name of the WLAN group to look up.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "Default",
 			},
 		},
 	}
