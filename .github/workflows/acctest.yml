@@ -42,7 +42,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - lts
+          # TODO: add lts support to SDK
+          # - lts
           - stable
         terraform:
           # including a few versions here just in case
