@@ -13,6 +13,9 @@ var firewallRuleProtocolRegexp = regexp.MustCompile("^$|all|([0-9]|[1-9][0-9]|1[
 
 func resourceFirewallRule() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+unifi_firewall_rule manages an individual firewall rule on the gateway.
+`,
 		Create: resourceFirewallRuleCreate,
 		Read:   resourceFirewallRuleRead,
 		Update: resourceFirewallRuleUpdate,
