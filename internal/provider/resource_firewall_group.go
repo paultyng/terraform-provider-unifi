@@ -3,13 +3,16 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
 func resourceFirewallGroup() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+unifi_firewall_group manages groups of addresses or ports for use in firewall rules (unifi_firewall_rule).
+`,
 		Create: resourceFirewallGroupCreate,
 		Read:   resourceFirewallGroupRead,
 		Update: resourceFirewallGroupUpdate,

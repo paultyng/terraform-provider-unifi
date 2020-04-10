@@ -5,10 +5,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// there is a max of 4 SSID's at once, and if you are running this on a
+// controller with existing SSID's, you may want to limit the concurrency.
 var wlanConcurrency chan struct{}
 
 func init() {
@@ -24,14 +26,21 @@ func init() {
 	wlanConcurrency = make(chan struct{}, wc)
 }
 
+func wlanPreCheck(t *testing.T) func() {
+	return func() {
+		if cap(wlanConcurrency) == 0 {
+			t.Skip("concurrency for WLAN testing set to 0")
+		}
+
+		preCheck(t)
+
+		wlanConcurrency <- struct{}{}
+	}
+}
+
 func TestAccWLAN_wpapsk(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: providers,
-		PreCheck: func() {
-			preCheck(t)
-
-			wlanConcurrency <- struct{}{}
-		},
+		PreCheck: wlanPreCheck(t),
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
@@ -52,12 +61,7 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 
 func TestAccWLAN_open(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: providers,
-		PreCheck: func() {
-			preCheck(t)
-
-			wlanConcurrency <- struct{}{}
-		},
+		PreCheck: wlanPreCheck(t),
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
@@ -92,12 +96,7 @@ func TestAccWLAN_open(t *testing.T) {
 
 func TestAccWLAN_change_security(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: providers,
-		PreCheck: func() {
-			preCheck(t)
-
-			wlanConcurrency <- struct{}{}
-		},
+		PreCheck: wlanPreCheck(t),
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 

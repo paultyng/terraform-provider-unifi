@@ -3,13 +3,12 @@ package provider
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDataUserGroup_default(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { preCheck(t) },
-		Providers: providers,
+		PreCheck: func() { preCheck(t) },
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{

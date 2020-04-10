@@ -3,7 +3,7 @@ package provider
 import (
 	"net"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func cidrDiffSuppress(k, old, new string, d *schema.ResourceData) bool {

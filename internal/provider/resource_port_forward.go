@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -31,7 +31,7 @@ func resourcePortForward() *schema.Resource {
 			"fwd_ip": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.SingleIP(),
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"fwd_port": {
 				Type:         schema.TypeString,
@@ -64,7 +64,7 @@ func resourcePortForward() *schema.Resource {
 				Default:  "any",
 				ValidateFunc: validation.Any(
 					validation.StringInSlice([]string{"any"}, false),
-					validation.SingleIP(),
+					validation.IsIPv4Address,
 				),
 			},
 		},

@@ -44,6 +44,11 @@ jobs:
         version:
           - lts
           - stable
+        terraform:
+          # including a few versions here just in case
+          - '0.12.24'
+          - '0.12.23'
+          - '0.12.22'
     steps:
 
     - name: Set up Go 1.13
@@ -68,6 +73,7 @@ jobs:
       timeout-minutes: 10
       env:
         TF_ACC: "1"
+        TF_ACC_TERRAFORM_VERSION: ${{ matrix.terraform }}
 
         UNIFI_USERNAME: tfacctest
         UNIFI_PASSWORD: tfacctest1234
