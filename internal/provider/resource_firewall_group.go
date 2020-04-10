@@ -23,18 +23,21 @@ unifi_firewall_group manages groups of addresses or ports for use in firewall ru
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The name of the firewall group.",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"type": {
+				Description:  "The type of the firewall group. Must be one of: `address-group`, `port-group`, or `ipv6-address-group`.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"address-group", "port-group", "ipv6-address-group"}, false),
 			},
 			"members": {
-				Type:     schema.TypeSet,
-				Required: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "The members of the firewall group.",
+				Type:        schema.TypeSet,
+				Required:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}

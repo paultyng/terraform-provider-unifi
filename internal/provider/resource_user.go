@@ -28,6 +28,7 @@ itself to just take over management of a MAC address, but this can be turned off
 
 		Schema: map[string]*schema.Schema{
 			"mac": {
+				Description:      "The MAC address of the user.",
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
@@ -35,52 +36,62 @@ itself to just take over management of a MAC address, but this can be turned off
 				ValidateFunc:     validation.StringMatch(macAddressRegexp, "Mac address is invalid"),
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The name of the user.",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"user_group_id": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The user group ID for the user.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"note": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "A note with additional information for the user.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			// TODO: combine this with output IP for a single attribute ip_address?
 			"fixed_ip": {
+				Description:  "A fixed IPv4 address for this user.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.IsIPv4Address,
 			},
 			"network_id": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The network ID for this user.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"blocked": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Specifies whether this user should be blocked from the network.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 
 			// these are "meta" attributes that control TF UX
 			"allow_existing": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
+				Description: "Specifies whether this resource should just take over control of an existing user.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
 			},
 			"skip_forget_on_destroy": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Description: "Specifies whether this resource should tell the controller to \"forget\" the user on destroy.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
 			},
 
 			// computed only attributes
 			"hostname": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Description: "The hostname of the user.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 			"ip": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Description: "The IP address of the user.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 		},
 	}

@@ -2,39 +2,59 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
+func init() {
+	schema.DescriptionKind = 1
+
+	schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
+		desc := s.Description
+		if s.Default != nil {
+			desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
+		}
+		return strings.TrimSpace(desc)
+	}
+}
+
 func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"username": {
+				Description: "Local user name for the Unifi controller API. Can be specified with the `UNIFI_USERNAME` " +
+					"environment variable.",
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_USERNAME", ""),
 			},
 			"password": {
+				Description: "Password for the user accessing the API. Can be specified with the `UNIFI_PASSWORD` " +
+					"environment variable.",
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_PASSWORD", ""),
 			},
 			"api_url": {
-				Description: "URL of the controller API.",
+				Description: "URL of the controller API. Can be specified with the `UNIFI_API` environment variable.",
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_API", ""),
 			},
 			"site": {
+				Description: "The site in the Unifi controller this provider will manage. Can be specified with " +
+					"the `UNIFI_SITE` environment variable. Default: `default`",
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_SITE", "default"),
 			},
 			"allow_insecure": {
-				Description: "Skip verification of TLS certificates of API requests. " +
-					"You may need to set this to `true` if you are using your local API without " +
-					"setting up a signed certificate.",
+				Description: "Skip verification of TLS certificates of API requests. You may need to set this to `true` " +
+					"if you are using your local API without setting up a signed certificate. Can be specified with the " +
+					"`UNIFI_INSECURE` environment variable.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_INSECURE", false),
