@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -19,8 +19,7 @@ func userImportStep(name string) resource.TestStep {
 
 func TestAccUser_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: providers,
-		PreCheck:  func() { preCheck(t) },
+		PreCheck: func() { preCheck(t) },
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -52,8 +51,7 @@ func TestAccUser_basic(t *testing.T) {
 func TestAccUser_fixed_ip(t *testing.T) {
 	vlanID := 301
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: providers,
-		PreCheck:  func() { preCheck(t) },
+		PreCheck: func() { preCheck(t) },
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -89,8 +87,7 @@ func TestAccUser_fixed_ip(t *testing.T) {
 
 func TestAccUser_blocking(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: providers,
-		PreCheck:  func() { preCheck(t) },
+		PreCheck: func() { preCheck(t) },
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -125,7 +122,6 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 	testMAC := "00:00:5e:00:53:30"
 
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: providers,
 		PreCheck: func() {
 			preCheck(t)
 
@@ -160,7 +156,6 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 	testMAC := "00:00:5e:00:53:40"
 
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: providers,
 		PreCheck: func() {
 			preCheck(t)
 

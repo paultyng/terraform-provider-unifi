@@ -3,12 +3,17 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
 func resourceUserGroup() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+unifi_user_group manages a user group (called "client group" in the UI), which can be used
+to limit bandwidth for groups of users.
+`,
+
 		Create: resourceUserGroupCreate,
 		Read:   resourceUserGroupRead,
 		Update: resourceUserGroupUpdate,

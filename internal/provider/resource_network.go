@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -46,12 +46,12 @@ func resourceNetwork() *schema.Resource {
 			"dhcp_start": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.SingleIP(),
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"dhcp_stop": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.SingleIP(),
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"dhcp_enabled": {
 				Type:     schema.TypeBool,

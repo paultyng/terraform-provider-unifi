@@ -3,13 +3,21 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+unifi_user manages a user (or "client" in the UI) of the network, these are identified
+by unique MAC addresses.
+
+Users are "created" in the controller when observed on the network, so the resource defaults to allowing
+itself to just take over management of a MAC address, but this can be turned off.
+`,
+
 		Create: resourceUserCreate,
 		Read:   resourceUserRead,
 		Update: resourceUserUpdate,
@@ -42,7 +50,7 @@ func resourceUser() *schema.Resource {
 			"fixed_ip": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.SingleIP(),
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"network_id": {
 				Type:     schema.TypeString,

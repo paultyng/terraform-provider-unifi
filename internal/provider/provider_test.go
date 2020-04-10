@@ -5,23 +5,17 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
-var providers map[string]terraform.ResourceProvider
 var testClient *unifi.Client
 
 func TestMain(m *testing.M) {
 	if os.Getenv("TF_ACC") == "" {
 		// short circuit non acceptance test runs
 		os.Exit(m.Run())
-	}
-
-	providers = map[string]terraform.ResourceProvider{
-		"unifi": Provider(),
 	}
 
 	user := os.Getenv("UNIFI_USERNAME")
@@ -36,13 +30,8 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	os.Exit(m.Run())
-}
-
-func TestProvider(t *testing.T) {
-	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	acctest.UseBinaryDriver("unifi", Provider)
+	resource.TestMain(m)
 }
 
 func importStep(name string, ignore ...string) resource.TestStep {

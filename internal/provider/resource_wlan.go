@@ -3,13 +3,16 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
 func resourceWLAN() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+unifi_wlan manages a WiFi network / SSID.
+`,
 		Create: resourceWLANCreate,
 		Read:   resourceWLANRead,
 		Update: resourceWLANUpdate,
@@ -20,52 +23,63 @@ func resourceWLAN() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The SSID of the network.",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"vlan_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  1,
+				Description: "VLAN ID for the network, defaults to `1`.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     1,
 			},
 			"wlan_group_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "ID of the WLAN group to use for this network.",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"user_group_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "ID of the user group to use for this network.",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"security": {
+				Description:  "The type of WiFi security for this network. Valid values are: `wpapsk`, `wpaeap`, and `open`.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"wpapsk", "wpaeap", "open"}, false),
 			},
 			"passphrase": {
-				Type: schema.TypeString,
+				Description: "The passphrase for the network, this is only required if `security` is not set to `open`.",
+				Type:        schema.TypeString,
 				// only required if security != open
 				Optional:  true,
 				Sensitive: true,
 			},
 			"hide_ssid": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Indicates whether or not to hide the SSID from broadcast.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"is_guest": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Indicates that this is a guest WLAN and should use guest behaviors.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"multicast_enhance": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Indicates whether or not Multicast Enhance is turned of for the network.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"mac_filter_enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "Indicates whether or not the MAC filter is turned of for the network.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"mac_filter_list": {
-				Type:     schema.TypeSet,
-				Optional: true,
+				Description: "List of MAC addresses to filter (only valid if `mac_filter_enabled` is `true`).",
+				Type:        schema.TypeSet,
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateFunc:     validation.StringMatch(macAddressRegexp, "Mac address is invalid"),
@@ -73,6 +87,7 @@ func resourceWLAN() *schema.Resource {
 				},
 			},
 			"mac_filter_policy": {
+				Description:  "MAC address filter policy (only valid if `mac_filter_enabled` is `true`).",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "deny",
