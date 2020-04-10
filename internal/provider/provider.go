@@ -21,6 +21,7 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_PASSWORD", ""),
 			},
 			"api_url": {
+				Description: "URL of the controller API.",
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_API", ""),
