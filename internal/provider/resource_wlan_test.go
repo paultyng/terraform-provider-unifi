@@ -128,6 +128,27 @@ func TestAccWLAN_change_security(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_schedule(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: wlanPreCheck(t),
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_schedule,
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
 const testAccWLANConfig_wpapsk = `
 data "unifi_wlan_group" "default" {
 }
@@ -160,6 +181,34 @@ resource "unifi_wlan" "test" {
 	wlan_group_id = data.unifi_wlan_group.default.id
 	user_group_id = data.unifi_user_group.default.id
 	security      = "open"
+}
+`
+
+const testAccWLANConfig_schedule = `
+data "unifi_wlan_group" "default" {
+}
+
+data "unifi_user_group" "default" {
+}
+
+resource "unifi_wlan" "test" {
+	name          = "tfacc-open-schedule"
+	vlan_id       = 202
+	wlan_group_id = data.unifi_wlan_group.default.id
+	user_group_id = data.unifi_user_group.default.id
+	security      = "open"
+
+	schedule {
+		day_of_week = "mon"
+		block_start = "03:00"
+		block_end   = "9:00"
+	}
+
+	schedule {
+		day_of_week = "wed"
+		block_start = "13:00"
+		block_end   = "17:00"
+	}
 }
 `
 
