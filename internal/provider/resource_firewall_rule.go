@@ -156,6 +156,7 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 	}
 
 	return &unifi.FirewallRule{
+		Enabled:          true,
 		Name:             d.Get("name").(string),
 		Action:           d.Get("action").(string),
 		Ruleset:          d.Get("ruleset").(string),
