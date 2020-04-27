@@ -14,15 +14,16 @@ import (
 )
 
 type lazyClient struct {
-	baseURL string
-	user    string
-	pass    string
+	baseURL  string
+	user     string
+	pass     string
+	insecure bool
 
 	once  sync.Once
 	inner *unifi.Client
 }
 
-func setHTTPClient(c *unifi.Client) {
+func setHTTPClient(c *unifi.Client, insecure bool) {
 	httpClient := &http.Client{}
 	httpClient.Transport = &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -36,9 +37,8 @@ func setHTTPClient(c *unifi.Client) {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 
-		// TODO: make this opt-in
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: insecure,
 		},
 	}
 
@@ -54,7 +54,7 @@ func (c *lazyClient) init(ctx context.Context) error {
 	var err error
 	c.once.Do(func() {
 		c.inner = &unifi.Client{}
-		setHTTPClient(c.inner)
+		setHTTPClient(c.inner, c.insecure)
 
 		err = c.inner.SetBaseURL(c.baseURL)
 		if err != nil {

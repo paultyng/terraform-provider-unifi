@@ -80,5 +80,6 @@ jobs:
         UNIFI_PASSWORD: tfacctest1234
         UNIFI_API: https://localhost:8443/api/
         UNIFI_ACC_WLAN_CONCURRENCY: "4"
+        UNIFI_INSECURE: 'true'
       run: |
         go test -v -cover ./internal/provider/
