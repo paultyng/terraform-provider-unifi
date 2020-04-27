@@ -38,6 +38,7 @@ case "$1" in
     UNIFI_PASSWORD=tfacctest1234 \
     UNIFI_API="https://localhost:${DOCKER_HTTPS_PORT}/api/" \
     UNIFI_ACC_WLAN_CONCURRENCY="4" \
+    UNIFI_INSECURE="true" \
     go test -v -cover -count 1 ./internal/provider
     ;;
   "stop")
