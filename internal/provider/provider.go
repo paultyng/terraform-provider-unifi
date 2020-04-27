@@ -31,11 +31,14 @@ func Provider() *schema.Provider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_SITE", "default"),
 			},
-			// "allow_insecure": {
-			// 	Type:     schema.TypeBool,
-			// 	Optional: true,
-			// 	Default:  false,
-			// },
+			"allow_insecure": {
+				Description: "Skip verification of TLS certificates of API requests. " +
+					"You may need to set this to `true` if you are using your local API without " +
+					"setting up a signed certificate.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("UNIFI_INSECURE", false),
+			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"unifi_user_group": dataUserGroup(),
@@ -61,13 +64,14 @@ func configure(p *schema.Provider) schema.ConfigureFunc {
 		pass := d.Get("password").(string)
 		baseURL := d.Get("api_url").(string)
 		site := d.Get("site").(string)
-		//insecure := d.Get("allow_insecure").(bool)
+		insecure := d.Get("allow_insecure").(bool)
 
 		c := &client{
 			c: &lazyClient{
-				user:    user,
-				pass:    pass,
-				baseURL: baseURL,
+				user:     user,
+				pass:     pass,
+				baseURL:  baseURL,
+				insecure: insecure,
 			},
 			site: site,
 		}
