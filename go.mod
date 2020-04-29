@@ -5,10 +5,11 @@ go 1.12
 // replace github.com/paultyng/go-unifi => ../go-unifi
 
 require (
+	github.com/aws/aws-sdk-go v1.25.3 // indirect
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/hashicorp/go-hclog v0.10.1 // indirect
 	github.com/hashicorp/hcl/v2 v2.2.0 // indirect
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.0-20200408131942-7c309436fac7
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.0-20200429195519-529b3607878f
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/paultyng/go-unifi v1.2.0
