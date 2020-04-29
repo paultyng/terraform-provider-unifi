@@ -23,5 +23,5 @@ func timeFromConfig(t string) string {
 
 func timeFromUnifi(t string) string {
 	i := len(t) - 2
-	return strings.TrimPrefix(t[0:i], "0") + ":" + t[i:len(t)]
+	return strings.TrimPrefix(t[0:i], "0") + ":" + t[i:]
 }
