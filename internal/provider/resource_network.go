@@ -8,6 +8,14 @@ import (
 	"github.com/paultyng/go-unifi/unifi"
 )
 
+const (
+	dhcpDNS1       = "dhcp_dns_1"
+	dhcpDNS2       = "dhcp_dns_2"
+	dhcpDNS3       = "dhcp_dns_3"
+	dhcpDNS4       = "dhcp_dns_4"
+	dhcpDNSEnabled = "dhcp_dns_enabled"
+)
+
 func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
 		Description: `
@@ -74,6 +82,30 @@ unifi_network manages LAN/VLAN networks.
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			dhcpDNSEnabled: {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			dhcpDNS1: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			dhcpDNS2: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			dhcpDNS3: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			dhcpDNS4: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
 		},
 	}
 }
@@ -100,19 +132,23 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 	vlan := d.Get("vlan_id").(int)
 
 	return &unifi.Network{
-		Name:           d.Get("name").(string),
-		Purpose:        d.Get("purpose").(string),
-		VLAN:           vlan,
-		IPSubnet:       cidrOneBased(d.Get("subnet").(string)),
-		NetworkGroup:   d.Get("network_group").(string),
-		DHCPDStart:     d.Get("dhcp_start").(string),
-		DHCPDStop:      d.Get("dhcp_stop").(string),
-		DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
-		DHCPDLeaseTime: d.Get("dhcp_lease").(int),
-		DomainName:     d.Get("domain_name").(string),
-		IGMPSnooping:   d.Get("igmp_snooping").(bool),
-
-		VLANEnabled: vlan != 0 && vlan != 1,
+		Name:            d.Get("name").(string),
+		Purpose:         d.Get("purpose").(string),
+		VLAN:            vlan,
+		IPSubnet:        cidrOneBased(d.Get("subnet").(string)),
+		NetworkGroup:    d.Get("network_group").(string),
+		DHCPDStart:      d.Get("dhcp_start").(string),
+		DHCPDStop:       d.Get("dhcp_stop").(string),
+		DHCPDEnabled:    d.Get("dhcp_enabled").(bool),
+		DHCPDLeaseTime:  d.Get("dhcp_lease").(int),
+		DomainName:      d.Get("domain_name").(string),
+		IGMPSnooping:    d.Get("igmp_snooping").(bool),
+		DHCPDDNSEnabled: d.Get(dhcpDNSEnabled).(bool),
+		DHCPDDNS1:       d.Get(dhcpDNS1).(string),
+		DHCPDDNS2:       d.Get(dhcpDNS2).(string),
+		DHCPDDNS3:       d.Get(dhcpDNS3).(string),
+		DHCPDDNS4:       d.Get(dhcpDNS4).(string),
+		VLANEnabled:     vlan != 0 && vlan != 1,
 
 		Enabled:           true,
 		IPV6InterfaceType: "none",
@@ -144,6 +180,11 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("dhcp_lease", dhcpLease)
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
+	d.Set(dhcpDNSEnabled, resp.DHCPDDNSEnabled)
+	d.Set(dhcpDNS1, resp.DHCPDDNS1)
+	d.Set(dhcpDNS2, resp.DHCPDDNS2)
+	d.Set(dhcpDNS3, resp.DHCPDDNS3)
+	d.Set(dhcpDNS4, resp.DHCPDDNS4)
 
 	return nil
 }
