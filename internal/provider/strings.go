@@ -6,10 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func setToStringSlice(src *schema.Set) ([]string, error) {
-	srcList := src.List()
-	dst := make([]string, 0, len(srcList))
-	for _, s := range srcList {
+func listToStringSlice(src []interface{}) ([]string, error) {
+	dst := make([]string, 0, len(src))
+	for _, s := range src {
 		d, ok := s.(string)
 		if !ok {
 			return nil, fmt.Errorf("unale to convert %v (%T) to string", s, s)
@@ -17,6 +16,10 @@ func setToStringSlice(src *schema.Set) ([]string, error) {
 		dst = append(dst, d)
 	}
 	return dst, nil
+}
+
+func setToStringSlice(src *schema.Set) ([]string, error) {
+	return listToStringSlice(src.List())
 }
 
 func stringSliceToList(list []string) []interface{} {
