@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.0-rc.1.0.20200513175959-048e70e44356
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
-	github.com/paultyng/go-unifi v1.2.0
+	github.com/paultyng/go-unifi v1.3.0
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	google.golang.org/appengine v1.6.5 // indirect
