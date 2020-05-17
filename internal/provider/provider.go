@@ -41,8 +41,9 @@ func Provider() *schema.Provider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"unifi_user_group": dataUserGroup(),
-			"unifi_wlan_group": dataWLANGroup(),
+			"unifi_radius_profile": dataRADIUSProfile(),
+			"unifi_user_group":     dataUserGroup(),
+			"unifi_wlan_group":     dataWLANGroup(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"unifi_firewall_group": resourceFirewallGroup(),
@@ -123,6 +124,12 @@ type unifiClient interface {
 	DeletePortForward(ctx context.Context, site, id string) error
 	CreatePortForward(ctx context.Context, site string, d *unifi.PortForward) (*unifi.PortForward, error)
 	UpdatePortForward(ctx context.Context, site string, d *unifi.PortForward) (*unifi.PortForward, error)
+
+	ListRADIUSProfile(ctx context.Context, site string) ([]unifi.RADIUSProfile, error)
+	GetRADIUSProfile(ctx context.Context, site, id string) (*unifi.RADIUSProfile, error)
+	DeleteRADIUSProfile(ctx context.Context, site, id string) error
+	CreateRADIUSProfile(ctx context.Context, site string, d *unifi.RADIUSProfile) (*unifi.RADIUSProfile, error)
+	UpdateRADIUSProfile(ctx context.Context, site string, d *unifi.RADIUSProfile) (*unifi.RADIUSProfile, error)
 }
 
 type client struct {

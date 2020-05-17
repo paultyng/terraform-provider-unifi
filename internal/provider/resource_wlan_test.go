@@ -149,6 +149,31 @@ func TestAccWLAN_schedule(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_wpaeap(t *testing.T) {
+	if os.Getenv("UNIFI_TEST_RADIUS") == "" {
+		t.Skip("UNIFI_TEST_RADIUS not set, skipping RADIUS test")
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: wlanPreCheck(t),
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_wpaeap,
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
 const testAccWLANConfig_wpapsk = `
 data "unifi_wlan_group" "default" {
 }
@@ -165,6 +190,28 @@ resource "unifi_wlan" "test" {
 	security      = "wpapsk"
 	
 	multicast_enhance = true
+}
+`
+
+const testAccWLANConfig_wpaeap = `
+data "unifi_wlan_group" "default" {
+}
+
+data "unifi_user_group" "default" {
+}
+
+data "unifi_radius_profile" "default" {
+}
+
+resource "unifi_wlan" "test" {
+	name          = "tfacc-wpapsk"
+	vlan_id       = 202
+	passphrase    = "12345678"
+	wlan_group_id = data.unifi_wlan_group.default.id
+	user_group_id = data.unifi_user_group.default.id
+	security      = "wpaeap"
+
+	radius_profile_id = data.unifi_radius_profile.default.id
 }
 `
 
