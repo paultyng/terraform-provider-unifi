@@ -2,18 +2,11 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
-)
-
-const (
-	dhcpDNS1       = "dhcp_dns_1"
-	dhcpDNS2       = "dhcp_dns_2"
-	dhcpDNS3       = "dhcp_dns_3"
-	dhcpDNS4       = "dhcp_dns_4"
-	dhcpDNSEnabled = "dhcp_dns_enabled"
 )
 
 func resourceNetwork() *schema.Resource {
@@ -74,6 +67,19 @@ unifi_network manages LAN/VLAN networks.
 				Optional: true,
 				Default:  86400,
 			},
+			"dhcp_dns": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 4,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					ValidateFunc: validation.All(
+						validation.IsIPv4Address,
+						// this doesn't let blank through
+						validation.StringLenBetween(1, 50),
+					),
+				},
+			},
 			"domain_name": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -81,30 +87,6 @@ unifi_network manages LAN/VLAN networks.
 			"igmp_snooping": {
 				Type:     schema.TypeBool,
 				Optional: true,
-			},
-			dhcpDNSEnabled: {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			dhcpDNS1: {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.IsIPv4Address,
-			},
-			dhcpDNS2: {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.IsIPv4Address,
-			},
-			dhcpDNS3: {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.IsIPv4Address,
-			},
-			dhcpDNS4: {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.IsIPv4Address,
 			},
 		},
 	}
@@ -130,25 +112,32 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, error) {
 	vlan := d.Get("vlan_id").(int)
+	dhcpDNS, err := listToStringSlice(d.Get("dhcp_dns").([]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert dhcp_dns to string slice: %w", err)
+	}
 
 	return &unifi.Network{
-		Name:            d.Get("name").(string),
-		Purpose:         d.Get("purpose").(string),
-		VLAN:            vlan,
-		IPSubnet:        cidrOneBased(d.Get("subnet").(string)),
-		NetworkGroup:    d.Get("network_group").(string),
-		DHCPDStart:      d.Get("dhcp_start").(string),
-		DHCPDStop:       d.Get("dhcp_stop").(string),
-		DHCPDEnabled:    d.Get("dhcp_enabled").(bool),
-		DHCPDLeaseTime:  d.Get("dhcp_lease").(int),
-		DomainName:      d.Get("domain_name").(string),
-		IGMPSnooping:    d.Get("igmp_snooping").(bool),
-		DHCPDDNSEnabled: d.Get(dhcpDNSEnabled).(bool),
-		DHCPDDNS1:       d.Get(dhcpDNS1).(string),
-		DHCPDDNS2:       d.Get(dhcpDNS2).(string),
-		DHCPDDNS3:       d.Get(dhcpDNS3).(string),
-		DHCPDDNS4:       d.Get(dhcpDNS4).(string),
-		VLANEnabled:     vlan != 0 && vlan != 1,
+		Name:           d.Get("name").(string),
+		Purpose:        d.Get("purpose").(string),
+		VLAN:           vlan,
+		IPSubnet:       cidrOneBased(d.Get("subnet").(string)),
+		NetworkGroup:   d.Get("network_group").(string),
+		DHCPDStart:     d.Get("dhcp_start").(string),
+		DHCPDStop:      d.Get("dhcp_stop").(string),
+		DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
+		DHCPDLeaseTime: d.Get("dhcp_lease").(int),
+		DomainName:     d.Get("domain_name").(string),
+		IGMPSnooping:   d.Get("igmp_snooping").(bool),
+
+		DHCPDDNSEnabled: len(dhcpDNS) > 0,
+		// this is kinda hacky but ¯\_(ツ)_/¯
+		DHCPDDNS1: append(dhcpDNS, "")[0],
+		DHCPDDNS2: append(dhcpDNS, "", "")[1],
+		DHCPDDNS3: append(dhcpDNS, "", "", "")[2],
+		DHCPDDNS4: append(dhcpDNS, "", "", "", "")[3],
+
+		VLANEnabled: vlan != 0 && vlan != 1,
 
 		Enabled:           true,
 		IPV6InterfaceType: "none",
@@ -169,6 +158,21 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 		dhcpLease = 86400
 	}
 
+	dhcpDNS := []string{}
+	if resp.DHCPDDNSEnabled {
+		for _, dns := range []string{
+			resp.DHCPDDNS1,
+			resp.DHCPDDNS2,
+			resp.DHCPDDNS3,
+			resp.DHCPDDNS4,
+		} {
+			if dns == "" {
+				continue
+			}
+			dhcpDNS = append(dhcpDNS, dns)
+		}
+	}
+
 	d.Set("name", resp.Name)
 	d.Set("purpose", resp.Purpose)
 	d.Set("vlan_id", vlan)
@@ -180,11 +184,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("dhcp_lease", dhcpLease)
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
-	d.Set(dhcpDNSEnabled, resp.DHCPDDNSEnabled)
-	d.Set(dhcpDNS1, resp.DHCPDDNS1)
-	d.Set(dhcpDNS2, resp.DHCPDDNS2)
-	d.Set(dhcpDNS3, resp.DHCPDDNS3)
-	d.Set(dhcpDNS4, resp.DHCPDDNS4)
+	d.Set("dhcp_dns", dhcpDNS)
 
 	return nil
 }
