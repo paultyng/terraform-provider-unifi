@@ -32,4 +32,5 @@ jobs:
           version: latest
           args: release --rm-dist
         env:
+          GPG_FINGERPRINT: ${{ secrets.GPG_FINGERPRINT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
