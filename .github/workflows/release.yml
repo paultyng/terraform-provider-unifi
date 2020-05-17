@@ -22,7 +22,7 @@ jobs:
       -
         name: Import GPG key
         id: import_gpg
-        run: echo -e "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
+        run: echo -e "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
       -
