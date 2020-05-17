@@ -9,7 +9,7 @@ require (
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/hashicorp/go-hclog v0.10.1 // indirect
 	github.com/hashicorp/hcl/v2 v2.2.0 // indirect
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.0-20200429195519-529b3607878f
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.0-rc.1.0.20200513175959-048e70e44356
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/paultyng/go-unifi v1.2.0
