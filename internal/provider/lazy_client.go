@@ -206,3 +206,23 @@ func (c *lazyClient) UpdatePortForward(ctx context.Context, site string, d *unif
 	c.init(ctx)
 	return c.inner.UpdatePortForward(ctx, site, d)
 }
+func (c *lazyClient) ListRADIUSProfile(ctx context.Context, site string) ([]unifi.RADIUSProfile, error) {
+	c.init(ctx)
+	return c.inner.ListRADIUSProfile(ctx, site)
+}
+func (c *lazyClient) GetRADIUSProfile(ctx context.Context, site, id string) (*unifi.RADIUSProfile, error) {
+	c.init(ctx)
+	return c.inner.GetRADIUSProfile(ctx, site, id)
+}
+func (c *lazyClient) DeleteRADIUSProfile(ctx context.Context, site, id string) error {
+	c.init(ctx)
+	return c.inner.DeleteRADIUSProfile(ctx, site, id)
+}
+func (c *lazyClient) CreateRADIUSProfile(ctx context.Context, site string, d *unifi.RADIUSProfile) (*unifi.RADIUSProfile, error) {
+	c.init(ctx)
+	return c.inner.CreateRADIUSProfile(ctx, site, d)
+}
+func (c *lazyClient) UpdateRADIUSProfile(ctx context.Context, site string, d *unifi.RADIUSProfile) (*unifi.RADIUSProfile, error) {
+	c.init(ctx)
+	return c.inner.UpdateRADIUSProfile(ctx, site, d)
+}

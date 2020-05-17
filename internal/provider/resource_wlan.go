@@ -96,6 +96,10 @@ unifi_wlan manages a WiFi network / SSID.
 				Default:      "deny",
 				ValidateFunc: validation.StringInSlice([]string{"allow", "deny"}, false),
 			},
+			"radius_profile_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"schedule": {
 				Description: "Start and stop schedules for the WLAN",
 				Type:        schema.TypeList,
@@ -168,6 +172,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 		MACFilterEnabled:        macFilterEnabled,
 		MACFilterList:           macFilterList,
 		MACFilterPolicy:         d.Get("mac_filter_policy").(string),
+		RADIUSProfileID:         d.Get("radius_profile_id").(string),
 		Schedule:                schedule,
 		ScheduleEnabled:         len(schedule) > 0,
 
@@ -244,6 +249,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error
 	d.Set("mac_filter_enabled", macFilterEnabled)
 	d.Set("mac_filter_list", macFilterList)
 	d.Set("mac_filter_policy", macFilterPolicy)
+	d.Set("radius_profile_id", resp.RADIUSProfileID)
 	d.Set("schedule", schedule)
 
 	return nil
