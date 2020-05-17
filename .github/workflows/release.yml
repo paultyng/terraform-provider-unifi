@@ -22,9 +22,10 @@ jobs:
       -
         name: Import GPG key
         id: import_gpg
-        run: echo -e "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+        uses: paultyng/ghaction-import-gpg@v2.1.0
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.PASSPHRASE }}
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
@@ -32,5 +33,5 @@ jobs:
           version: latest
           args: release --rm-dist
         env:
-          GPG_KEYID: ${{ secrets.GPG_KEYID }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
