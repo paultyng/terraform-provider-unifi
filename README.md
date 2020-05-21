@@ -8,7 +8,7 @@ Functionality first needs to be added to the [go-unifi](https://github.com/pault
 
 ## Using the Provider
 
-You can download a pre-built binary from the [releases](https://github.com/paultyng/terraform-provider-unifi/releases) page, these are built using [goreleaser](https://goreleaser.com/) (the [configuration](.goreleaser.yml) is in the repo).
+You can download a pre-built binary from the [releases](https://github.com/paultyng/terraform-provider-unifi/releases) page, these are built using [goreleaser](https://goreleaser.com/) (the [configuration](.goreleaser.yml) is in the repo). You can verify the signature and my [key ownership via Keybase](https://keybase.io/paultyng).
 
 If you want to build from source, you can simply use `go build` in the root of the repository.
 
