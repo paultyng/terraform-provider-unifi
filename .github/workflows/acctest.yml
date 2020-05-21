@@ -47,9 +47,8 @@ jobs:
           - stable
         terraform:
           # including a few versions here just in case
+          - '0.12.25'
           - '0.12.24'
-          - '0.12.23'
-          - '0.12.22'
     steps:
 
     - name: Set up Go 1.13
