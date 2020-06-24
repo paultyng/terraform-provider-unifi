@@ -169,8 +169,8 @@ resource "unifi_network" "test" {
 	dhcp_enabled  = true
 	domain_name   = "foo.local"
 
-	ipv6_interface_type = %s
-	ipv6_pd_interface = %s
+	ipv6_interface_type = "%s"
+	ipv6_pd_interface = "%s"
 	ipv6_pd_prefixid = "1"
 	ipv6_ra_enable = true
 }
