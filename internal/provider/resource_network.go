@@ -101,6 +101,32 @@ unifi_network manages LAN/VLAN networks.
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"ipv6_interface_type": {
+				Description: "Specifies which type of IPv6 connection to use.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "none",
+			},
+			"ipv6_static_prefix": {
+				Description: "Specifies the static IPv6 prefix when ipv6_interface_type is 'static'.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"ipv6_pd_interface": {
+				Description: "Specifies which WAN interface to use for IPv6 PD.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"ipv6_pd_prefixid": {
+				Description: "Specifies the IPv6 Prefix ID.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"ipv6_ra_enable": {
+				Description: "Specifies whether to enable router advertisements or not.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -152,11 +178,13 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 
 		VLANEnabled: vlan != 0 && vlan != 1,
 
-		Enabled:           true,
-		IPV6InterfaceType: "none",
-		// IPV6InterfaceType string `json:"ipv6_interface_type"` // "none"
-		// IPV6PDStart       string `json:"ipv6_pd_start"`       // "::2"
-		// IPV6PDStop        string `json:"ipv6_pd_stop"`        // "::7d1"
+		Enabled: true,
+
+		IPV6InterfaceType: d.Get("ipv6_interface_type").(string),
+		IPV6Subnet:        d.Get("ipv6_static_prefix").(string),
+		IPV6PDInterface:   d.Get("ipv6_pd_interface").(string),
+		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
+		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
 	}, nil
 }
 
@@ -198,6 +226,11 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
 	d.Set("dhcp_dns", dhcpDNS)
+	d.Set("ipv6_interface_type", resp.IPV6InterfaceType)
+	d.Set("ipv6_static_prefix", resp.IPV6Subnet)
+	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
+	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
+	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
 
 	return nil
 }
