@@ -107,8 +107,8 @@ unifi_network manages LAN/VLAN networks.
 				Optional:    true,
 				Default:     "none",
 			},
-			"ipv6_static_prefix": {
-				Description: "Specifies the static IPv6 prefix when ipv6_interface_type is 'static'.",
+			"ipv6_static_subnet": {
+				Description: "Specifies the static IPv6 subnet when ipv6_interface_type is 'static'.",
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
@@ -181,7 +181,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		Enabled: true,
 
 		IPV6InterfaceType: d.Get("ipv6_interface_type").(string),
-		IPV6Subnet:        d.Get("ipv6_static_prefix").(string),
+		IPV6Subnet:        d.Get("ipv6_static_subnet").(string),
 		IPV6PDInterface:   d.Get("ipv6_pd_interface").(string),
 		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
 		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
@@ -227,7 +227,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
 	d.Set("dhcp_dns", dhcpDNS)
 	d.Set("ipv6_interface_type", resp.IPV6InterfaceType)
-	d.Set("ipv6_static_prefix", resp.IPV6Subnet)
+	d.Set("ipv6_static_subnet", resp.IPV6Subnet)
 	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
 	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
