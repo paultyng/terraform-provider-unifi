@@ -97,23 +97,21 @@ func TestAccNetwork_v6(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfigV6("10.0.204.0/24", 204, "pd", "wan"),
+				Config: testAccNetworkConfigV6("10.0.206.0/24", 206, "static", "fd6a:37be:e362::1/64"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
-					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.202.0/24"),
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "202"),
-					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "pd"),
-					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_pd_interface", "wan"),
+					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.206.0/24"),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "206"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e362::1/64"),
 				),
 			},
 			importStep("unifi_network.test"),
 			{
-				Config: testAccNetworkConfigV6("10.0.205.0/24", 205, "none", ""),
+				Config: testAccNetworkConfigV6("10.0.207.0/24", 207, "static", "fd6a:37be:e363::1/64"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.203.0/24"),
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "203"),
-					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
-					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_pd_interface", ""),
+					resource.TestCheckResourceAttr("unifi_network.test", "subnet", "10.0.207.0/24"),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "207"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e363::1/64"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -152,7 +150,7 @@ resource "unifi_network" "test" {
 `, subnet, vlan, igmpSnoop, strings.Join(quoteStrings(dhcpDNS), ","))
 }
 
-func testAccNetworkConfigV6(subnet string, vlan int, ipv6Type string, ipv6Interface string) string {
+func testAccNetworkConfigV6(subnet string, vlan int, ipv6Type string, ipv6Subnet string) string {
 	return fmt.Sprintf(`
 variable "subnet" {
 	default = "%s"
@@ -170,9 +168,8 @@ resource "unifi_network" "test" {
 	domain_name   = "foo.local"
 
 	ipv6_interface_type = "%s"
-	ipv6_pd_interface = "%s"
-	ipv6_pd_prefixid = "1"
+	ipv6_static_subnet = "%s"
 	ipv6_ra_enable = true
 }
-`, subnet, vlan, ipv6Type, ipv6Interface)
+`, subnet, vlan, ipv6Type, ipv6Subnet)
 }
