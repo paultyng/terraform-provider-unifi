@@ -10,7 +10,8 @@ import (
 
 func TestAccNetwork_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -38,7 +39,8 @@ func TestAccNetwork_basic(t *testing.T) {
 
 func TestAccNetwork_weird_cidr(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -54,7 +56,8 @@ func TestAccNetwork_weird_cidr(t *testing.T) {
 
 func TestAccNetwork_dhcp_dns(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{

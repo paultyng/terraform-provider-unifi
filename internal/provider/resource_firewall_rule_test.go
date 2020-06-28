@@ -8,7 +8,8 @@ import (
 
 func TestAccFirewallRule_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{

@@ -5,10 +5,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
 )
+
+var providerFactories = map[string]func() (*schema.Provider, error){
+	"unifi": func() (*schema.Provider, error) {
+		return New(), nil
+	},
+}
 
 var testClient *unifi.Client
 
@@ -31,7 +37,6 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	acctest.UseBinaryDriver("unifi", Provider)
 	resource.TestMain(m)
 }
 

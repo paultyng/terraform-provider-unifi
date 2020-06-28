@@ -21,7 +21,7 @@ func init() {
 	}
 }
 
-func Provider() *schema.Provider {
+func New() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"username": {
