@@ -16,10 +16,10 @@ jobs:
     timeout-minutes: 5
     steps:
 
-    - name: Set up Go 1.13
+    - name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.14
       id: go
 
     - name: Check out code into the Go module directory
@@ -51,10 +51,10 @@ jobs:
           - '0.13.0-beta2'
     steps:
 
-    - name: Set up Go 1.13
+    - name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.14
       id: go
 
     - name: Check out code into the Go module directory
