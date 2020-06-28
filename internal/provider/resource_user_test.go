@@ -19,7 +19,8 @@ func userImportStep(name string) resource.TestStep {
 
 func TestAccUser_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -51,7 +52,8 @@ func TestAccUser_basic(t *testing.T) {
 func TestAccUser_fixed_ip(t *testing.T) {
 	vlanID := 301
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -87,7 +89,8 @@ func TestAccUser_fixed_ip(t *testing.T) {
 
 func TestAccUser_blocking(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -134,6 +137,7 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 				t.Fatal(err)
 			}
 		},
+		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: CheckDestroy: ,
 
@@ -168,6 +172,7 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 				t.Fatal(err)
 			}
 		},
+		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: CheckDestroy: ,
 
