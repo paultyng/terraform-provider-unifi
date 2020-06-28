@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// TODO: test changing security, see https://github.com/paultyng/terraform-provider-unifi/issues/32
+
 // there is a max of 4 SSID's at once, and if you are running this on a
 // controller with existing SSID's, you may want to limit the concurrency.
 var wlanConcurrency chan struct{}
@@ -40,7 +42,8 @@ func wlanPreCheck(t *testing.T) func() {
 
 func TestAccWLAN_wpapsk(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: wlanPreCheck(t),
+		PreCheck:          wlanPreCheck(t),
+		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
@@ -61,7 +64,8 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 
 func TestAccWLAN_open(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: wlanPreCheck(t),
+		PreCheck:          wlanPreCheck(t),
+		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
@@ -96,7 +100,8 @@ func TestAccWLAN_open(t *testing.T) {
 
 func TestAccWLAN_change_security(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: wlanPreCheck(t),
+		PreCheck:          wlanPreCheck(t),
+		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
@@ -130,7 +135,8 @@ func TestAccWLAN_change_security(t *testing.T) {
 
 func TestAccWLAN_schedule(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: wlanPreCheck(t),
+		PreCheck:          wlanPreCheck(t),
+		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
@@ -155,7 +161,8 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: wlanPreCheck(t),
+		PreCheck:          wlanPreCheck(t),
+		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
