@@ -8,7 +8,7 @@ description: |-
 
 # Resource: `unifi_wlan`
 
-unifi_wlan manages a WiFi network / SSID.
+`unifi_wlan` manages a WiFi network / SSID.
 
 ## Example Usage
 

@@ -9,9 +9,7 @@ import (
 
 func dataRADIUSProfile() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_radius_profile data source can be used to retrieve the ID for a RADIUS profile by name.
-`,
+		Description: "`unifi_radius_profile` data source can be used to retrieve the ID for a RADIUS profile by name.",
 
 		Read: dataRADIUSProfileRead,
 

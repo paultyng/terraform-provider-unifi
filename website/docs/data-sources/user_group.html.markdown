@@ -8,7 +8,7 @@ description: |-
 
 # Resource: `unifi_user_group`
 
-unifi_user_group data source can be used to retrieve the ID for a user group by name.
+`unifi_user_group` data source can be used to retrieve the ID for a user group by name.
 
 
 

@@ -11,9 +11,7 @@ import (
 
 func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_network manages LAN/VLAN networks.
-`,
+		Description: "`unifi_network` manages LAN/VLAN networks.",
 
 		Create: resourceNetworkCreate,
 		Read:   resourceNetworkRead,

@@ -8,7 +8,7 @@ description: |-
 
 # Resource: `unifi_port_forward`
 
-unifi_port_forward manages a port forwarding rule on the gateway.
+`unifi_port_forward` manages a port forwarding rule on the gateway.
 
 
 

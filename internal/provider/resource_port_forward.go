@@ -10,9 +10,7 @@ import (
 
 func resourcePortForward() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_port_forward manages a port forwarding rule on the gateway.
-`,
+		Description: "`unifi_port_forward` manages a port forwarding rule on the gateway.",
 
 		Create: resourcePortForwardCreate,
 		Read:   resourcePortForwardRead,

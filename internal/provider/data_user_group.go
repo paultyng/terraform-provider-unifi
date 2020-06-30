@@ -9,9 +9,7 @@ import (
 
 func dataUserGroup() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_user_group data source can be used to retrieve the ID for a user group by name.
-`,
+		Description: "`unifi_user_group` data source can be used to retrieve the ID for a user group by name.",
 
 		Read: dataUserGroupRead,
 

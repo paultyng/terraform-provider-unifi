@@ -8,7 +8,7 @@ description: |-
 
 # Resource: `unifi_wlan_group`
 
-unifi_wlan_group data source can be used to retrieve the ID for a WLAN group by name.
+`unifi_wlan_group` data source can be used to retrieve the ID for a WLAN group by name.
 
 ## Example Usage
 

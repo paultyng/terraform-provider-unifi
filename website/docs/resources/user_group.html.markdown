@@ -3,14 +3,12 @@ subcategory: ""
 layout: ""
 page_title: "terraform-provider-unifi: unifi_user_group"
 description: |-
-  unifi_user_group manages a user group (called "client group" in the UI), which can be used
-to limit bandwidth for groups of users.
+  unifi_user_group manages a user group (called "client group" in the UI), which can be used to limit bandwidth for groups of users.
 ---
 
 # Resource: `unifi_user_group`
 
-unifi_user_group manages a user group (called "client group" in the UI), which can be used
-to limit bandwidth for groups of users.
+`unifi_user_group` manages a user group (called "client group" in the UI), which can be used to limit bandwidth for groups of users.
 
 ## Example Usage
 

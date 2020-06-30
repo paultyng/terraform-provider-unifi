@@ -13,9 +13,8 @@ import (
 
 func resourceWLAN() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_wlan manages a WiFi network / SSID.
-`,
+		Description: "`unifi_wlan` manages a WiFi network / SSID.",
+
 		Create: resourceWLANCreate,
 		Read:   resourceWLANRead,
 		Update: resourceWLANUpdate,
