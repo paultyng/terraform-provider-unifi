@@ -8,7 +8,7 @@ description: |-
 
 # Resource: `unifi_network`
 
-unifi_network manages LAN/VLAN networks.
+`unifi_network` manages LAN/VLAN networks.
 
 ## Example Usage
 

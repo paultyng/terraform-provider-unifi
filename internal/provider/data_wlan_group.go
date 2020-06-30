@@ -9,9 +9,7 @@ import (
 
 func dataWLANGroup() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_wlan_group data source can be used to retrieve the ID for a WLAN group by name.
-`,
+		Description: "`unifi_wlan_group` data source can be used to retrieve the ID for a WLAN group by name.",
 
 		Read: dataWLANGroupRead,
 

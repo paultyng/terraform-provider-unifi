@@ -8,7 +8,7 @@ description: |-
 
 # Resource: `unifi_radius_profile`
 
-unifi_radius_profile data source can be used to retrieve the ID for a RADIUS profile by name.
+`unifi_radius_profile` data source can be used to retrieve the ID for a RADIUS profile by name.
 
 
 

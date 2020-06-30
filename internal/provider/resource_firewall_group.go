@@ -10,9 +10,8 @@ import (
 
 func resourceFirewallGroup() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_firewall_group manages groups of addresses or ports for use in firewall rules (unifi_firewall_rule).
-`,
+		Description: "`unifi_firewall_group` manages groups of addresses or ports for use in firewall rules (`unifi_firewall_rule`).",
+
 		Create: resourceFirewallGroupCreate,
 		Read:   resourceFirewallGroupRead,
 		Update: resourceFirewallGroupUpdate,

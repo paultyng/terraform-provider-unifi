@@ -9,10 +9,8 @@ import (
 
 func resourceUserGroup() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_user_group manages a user group (called "client group" in the UI), which can be used
-to limit bandwidth for groups of users.
-`,
+		Description: "`unifi_user_group` manages a user group (called \"client group\" in the UI), which can be used " +
+			"to limit bandwidth for groups of users.",
 
 		Create: resourceUserGroupCreate,
 		Read:   resourceUserGroupRead,

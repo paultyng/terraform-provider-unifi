@@ -10,13 +10,10 @@ import (
 
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-unifi_user manages a user (or "client" in the UI) of the network, these are identified
-by unique MAC addresses.
-
-Users are "created" in the controller when observed on the network, so the resource defaults to allowing
-itself to just take over management of a MAC address, but this can be turned off.
-`,
+		Description: "`unifi_user` manages a user (or \"client\" in the UI) of the network, these are identified " +
+			"by unique MAC addresses.\n\n" +
+			"Users are created in the controller when observed on the network, so the resource defaults to allowing " +
+			"itself to just take over management of a MAC address, but this can be turned off.",
 
 		Create: resourceUserCreate,
 		Read:   resourceUserRead,
