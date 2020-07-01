@@ -1,13 +1,13 @@
 ---
 subcategory: ""
 layout: ""
-page_title: "terraform-provider-unifi: unifi_user"
+page_title: "unifi_user Resource - terraform-provider-unifi"
 description: |-
   unifi_user manages a user (or "client" in the UI) of the network, these are identified by unique MAC addresses.
   Users are created in the controller when observed on the network, so the resource defaults to allowing itself to just take over management of a MAC address, but this can be turned off.
 ---
 
-# Resource: `unifi_user`
+# Resource `unifi_user`
 
 `unifi_user` manages a user (or "client" in the UI) of the network, these are identified by unique MAC addresses.
 

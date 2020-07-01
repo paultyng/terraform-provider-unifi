@@ -1,12 +1,12 @@
 ---
 subcategory: ""
 layout: ""
-page_title: "terraform-provider-unifi: unifi_wlan"
+page_title: "unifi_wlan Resource - terraform-provider-unifi"
 description: |-
   unifi_wlan manages a WiFi network / SSID.
 ---
 
-# Resource: `unifi_wlan`
+# Resource `unifi_wlan`
 
 `unifi_wlan` manages a WiFi network / SSID.
 

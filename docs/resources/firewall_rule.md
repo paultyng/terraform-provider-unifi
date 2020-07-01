@@ -1,12 +1,12 @@
 ---
 subcategory: ""
 layout: ""
-page_title: "terraform-provider-unifi: unifi_firewall_rule"
+page_title: "unifi_firewall_rule Resource - terraform-provider-unifi"
 description: |-
   unifi_firewall_rule manages an individual firewall rule on the gateway.
 ---
 
-# Resource: `unifi_firewall_rule`
+# Resource `unifi_firewall_rule`
 
 `unifi_firewall_rule` manages an individual firewall rule on the gateway.
 

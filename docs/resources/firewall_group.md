@@ -1,12 +1,12 @@
 ---
 subcategory: ""
 layout: ""
-page_title: "terraform-provider-unifi: unifi_firewall_group"
+page_title: "unifi_firewall_group Resource - terraform-provider-unifi"
 description: |-
   unifi_firewall_group manages groups of addresses or ports for use in firewall rules (unifi_firewall_rule).
 ---
 
-# Resource: `unifi_firewall_group`
+# Resource `unifi_firewall_group`
 
 `unifi_firewall_group` manages groups of addresses or ports for use in firewall rules (`unifi_firewall_rule`).
 
