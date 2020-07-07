@@ -48,7 +48,8 @@ jobs:
         terraform:
           # including a few versions here just in case
           - '0.12.26'
-          - '0.13.0-beta2'
+          - '0.12.28'
+          - '0.13.0-beta3'
     steps:
 
     - name: Set up Go
