@@ -1,3 +1,5 @@
+![Acceptance Tests](https://github.com/paultyng/terraform-provider-unifi/workflows/Acceptance%20Tests/badge.svg?event=push)
+
 # Unifi Terraform Provider (terraform-provider-unifi)
 
 **Note** You can't (for obvious reasons) configure your network while connected to something that may disconnect (like the WiFi). Use a hard-wired connection to your controller to use this provider.
