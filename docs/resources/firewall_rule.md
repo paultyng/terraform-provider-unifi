@@ -1,7 +1,6 @@
 ---
-subcategory: ""
-layout: ""
 page_title: "unifi_firewall_rule Resource - terraform-provider-unifi"
+subcategory: ""
 description: |-
   unifi_firewall_rule manages an individual firewall rule on the gateway.
 ---

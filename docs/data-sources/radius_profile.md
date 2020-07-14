@@ -1,7 +1,6 @@
 ---
-subcategory: ""
-layout: ""
 page_title: "unifi_radius_profile Data Source - terraform-provider-unifi"
+subcategory: ""
 description: |-
   unifi_radius_profile data source can be used to retrieve the ID for a RADIUS profile by name.
 ---

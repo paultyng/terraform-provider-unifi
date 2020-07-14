@@ -21,3 +21,13 @@ provider "unifi" {
   # site = "foo" or optionally use UNIFI_SITE env var
 }
 ```
+
+## Schema
+
+### Optional
+
+- **allow_insecure** (Boolean, Optional) Skip verification of TLS certificates of API requests. You may need to set this to `true` if you are using your local API without setting up a signed certificate. Can be specified with the `UNIFI_INSECURE` environment variable.
+- **api_url** (String, Optional) URL of the controller API. Can be specified with the `UNIFI_API` environment variable.
+- **password** (String, Optional) Password for the user accessing the API. Can be specified with the `UNIFI_PASSWORD` environment variable.
+- **site** (String, Optional) The site in the Unifi controller this provider will manage. Can be specified with the `UNIFI_SITE` environment variable. Default: `default`
+- **username** (String, Optional) Local user name for the Unifi controller API. Can be specified with the `UNIFI_USERNAME` environment variable.

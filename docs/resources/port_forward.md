@@ -1,7 +1,6 @@
 ---
-subcategory: ""
-layout: ""
 page_title: "unifi_port_forward Resource - terraform-provider-unifi"
+subcategory: ""
 description: |-
   unifi_port_forward manages a port forwarding rule on the gateway.
 ---
