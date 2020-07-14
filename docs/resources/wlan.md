@@ -1,7 +1,6 @@
 ---
-subcategory: ""
-layout: ""
 page_title: "unifi_wlan Resource - terraform-provider-unifi"
+subcategory: ""
 description: |-
   unifi_wlan manages a WiFi network / SSID.
 ---
@@ -49,10 +48,10 @@ resource "unifi_wlan" "wifi" {
 - **multicast_enhance** (Boolean, Optional) Indicates whether or not Multicast Enhance is turned of for the network.
 - **passphrase** (String, Optional) The passphrase for the network, this is only required if `security` is not set to `open`.
 - **radius_profile_id** (String, Optional) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
-- **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedschema--schedule))
+- **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
 - **vlan_id** (Number, Optional) VLAN ID for the network. Defaults to `1`.
 
-<a id="nestedschema--schedule"></a>
+<a id="nestedblock--schedule"></a>
 ### Nested Schema for `schedule`
 
 Required:

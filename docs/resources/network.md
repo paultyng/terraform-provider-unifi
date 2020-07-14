@@ -1,7 +1,6 @@
 ---
-subcategory: ""
-layout: ""
 page_title: "unifi_network Resource - terraform-provider-unifi"
+subcategory: ""
 description: |-
   unifi_network manages LAN/VLAN networks.
 ---

@@ -1,7 +1,6 @@
 ---
-subcategory: ""
-layout: ""
 page_title: "unifi_user_group Data Source - terraform-provider-unifi"
+subcategory: ""
 description: |-
   unifi_user_group data source can be used to retrieve the ID for a user group by name.
 ---

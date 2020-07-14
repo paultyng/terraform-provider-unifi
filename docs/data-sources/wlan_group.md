@@ -1,7 +1,6 @@
 ---
-subcategory: ""
-layout: ""
 page_title: "unifi_wlan_group Data Source - terraform-provider-unifi"
+subcategory: ""
 description: |-
   unifi_wlan_group data source can be used to retrieve the ID for a WLAN group by name.
 ---
