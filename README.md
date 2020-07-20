@@ -8,7 +8,7 @@ Functionality first needs to be added to the [go-unifi](https://github.com/pault
 
 ## Documentation
 
-You can browse documentation on the [Terraform provider registry](https://registry.terraform.io/providers/paultyng/unifi).
+You can browse documentation on the [Terraform provider registry](https://registry.terraform.io/providers/paultyng/unifi/latest/docs).
 
 ## Using the Provider
 
