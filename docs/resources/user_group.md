@@ -28,7 +28,7 @@ resource "unifi_user_group" "wifi" {
 
 ### Optional
 
-- **id** (String, Optional)
+- **id** (String, Optional) The ID of this resource.
 - **qos_rate_max_down** (Number, Optional) The QOS maximum download rate. Defaults to `-1`.
 - **qos_rate_max_up** (Number, Optional) The QOS maximum upload rate. Defaults to `-1`.
 

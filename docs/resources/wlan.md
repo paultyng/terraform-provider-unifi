@@ -40,7 +40,7 @@ resource "unifi_wlan" "wifi" {
 ### Optional
 
 - **hide_ssid** (Boolean, Optional) Indicates whether or not to hide the SSID from broadcast.
-- **id** (String, Optional)
+- **id** (String, Optional) The ID of this resource.
 - **is_guest** (Boolean, Optional) Indicates that this is a guest WLAN and should use guest behaviors.
 - **mac_filter_enabled** (Boolean, Optional) Indicates whether or not the MAC filter is turned of for the network.
 - **mac_filter_list** (Set of String, Optional) List of MAC addresses to filter (only valid if `mac_filter_enabled` is `true`).

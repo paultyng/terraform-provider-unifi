@@ -15,7 +15,7 @@ description: |-
 
 ### Optional
 
-- **id** (String, Optional)
+- **id** (String, Optional) The ID of this resource.
 - **name** (String, Optional) The name of the user group to look up. Defaults to `Default`.
 
 ### Read-only
