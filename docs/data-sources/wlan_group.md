@@ -20,7 +20,7 @@ data "unifi_wlan_group" "default" {
 
 ### Optional
 
-- **id** (String, Optional)
+- **id** (String, Optional) The ID of this resource.
 - **name** (String, Optional) The name of the WLAN group to look up. Defaults to `Default`.
 
 

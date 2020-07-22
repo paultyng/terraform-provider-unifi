@@ -34,6 +34,6 @@ resource "unifi_firewall_group" "can_print" {
 
 ### Optional
 
-- **id** (String, Optional)
+- **id** (String, Optional) The ID of this resource.
 
 

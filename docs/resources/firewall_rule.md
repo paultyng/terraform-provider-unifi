@@ -45,7 +45,7 @@ resource "unifi_firewall_rule" "drop_all" {
 - **dst_firewall_group_ids** (Set of String, Optional) The destination firewall group IDs of the firewall rule.
 - **dst_network_id** (String, Optional) The destination network ID of the firewall rule.
 - **dst_network_type** (String, Optional) The destination network type of the firewall rule. Can be one of `ADDRv4` or `NETv4`. Defaults to `NETv4`.
-- **id** (String, Optional)
+- **id** (String, Optional) The ID of this resource.
 - **ip_sec** (String, Optional) Specify whether the rule matches on IPsec packets. Can be one of `match-ipset` or `match-none`.
 - **logging** (Boolean, Optional) Enable logging for the firewall rule.
 - **src_address** (String, Optional) The source address for the firewall rule.

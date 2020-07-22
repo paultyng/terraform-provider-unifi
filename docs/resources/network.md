@@ -43,7 +43,7 @@ resource "unifi_network" "vlan" {
 - **dhcp_start** (String, Optional) The IPv4 address where the DHCP range of addresses starts.
 - **dhcp_stop** (String, Optional) The IPv4 address where the DHCP range of addresses stops.
 - **domain_name** (String, Optional) The domain name of this network.
-- **id** (String, Optional)
+- **id** (String, Optional) The ID of this resource.
 - **igmp_snooping** (Boolean, Optional) Specifies whether IGMP snooping is enabled or not.
 - **network_group** (String, Optional) The group of the network. Defaults to `LAN`.
 - **subnet** (String, Optional) The subnet of the network. Must be a valid CIDR address.

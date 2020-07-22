@@ -15,7 +15,7 @@ description: |-
 
 ### Optional
 
-- **id** (String, Optional)
+- **id** (String, Optional) The ID of this resource.
 - **name** (String, Optional) The name of the RADIUS profile to look up. Defaults to `Default`.
 
 
