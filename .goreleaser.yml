@@ -1,6 +1,3 @@
-before:
-  hooks:
-    - go mod tidy
 builds:
 - env:
     - CGO_ENABLED=0
@@ -11,8 +8,6 @@ builds:
     - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
   goos:
     - freebsd
-    - openbsd
-    - solaris
     - windows
     - linux
     - darwin
@@ -24,10 +19,6 @@ builds:
   ignore:
     - goos: darwin
       goarch: '386'
-    - goos: openbsd
-      goarch: arm
-    - goos: openbsd
-      goarch: arm64
   binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
 - format: zip
@@ -39,7 +30,7 @@ signs:
   - artifacts: checksum
     args:
       - "--batch"
-      - "-u"
+      - "--local-user"
       - "{{ .Env.GPG_FINGERPRINT }}"
       - "--output"
       - "${signature}"
