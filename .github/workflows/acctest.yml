@@ -49,7 +49,7 @@ jobs:
           # including a few versions here just in case
           - '0.12.26'
           - '0.12.29'
-          - '0.13.0'
+          - '0.13.1'
     steps:
 
     - name: Set up Go
