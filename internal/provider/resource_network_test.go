@@ -93,7 +93,8 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 
 func TestAccNetwork_v6(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
@@ -118,6 +119,8 @@ func TestAccNetwork_v6(t *testing.T) {
 		},
 	})
 }
+
+// TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
 	dst := make([]string, 0, len(src))
