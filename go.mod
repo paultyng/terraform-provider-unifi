@@ -4,15 +4,11 @@ go 1.15
 
 // replace github.com/paultyng/go-unifi => ../go-unifi
 // replace github.com/hashicorp/terraform-plugin-docs => ../../hashicorp/terraform-plugin-docs
+replace github.com/hashicorp/terraform-plugin-sdk => ../../hashicorp/terraform-plugin-sdk
+
 
 require (
-	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/go-test/deep v1.0.4 // indirect
-	github.com/hashicorp/go-hclog v0.14.1 // indirect
 	github.com/hashicorp/terraform-plugin-docs v0.1.4
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.3
-	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce // indirect
 	github.com/paultyng/go-unifi v1.6.0
-	github.com/posener/complete v1.2.1 // indirect
-	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 )
