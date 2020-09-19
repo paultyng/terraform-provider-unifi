@@ -4,7 +4,7 @@ go 1.15
 
 // replace github.com/paultyng/go-unifi => ../go-unifi
 // replace github.com/hashicorp/terraform-plugin-docs => ../../hashicorp/terraform-plugin-docs
-replace github.com/hashicorp/terraform-plugin-sdk => ../../hashicorp/terraform-plugin-sdk
+replace github.com/hashicorp/terraform-plugin-sdk/v2 => ../../hashicorp/terraform-plugin-sdk
 
 
 require (
