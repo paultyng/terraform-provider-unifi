@@ -39,7 +39,8 @@ func New() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_PASSWORD", ""),
 			},
 			"api_url": {
-				Description: "URL of the controller API. Can be specified with the `UNIFI_API` environment variable.",
+				Description: "URL of the controller API. Can be specified with the `UNIFI_API` environment variable. " +
+					"This typically has the `/api` path appended to it, ie. `https://192.168.1.100:8443/api`.",
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("UNIFI_API", ""),
