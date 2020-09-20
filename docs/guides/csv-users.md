@@ -10,9 +10,8 @@ description: |-
 Given a CSV file with the following content:
 
 ```csv
-mac,name,note,network,fixed_ip
-00:00:00:00:00:00,My Device,custom note,,,
-00:00:00:00:00:00,My Device,custom note,network name to lookup,10.0.3.4
+mac,name,note
+01:23:45:67:89:AB,My Device,custom note
 ```
 
 You could create/manage a `unifi_user` for every row/MAC address in the CSV with the following config:
@@ -30,10 +29,6 @@ resource "unifi_user" "user" {
   name = each.value.name
   # append an optional additional note
   note = trimspace("${each.value.note}\n\nmanaged by TF")
-
-  fixed_ip = each.value.fixed_ip
-  # this assumes there is a unifi_network for_each with names
-  network_id = each.value.network != "" ? unifi_network.vlan[each.value.network].id : ""
 
   allow_existing         = true
   skip_forget_on_destroy = true
