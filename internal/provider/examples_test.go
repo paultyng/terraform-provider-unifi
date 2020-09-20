@@ -1,18 +1,17 @@
 package provider
 
 import (
-	"os"
 	"io/ioutil"
+	"os"
 	"path/filepath"
-	"testing"
 	"strings"
+	"testing"
 
-	
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func directoryConfig(t *testing.T, path string) string {
+func hasConfig(t *testing.T, path string) bool {
 	t.Helper()
 
 	files, err := ioutil.ReadDir(path)
@@ -32,11 +31,11 @@ func directoryConfig(t *testing.T, path string) string {
 			t.Fatal(err)
 		}
 
-		config += "\n\n" + string(data) + "\n\n"	
+		config += "\n\n" + string(data) + "\n\n"
 	}
 
 	config = strings.TrimSpace(config)
-	return config
+	return config != ""
 }
 
 const examplesPath = "../../examples"
@@ -46,13 +45,12 @@ func TestAccExamples(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		
+
 		if !fi.IsDir() {
 			return nil
 		}
 
-		config := directoryConfig(t, path)
-		if config == "" {
+		if !hasConfig(t, path) {
 			return nil
 		}
 
@@ -60,20 +58,26 @@ func TestAccExamples(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		t.Run(name, func(t *testing.T) {
+			switch name {
+			case "csv_users":
+				t.Skipf("for_each is not yet supported by acc test framework")
+			}
+
 			resource.ParallelTest(t, resource.TestCase{
+				ConfigDir:         path,
 				PreCheck:          wlanPreCheck(t),
 				ProviderFactories: providerFactories,
 				CheckDestroy: func(*terraform.State) error {
 					// TODO: actual CheckDestroy
-		
+
 					<-wlanConcurrency
 					return nil
 				},
 				Steps: []resource.TestStep{
 					{
-						Config: config,
-						Check:  resource.ComposeTestCheckFunc(
+						Check: resource.ComposeTestCheckFunc(
 						// testCheckNetworkExists(t, "name"),
 						),
 					},
