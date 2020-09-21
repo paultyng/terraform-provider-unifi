@@ -72,13 +72,14 @@ func resourcePortForward() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"tcp_udp", "tcp", "udp"}, false),
 			},
 			"src_ip": {
-				Description: "The source IPv4 address of the port forwarding rule. For all traffic, specify `any`.",
+				Description: "The source IPv4 address (or CIDR) of the port forwarding rule. For all traffic, specify `any`.",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "any",
 				ValidateFunc: validation.Any(
 					validation.StringInSlice([]string{"any"}, false),
 					validation.IsIPv4Address,
+					cidrValidate,
 				),
 			},
 		},

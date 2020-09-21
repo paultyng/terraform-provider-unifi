@@ -44,6 +44,7 @@ func resourceNetwork() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				DiffSuppressFunc: cidrDiffSuppress,
+				ValidateFunc:     cidrValidate,
 			},
 			"network_group": {
 				Description: "The group of the network.",
