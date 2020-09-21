@@ -1,10 +1,25 @@
 package provider
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func cidrValidate(raw interface{}, key string) ([]string, []error) {
+	v, ok := raw.(string)
+	if !ok {
+		return nil, []error{fmt.Errorf("expected string, got %T", raw)}
+	}
+
+	_, _, err := net.ParseCIDR(v)
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	return nil, nil
+}
 
 func cidrDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 	_, oldNet, err := net.ParseCIDR(old)
