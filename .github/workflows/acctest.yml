@@ -23,7 +23,7 @@ jobs:
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2.3.2
+      uses: actions/checkout@v2.3.3
 
     - name: Get dependencies
       run: |
@@ -57,7 +57,7 @@ jobs:
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2.3.2
+      uses: actions/checkout@v2.3.3
 
     # TODO: convert this to `services`
     - name: Start Unifi controller
