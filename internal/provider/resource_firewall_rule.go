@@ -89,6 +89,12 @@ func resourceFirewallRule() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringMatch(firewallRuleICMPv6TypenameRegexp, "must be a ICMPv6 type"),
 			},
+			"enabled": {
+				Description: "Specifies whether the rule should be enabled.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
 
 			// sources
 			"src_network_id": {
@@ -243,7 +249,7 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 	}
 
 	return &unifi.FirewallRule{
-		Enabled:          true,
+		Enabled:          d.Get("enabled").(bool),
 		Name:             d.Get("name").(string),
 		Action:           d.Get("action").(string),
 		Ruleset:          d.Get("ruleset").(string),
@@ -279,6 +285,7 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.ResourceData, site string) diag.Diagnostics {
 	d.Set("site", site)
 	d.Set("name", resp.Name)
+	d.Set("enabled", resp.Enabled)
 	d.Set("action", resp.Action)
 	d.Set("ruleset", resp.Ruleset)
 	d.Set("rule_index", resp.RuleIndex)
