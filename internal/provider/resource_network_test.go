@@ -176,3 +176,43 @@ resource "unifi_network" "test" {
 }
 `, subnet, vlan, ipv6Type, ipv6Subnet)
 }
+
+func testWanNetworkConfig(networkGroup string, wanType string, wanIP string) string {
+	return fmt.Sprintf(`
+resource "unifi_network" "wan_test" {
+	name    = "tfwan"
+	purpose = "wan"
+	wan_networkgroup = "%s"
+	wan_type = "%s"
+	wan_ip = "%s"
+}
+`, networkGroup, wanType, wanIP)
+}
+
+func TestAccNetwork_wan(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testWanNetworkConfig("WAN","pppoe", "192.168.1.1"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_ip", "192.168.1.1"),
+				),
+			},
+			importStep("unifi_network.wan_test"),
+			{
+				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_ip", "192.168.1.1"),
+				),
+			},
+			importStep("unifi_network.wan_test"),
+		},
+	})
+}
