@@ -11,7 +11,7 @@ import (
 
 func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_network` manages LAN/VLAN networks.",
+		Description: "`unifi_network` manages WAN/LAN/VLAN networks.",
 
 		Create: resourceNetworkCreate,
 		Read:   resourceNetworkRead,
@@ -32,7 +32,7 @@ func resourceNetwork() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "vlan-only"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "wan", "vlan-only"}, false),
 			},
 			"vlan_id": {
 				Description: "The VLAN ID of the network.",
@@ -126,6 +126,37 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"wan_ip": {
+				Description:  "The IPv4 address of the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			"wan_type": {
+				Description:  "Specifies the IPV4 connection type.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "disabled",
+				ValidateFunc: validateWANType,
+			},
+			"wan_networkgroup": {
+				Description:  "Specifies the WAN network group.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANNetworkGroup,
+			},
+			"wan_username": {
+				Description:  "Specifies the IPV4 WAN username.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANUsername,
+			},
+			"x_wan_password": {
+				Description:  "Specifies the IPV4 WAN password.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANPassword,
+			},
 		},
 	}
 }
@@ -184,6 +215,12 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		IPV6PDInterface:   d.Get("ipv6_pd_interface").(string),
 		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
 		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
+
+		WANIP: d.Get("wan_ip").(string),
+		WANType:         d.Get("wan_type").(string),
+		WANNetworkGroup: d.Get("wan_networkgroup").(string),
+		WANUsername:     d.Get("wan_username").(string),
+		XWANPassword:    d.Get("x_wan_password").(string),
 	}, nil
 }
 
@@ -230,6 +267,11 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
 	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
+	d.Set("wan_ip", resp.WANIP)
+	d.Set("wan_type", resp.WANType)
+	d.Set("wan_networkgroup", resp.WANNetworkGroup)
+	d.Set("wan_username", resp.WANUsername)
+	d.Set("x_wan_password", resp.XWANPassword)
 
 	return nil
 }
