@@ -77,6 +77,7 @@ func New(version string) func() *schema.Provider {
 				"unifi_user_group":     resourceUserGroup(),
 				"unifi_user":           resourceUser(),
 				"unifi_wlan":           resourceWLAN(),
+				"unifi_site":           resourceSite(),
 			},
 		}
 		p.ConfigureFunc = configure(version, p)
@@ -155,6 +156,12 @@ type unifiClient interface {
 	DeleteRADIUSProfile(ctx context.Context, site, id string) error
 	CreateRADIUSProfile(ctx context.Context, site string, d *unifi.RADIUSProfile) (*unifi.RADIUSProfile, error)
 	UpdateRADIUSProfile(ctx context.Context, site string, d *unifi.RADIUSProfile) (*unifi.RADIUSProfile, error)
+
+	GetSite(ctx context.Context, id string) (*unifi.Site, error)
+	ListSites(ctx context.Context) ([]unifi.Site, error)
+	CreateSite(ctx context.Context, Description string) ([]unifi.Site, error)
+	UpdateSite(ctx context.Context, Name, Description string) ([]unifi.Site, error)
+	DeleteSite(ctx context.Context, ID string) ([]unifi.Site, error)
 }
 
 type client struct {

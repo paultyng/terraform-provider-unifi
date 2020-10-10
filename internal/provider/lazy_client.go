@@ -307,3 +307,33 @@ func (c *lazyClient) UpdateRADIUSProfile(ctx context.Context, site string, d *un
 	}
 	return c.inner.UpdateRADIUSProfile(ctx, site, d)
 }
+func (c *lazyClient) GetSite(ctx context.Context, id string) (*unifi.Site, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetSite(ctx, id)
+}
+func (c *lazyClient) ListSites(ctx context.Context) ([]unifi.Site, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListSites(ctx)
+}
+func (c *lazyClient) CreateSite(ctx context.Context, description string) ([]unifi.Site, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.CreateSite(ctx, description)
+}
+func (c *lazyClient) DeleteSite(ctx context.Context, id string) ([]unifi.Site, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.DeleteSite(ctx, id)
+}
+func (c *lazyClient) UpdateSite(ctx context.Context, name, description string) ([]unifi.Site, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateSite(ctx, name, description)
+}
