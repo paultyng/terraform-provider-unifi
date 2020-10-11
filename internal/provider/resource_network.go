@@ -145,6 +145,12 @@ func resourceNetwork() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateWANNetworkGroup,
 			},
+			"wan_egress_qos": {
+				Description: "Specifies the WAN egress quality of service.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     0,
+			},
 			"wan_username": {
 				Description:  "Specifies the IPV4 WAN username.",
 				Type:         schema.TypeString,
@@ -216,9 +222,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
 		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
 
-		WANIP: d.Get("wan_ip").(string),
+		WANIP:           d.Get("wan_ip").(string),
 		WANType:         d.Get("wan_type").(string),
 		WANNetworkGroup: d.Get("wan_networkgroup").(string),
+		WANEgressQOS:    d.Get("wan_egress_qos").(int),
 		WANUsername:     d.Get("wan_username").(string),
 		XWANPassword:    d.Get("x_wan_password").(string),
 	}, nil
@@ -270,6 +277,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("wan_ip", resp.WANIP)
 	d.Set("wan_type", resp.WANType)
 	d.Set("wan_networkgroup", resp.WANNetworkGroup)
+	d.Set("wan_egress_qos", resp.WANEgressQOS)
 	d.Set("wan_username", resp.WANUsername)
 	d.Set("x_wan_password", resp.XWANPassword)
 
