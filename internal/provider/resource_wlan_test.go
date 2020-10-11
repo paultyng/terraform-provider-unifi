@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-// TODO: test changing security, see https://github.com/paultyng/terraform-provider-unifi/issues/32
+// TODO: test changing security, see https://github.com/jalfresi/terraform-provider-unifi/issues/32
 
 // there is a max of 4 SSID's at once, and if you are running this on a
 // controller with existing SSID's, you may want to limit the concurrency.
