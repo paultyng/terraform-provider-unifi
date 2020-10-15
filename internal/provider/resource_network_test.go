@@ -177,7 +177,7 @@ resource "unifi_network" "test" {
 `, subnet, vlan, ipv6Type, ipv6Subnet)
 }
 
-func testWanNetworkConfig(networkGroup string, wanType string, wanIP string) string {
+func testWanNetworkConfig(networkGroup string, wanType string, wanIP string, wanEgressQOS int, wanUsername string, wanPassword string) string {
 	return fmt.Sprintf(`
 resource "unifi_network" "wan_test" {
 	name    = "tfwan"
@@ -185,8 +185,11 @@ resource "unifi_network" "wan_test" {
 	wan_networkgroup = "%s"
 	wan_type = "%s"
 	wan_ip = "%s"
+	wan_egress_qos = %d
+	wan_username = "%s"
+	x_wan_password = "%s"
 }
-`, networkGroup, wanType, wanIP)
+`, networkGroup, wanType, wanIP, wanEgressQOS, wanUsername, wanPassword)
 }
 
 func TestAccNetwork_wan(t *testing.T) {
@@ -196,20 +199,26 @@ func TestAccNetwork_wan(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testWanNetworkConfig("WAN","pppoe", "192.168.1.1"),
+				Config: testWanNetworkConfig("WAN","pppoe", "192.168.1.1", 1, "username", "password"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_ip", "192.168.1.1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
 				),
 			},
 			importStep("unifi_network.wan_test"),
 			{
-				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1"),
+				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1", 1, "username", "password"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_ip", "192.168.1.1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
 				),
 			},
 			importStep("unifi_network.wan_test"),
