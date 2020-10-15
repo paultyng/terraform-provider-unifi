@@ -241,10 +241,6 @@ github.com/mitchellh/reflectwalk v1.0.1/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/oklog/run v1.0.0 h1:Ru7dDtJNOyC66gQ5dQmaCa0qIsAUFY3sFpK1Xk8igrw=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
-<<<<<<< HEAD
-=======
-github.com/paultyng/go-unifi v1.7.0/go.mod h1:136w8wenUPfYXRTAYtKqYJ/u32ZFMHE9QVD3NQfEcuI=
->>>>>>> 82c0b0c75241583250d2e560be09a619091f4d21
 github.com/paultyng/go-unifi v1.8.1 h1:N2IZDGBvFOMxwgOEOUB7j6bysxXMG6ZzQ22Qeqgpu8o=
 github.com/paultyng/go-unifi v1.8.1/go.mod h1:136w8wenUPfYXRTAYtKqYJ/u32ZFMHE9QVD3NQfEcuI=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
