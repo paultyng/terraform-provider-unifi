@@ -37,7 +37,6 @@ resource "unifi_user" "test" {
 - **allow_existing** (Boolean, Optional) Specifies whether this resource should just take over control of an existing user. Defaults to `true`.
 - **blocked** (Boolean, Optional) Specifies whether this user should be blocked from the network.
 - **fixed_ip** (String, Optional) A fixed IPv4 address for this user.
-- **id** (String, Optional) The ID of this resource.
 - **network_id** (String, Optional) The network ID for this user.
 - **note** (String, Optional) A note with additional information for the user.
 - **skip_forget_on_destroy** (Boolean, Optional) Specifies whether this resource should tell the controller to "forget" the user on destroy. Defaults to `false`.
@@ -46,6 +45,7 @@ resource "unifi_user" "test" {
 ### Read-only
 
 - **hostname** (String, Read-only) The hostname of the user.
+- **id** (String, Read-only) The ID of the user.
 - **ip** (String, Read-only) The IP address of the user.
 
 

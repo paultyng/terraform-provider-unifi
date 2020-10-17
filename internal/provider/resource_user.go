@@ -24,6 +24,11 @@ func resourceUser() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The ID of the user.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"mac": {
 				Description:      "The MAC address of the user.",
 				Type:             schema.TypeString,

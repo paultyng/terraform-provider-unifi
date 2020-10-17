@@ -40,7 +40,6 @@ resource "unifi_wlan" "wifi" {
 ### Optional
 
 - **hide_ssid** (Boolean, Optional) Indicates whether or not to hide the SSID from broadcast.
-- **id** (String, Optional) The ID of this resource.
 - **is_guest** (Boolean, Optional) Indicates that this is a guest WLAN and should use guest behaviors.
 - **mac_filter_enabled** (Boolean, Optional) Indicates whether or not the MAC filter is turned of for the network.
 - **mac_filter_list** (Set of String, Optional) List of MAC addresses to filter (only valid if `mac_filter_enabled` is `true`).
@@ -50,6 +49,10 @@ resource "unifi_wlan" "wifi" {
 - **radius_profile_id** (String, Optional) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
 - **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
 - **vlan_id** (Number, Optional) VLAN ID for the network. Defaults to `1`.
+
+### Read-only
+
+- **id** (String, Read-only) The ID of the network.
 
 <a id="nestedblock--schedule"></a>
 ### Nested Schema for `schedule`
