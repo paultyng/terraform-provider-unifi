@@ -1,3 +1,2 @@
-mac,name,note,network,fixed_ip
-00:00:00:00:00:00,My Device,custom note,,,
-00:00:00:00:00:00,My Device,custom note,network name to lookup,10.0.3.4
+mac,name,note
+01:23:45:67:89:AB,My Device,custom note
