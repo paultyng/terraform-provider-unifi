@@ -28,10 +28,10 @@ func TestAccDataUserGroup_multiple_providers(t *testing.T) {
 		PreCheck: func() { preCheck(t) },
 		ProviderFactories: map[string]func() (*schema.Provider, error){
 			"unifi2": func() (*schema.Provider, error) {
-				return New(), nil
+				return New("acctest")(), nil
 			},
 			"unifi3": func() (*schema.Provider, error) {
-				return New(), nil
+				return New("acctest")(), nil
 			},
 		},
 		// TODO: CheckDestroy: ,
