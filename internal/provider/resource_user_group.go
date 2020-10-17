@@ -21,6 +21,11 @@ func resourceUserGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The ID of the user group.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"name": {
 				Description: "The name of the user group.",
 				Type:        schema.TypeString,
