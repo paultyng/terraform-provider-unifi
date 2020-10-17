@@ -42,12 +42,12 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          # TODO: add lts support to SDK
-          # - lts
-          - stable
+          - stable-5
+          - stable-6
         terraform:
           - '0.12.29'
-          - '0.13.3'
+          - '0.13.4'
+          - '0.14.0-beta1'
     steps:
 
     - name: Set up Go
