@@ -22,6 +22,11 @@ func resourceNetwork() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The ID of the network.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"name": {
 				Description: "The name of the network.",
 				Type:        schema.TypeString,

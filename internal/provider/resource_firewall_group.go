@@ -21,6 +21,11 @@ func resourceFirewallGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The ID of the firewall group.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"name": {
 				Description: "The name of the firewall group.",
 				Type:        schema.TypeString,

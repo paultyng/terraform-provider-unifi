@@ -21,6 +21,11 @@ func resourcePortForward() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The ID of the port forwarding rule.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"dst_port": {
 				Description:  "The destination port for the forwarding.",
 				Type:         schema.TypeString,
