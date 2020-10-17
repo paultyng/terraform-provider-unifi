@@ -12,7 +12,7 @@ import (
 
 var providerFactories = map[string]func() (*schema.Provider, error){
 	"unifi": func() (*schema.Provider, error) {
-		return New(), nil
+		return New("acctest")(), nil
 	},
 }
 
