@@ -21,68 +21,70 @@ func init() {
 	}
 }
 
-func New() *schema.Provider {
-	p := &schema.Provider{
-		Schema: map[string]*schema.Schema{
-			"username": {
-				Description: "Local user name for the Unifi controller API. Can be specified with the `UNIFI_USERNAME` " +
-					"environment variable.",
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("UNIFI_USERNAME", ""),
-			},
-			"password": {
-				Description: "Password for the user accessing the API. Can be specified with the `UNIFI_PASSWORD` " +
-					"environment variable.",
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("UNIFI_PASSWORD", ""),
-			},
-			"api_url": {
-				Description: "URL of the controller API. Can be specified with the `UNIFI_API` environment variable. " +
-					"You should **NOT** supply the path (`/api`), the SDK will discover the appropriate paths. This is" +
-					"to support UDM Pro style API paths as well as more standard controller paths.",
+func New(version string) func() *schema.Provider {
+	return func() *schema.Provider {
+		p := &schema.Provider{
+			Schema: map[string]*schema.Schema{
+				"username": {
+					Description: "Local user name for the Unifi controller API. Can be specified with the `UNIFI_USERNAME` " +
+						"environment variable.",
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("UNIFI_USERNAME", ""),
+				},
+				"password": {
+					Description: "Password for the user accessing the API. Can be specified with the `UNIFI_PASSWORD` " +
+						"environment variable.",
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("UNIFI_PASSWORD", ""),
+				},
+				"api_url": {
+					Description: "URL of the controller API. Can be specified with the `UNIFI_API` environment variable. " +
+						"You should **NOT** supply the path (`/api`), the SDK will discover the appropriate paths. This is" +
+						"to support UDM Pro style API paths as well as more standard controller paths.",
 
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("UNIFI_API", ""),
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("UNIFI_API", ""),
+				},
+				"site": {
+					Description: "The site in the Unifi controller this provider will manage. Can be specified with " +
+						"the `UNIFI_SITE` environment variable. Default: `default`",
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("UNIFI_SITE", "default"),
+				},
+				"allow_insecure": {
+					Description: "Skip verification of TLS certificates of API requests. You may need to set this to `true` " +
+						"if you are using your local API without setting up a signed certificate. Can be specified with the " +
+						"`UNIFI_INSECURE` environment variable.",
+					Type:        schema.TypeBool,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("UNIFI_INSECURE", false),
+				},
 			},
-			"site": {
-				Description: "The site in the Unifi controller this provider will manage. Can be specified with " +
-					"the `UNIFI_SITE` environment variable. Default: `default`",
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("UNIFI_SITE", "default"),
+			DataSourcesMap: map[string]*schema.Resource{
+				"unifi_radius_profile": dataRADIUSProfile(),
+				"unifi_user_group":     dataUserGroup(),
+				"unifi_wlan_group":     dataWLANGroup(),
 			},
-			"allow_insecure": {
-				Description: "Skip verification of TLS certificates of API requests. You may need to set this to `true` " +
-					"if you are using your local API without setting up a signed certificate. Can be specified with the " +
-					"`UNIFI_INSECURE` environment variable.",
-				Type:        schema.TypeBool,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("UNIFI_INSECURE", false),
+			ResourcesMap: map[string]*schema.Resource{
+				"unifi_firewall_group": resourceFirewallGroup(),
+				"unifi_firewall_rule":  resourceFirewallRule(),
+				"unifi_network":        resourceNetwork(),
+				"unifi_port_forward":   resourcePortForward(),
+				"unifi_user_group":     resourceUserGroup(),
+				"unifi_user":           resourceUser(),
+				"unifi_wlan":           resourceWLAN(),
 			},
-		},
-		DataSourcesMap: map[string]*schema.Resource{
-			"unifi_radius_profile": dataRADIUSProfile(),
-			"unifi_user_group":     dataUserGroup(),
-			"unifi_wlan_group":     dataWLANGroup(),
-		},
-		ResourcesMap: map[string]*schema.Resource{
-			"unifi_firewall_group": resourceFirewallGroup(),
-			"unifi_firewall_rule":  resourceFirewallRule(),
-			"unifi_network":        resourceNetwork(),
-			"unifi_port_forward":   resourcePortForward(),
-			"unifi_user_group":     resourceUserGroup(),
-			"unifi_user":           resourceUser(),
-			"unifi_wlan":           resourceWLAN(),
-		},
+		}
+		p.ConfigureFunc = configure(version, p)
+		return p
 	}
-	p.ConfigureFunc = configure(p)
-	return p
 }
 
-func configure(p *schema.Provider) schema.ConfigureFunc {
+func configure(version string, p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
 		user := d.Get("username").(string)
 		pass := d.Get("password").(string)
