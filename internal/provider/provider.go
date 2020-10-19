@@ -5,8 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
+)
+
+var (
+	controllerV5 = version.Must(version.NewVersion("5.0.0"))
+	controllerV6 = version.Must(version.NewVersion("6.0.0"))
 )
 
 func init() {
@@ -16,6 +22,9 @@ func init() {
 		desc := s.Description
 		if s.Default != nil {
 			desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
+		}
+		if s.Deprecated != "" {
+			desc += " " + s.Deprecated
 		}
 		return strings.TrimSpace(desc)
 	}
@@ -65,11 +74,13 @@ func New(version string) func() *schema.Provider {
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
+				"unifi_ap_group":       dataAPGroup(),
 				"unifi_radius_profile": dataRADIUSProfile(),
 				"unifi_user_group":     dataUserGroup(),
 				"unifi_wlan_group":     dataWLANGroup(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
+				// TODO: "unifi_ap_group"
 				"unifi_firewall_group": resourceFirewallGroup(),
 				"unifi_firewall_rule":  resourceFirewallRule(),
 				"unifi_network":        resourceNetwork(),
@@ -79,6 +90,7 @@ func New(version string) func() *schema.Provider {
 				"unifi_wlan":           resourceWLAN(),
 			},
 		}
+
 		p.ConfigureFunc = configure(version, p)
 		return p
 	}
@@ -107,6 +119,8 @@ func configure(version string, p *schema.Provider) schema.ConfigureFunc {
 }
 
 type unifiClient interface {
+	Version() string
+
 	ListUserGroup(ctx context.Context, site string) ([]unifi.UserGroup, error)
 	DeleteUserGroup(ctx context.Context, site, id string) error
 	CreateUserGroup(ctx context.Context, site string, d *unifi.UserGroup) (*unifi.UserGroup, error)
@@ -126,6 +140,8 @@ type unifiClient interface {
 	UpdateFirewallRule(ctx context.Context, site string, d *unifi.FirewallRule) (*unifi.FirewallRule, error)
 
 	ListWLANGroup(ctx context.Context, site string) ([]unifi.WLANGroup, error)
+
+	ListAPGroup(ctx context.Context, site string) ([]unifi.APGroup, error)
 
 	DeleteNetwork(ctx context.Context, site, id, name string) error
 	CreateNetwork(ctx context.Context, site string, d *unifi.Network) (*unifi.Network, error)
@@ -160,4 +176,8 @@ type unifiClient interface {
 type client struct {
 	c    unifiClient
 	site string
+}
+
+func (c *client) ControllerVersion() *version.Version {
+	return version.Must(version.NewVersion(c.c.Version()))
 }

@@ -34,17 +34,7 @@ func resourceWLAN() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
-			"vlan_id": {
-				Description: "VLAN ID for the network.",
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     1,
-			},
-			"wlan_group_id": {
-				Description: "ID of the WLAN group to use for this network.",
-				Type:        schema.TypeString,
-				Required:    true,
-			},
+
 			"user_group_id": {
 				Description: "ID of the user group to use for this network.",
 				Type:        schema.TypeString,
@@ -135,12 +125,45 @@ func resourceWLAN() *schema.Resource {
 					},
 				},
 			},
+
+			// controller v6 fields
+			"network_id": {
+				Description:   "ID of the network for this SSID",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"vlan_id"},
+			},
+			"ap_group_ids": {
+				Description:   "IDs of the AP groups to use for this network.",
+				Type:          schema.TypeSet,
+				Optional:      true,
+				ConflictsWith: []string{"wlan_group_id"},
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+
+			// controller v5 fields
+			"vlan_id": {
+				Description:   "VLAN ID for the network.",
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ConflictsWith: []string{"network_id"},
+				Deprecated:    "Set network_id instead of vlan_id for controller version >= 6.",
+			},
+			"wlan_group_id": {
+				Description:   "ID of the WLAN group to use for this network.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"ap_group_ids"},
+				Deprecated:    "Set ap_group_ids instead of wlan_group_id for controller version >= 6.",
+			},
 		},
 	}
 }
 
-func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
-	vlan := d.Get("vlan_id").(int)
+func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*unifi.WLAN, error) {
+	c := meta.(*client)
 
 	security := d.Get("security").(string)
 	passphrase := d.Get("passphrase").(string)
@@ -158,20 +181,46 @@ func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 		macFilterList = nil
 	}
 
+	// version specific fields and validation
+	networkID := d.Get("network_id").(string)
+	vlan := d.Get("vlan_id").(int)
+	apGroupIDs, err := setToStringSlice(d.Get("ap_group_ids").(*schema.Set))
+	if err != nil {
+		return nil, err
+	}
+	wlanGroupID := d.Get("wlan_group_id").(string)
+	switch v := c.ControllerVersion(); {
+	case v.GreaterThanOrEqual(controllerV6):
+		if wlanGroupID != "" {
+			return nil, fmt.Errorf("wlan_group_id is not supported on controller version %q", v)
+		}
+		if vlan != 0 {
+			return nil, fmt.Errorf("vlan_id %d is not supported on controller version %q", vlan, v)
+		}
+	case v.GreaterThanOrEqual(controllerV5):
+		if networkID != "" {
+			return nil, fmt.Errorf("network_id is not supported on controller version %q", v)
+		}
+		if len(apGroupIDs) > 0 {
+			return nil, fmt.Errorf("ap_group_ids is not supported on controller version %q", v)
+		}
+	default:
+		return nil, fmt.Errorf("controller version %q not supported", v)
+	}
+
 	schedule, err := listToScheduleStrings(d.Get("schedule").([]interface{}))
 	if err != nil {
 		return nil, fmt.Errorf("unable to process schedule block: %w", err)
 	}
-
 	log.Printf("[TRACE] TF Schedule: %#v", schedule)
 
 	return &unifi.WLAN{
 		Name:                    d.Get("name").(string),
-		VLAN:                    vlan,
 		XPassphrase:             passphrase,
 		HideSSID:                d.Get("hide_ssid").(bool),
 		IsGuest:                 d.Get("is_guest").(bool),
-		WLANGroupID:             d.Get("wlan_group_id").(string),
+		NetworkID:               networkID,
+		ApGroupIDs:              apGroupIDs,
 		UserGroupID:             d.Get("user_group_id").(string),
 		Security:                security,
 		MulticastEnhanceEnabled: d.Get("multicast_enhance").(bool),
@@ -182,6 +231,9 @@ func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 		Schedule:                schedule,
 		ScheduleEnabled:         len(schedule) > 0,
 
+		// v5
+		VLAN:        vlan,
+		WLANGroupID: wlanGroupID,
 		VLANEnabled: vlan != 0 && vlan != 1,
 
 		// TODO: add to schema
@@ -200,7 +252,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData) (*unifi.WLAN, error) {
 func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	req, err := resourceWLANGetResourceData(d)
+	req, err := resourceWLANGetResourceData(d, meta)
 	if err != nil {
 		return err
 	}
@@ -212,10 +264,12 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(resp.ID)
 
-	return resourceWLANSetResourceData(resp, d)
+	return resourceWLANSetResourceData(resp, d, meta)
 }
 
-func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error {
+func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}) error {
+	// c := meta.(*client)
+
 	vlan := 0
 	if resp.VLANEnabled {
 		vlan = resp.VLAN
@@ -236,20 +290,19 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error
 		macFilterPolicy = resp.MACFilterPolicy
 	}
 
-	log.Printf("[TRACE] API Schedule: %#v", resp.Schedule)
+	apGroupIDs := stringSliceToSet(resp.ApGroupIDs)
 
+	log.Printf("[TRACE] API Schedule: %#v", resp.Schedule)
 	schedule, err := listFromScheduleStrings(resp.Schedule)
 	if err != nil {
 		return fmt.Errorf("unable to parse schedule: %w", err)
 	}
 
 	d.Set("name", resp.Name)
-	d.Set("vlan_id", vlan)
+	d.Set("user_group_id", resp.UserGroupID)
 	d.Set("passphrase", passphrase)
 	d.Set("hide_ssid", resp.HideSSID)
 	d.Set("is_guest", resp.IsGuest)
-	d.Set("wlan_group_id", resp.WLANGroupID)
-	d.Set("user_group_id", resp.UserGroupID)
 	d.Set("security", security)
 	d.Set("multicast_enhance", resp.MulticastEnhanceEnabled)
 	d.Set("mac_filter_enabled", macFilterEnabled)
@@ -257,6 +310,15 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData) error
 	d.Set("mac_filter_policy", macFilterPolicy)
 	d.Set("radius_profile_id", resp.RADIUSProfileID)
 	d.Set("schedule", schedule)
+
+	// switch v := c.ControllerVersion(); {
+	// case v.GreaterThanOrEqual(controllerV6):
+	d.Set("ap_group_ids", apGroupIDs)
+	d.Set("network_id", resp.NetworkID)
+	// case v.GreaterThanOrEqual(controllerV5):
+	d.Set("vlan_id", vlan)
+	d.Set("wlan_group_id", resp.WLANGroupID)
+	// }
 
 	return nil
 }
@@ -275,13 +337,13 @@ func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourceWLANSetResourceData(resp, d)
+	return resourceWLANSetResourceData(resp, d, meta)
 }
 
 func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
-	req, err := resourceWLANGetResourceData(d)
+	req, err := resourceWLANGetResourceData(d, meta)
 	if err != nil {
 		return err
 	}
@@ -294,7 +356,7 @@ func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourceWLANSetResourceData(resp, d)
+	return resourceWLANSetResourceData(resp, d, meta)
 }
 
 func resourceWLANDelete(d *schema.ResourceData, meta interface{}) error {

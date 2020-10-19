@@ -18,6 +18,7 @@ require (
 	github.com/hashicorp/go-hclog v0.14.1 // indirect
 	github.com/hashicorp/go-multierror v1.1.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
+	github.com/hashicorp/go-version v1.2.1
 	github.com/hashicorp/terraform-exec v0.11.0 // indirect
 	github.com/hashicorp/terraform-json v0.6.0 // indirect
 	github.com/hashicorp/terraform-plugin-docs v0.2.0
@@ -26,8 +27,8 @@ require (
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mitchellh/cli v1.1.2 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
-	github.com/paultyng/go-unifi v1.9.0
-	github.com/posener/complete v1.2.3 // indirect
+	github.com/paultyng/go-unifi v1.10.0
+	github.com/posener/complete v1.2.1 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/zclconf/go-cty v1.6.1 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect

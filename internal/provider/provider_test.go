@@ -3,8 +3,10 @@ package provider
 import (
 	"context"
 	"os"
+	"sync"
 	"testing"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
@@ -67,4 +69,44 @@ func preCheck(t *testing.T) {
 			t.Fatalf("`%s` must be set for acceptance tests!", variable)
 		}
 	}
+}
+
+func preCheckV6Only(t *testing.T) {
+	v, err := version.NewVersion(testClient.Version())
+	if err != nil {
+		t.Fatalf("error parsing version: %s", err)
+	}
+	if v.LessThan(controllerV6) {
+		t.Skipf("skipping test on controller version %q", v)
+	}
+}
+
+func preCheckV5Only(t *testing.T) {
+	v, err := version.NewVersion(testClient.Version())
+	if err != nil {
+		t.Fatalf("error parsing version: %s", err)
+	}
+	if v.GreaterThanOrEqual(controllerV6) {
+		t.Skipf("skipping test on controller version %q", v)
+	}
+}
+
+const (
+	vlanMin = 2
+	vlanMax = 4095
+)
+
+var (
+	vlanLock sync.Mutex
+	vlanNext = vlanMin
+)
+
+func getTestVLAN(t *testing.T) int {
+	vlanLock.Lock()
+	defer vlanLock.Unlock()
+
+	vl := vlanNext
+	vlanNext++
+
+	return vl
 }
