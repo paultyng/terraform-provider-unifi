@@ -6,17 +6,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataWLANGroup_default(t *testing.T) {
+func TestAccDataAPGroup_default(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV5Only(t)
+			preCheckV6Only(t)
 		},
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataWLANGroupConfig_default,
+				Config: testAccDataAPGroupConfig_default,
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
@@ -25,7 +25,7 @@ func TestAccDataWLANGroup_default(t *testing.T) {
 	})
 }
 
-const testAccDataWLANGroupConfig_default = `
-data "unifi_wlan_group" "default" {
+const testAccDataAPGroupConfig_default = `
+data "unifi_ap_group" "default" {
 }
 `

@@ -9,11 +9,19 @@ import (
 
 func dataWLANGroup() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_wlan_group` data source can be used to retrieve the ID for a WLAN group by name.",
+		Description: "`unifi_wlan_group` data source can be used to retrieve the ID for a WLAN group by name.\n\n" +
+			"Please note that WLAN Groups are deprecated in v6 of the controller.",
+
+		DeprecationMessage: "WLAN groups are deprecated in controller version 6 and greater.",
 
 		Read: dataWLANGroupRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The ID of this AP group.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"name": {
 				Description: "The name of the WLAN group to look up.",
 				Type:        schema.TypeString,
@@ -26,6 +34,10 @@ func dataWLANGroup() *schema.Resource {
 
 func dataWLANGroupRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
+
+	if v := c.ControllerVersion(); !v.LessThan(controllerV6) {
+		return fmt.Errorf("WLAN groups are not supported on controller version %q", v)
+	}
 
 	name := d.Get("name").(string)
 
