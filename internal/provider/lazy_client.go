@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -63,10 +65,18 @@ func (c *lazyClient) init(ctx context.Context) error {
 		}
 
 		initErr = c.inner.Login(ctx, c.user, c.pass)
+
+		log.Printf("[TRACE] Unifi controller version: %q", c.inner.Version())
 	})
 	return initErr
 }
 
+func (c *lazyClient) Version() string {
+	if err := c.init(context.Background()); err != nil {
+		panic(fmt.Sprintf("client not initialized: %s", err))
+	}
+	return c.inner.Version()
+}
 func (c *lazyClient) ListUserGroup(ctx context.Context, site string) ([]unifi.UserGroup, error) {
 	if err := c.init(ctx); err != nil {
 		return nil, err
@@ -78,6 +88,12 @@ func (c *lazyClient) ListWLANGroup(ctx context.Context, site string) ([]unifi.WL
 		return nil, err
 	}
 	return c.inner.ListWLANGroup(ctx, site)
+}
+func (c *lazyClient) ListAPGroup(ctx context.Context, site string) ([]unifi.APGroup, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListAPGroup(ctx, site)
 }
 func (c *lazyClient) DeleteNetwork(ctx context.Context, site, id, name string) error {
 	if err := c.init(ctx); err != nil {

@@ -2,6 +2,8 @@
 
 set -eou pipefail
 
+default_tag="stable-6"
+
 # Local Administrator
 # Username: tfacctest
 # Password: tfacctest1234
@@ -26,7 +28,7 @@ case "$1" in
       -e TZ='America/New_York' \
       -v $(pwd)/testdata/unifi:/unifi \
       --name unifi \
-      jacobalberty/unifi:${2:-stable}
+      jacobalberty/unifi:${2:-$default_tag}
 
     echo "Waiting for login page..."
     timeout 300 bash -c 'while [[ "$(curl --insecure -s -o /dev/null -w "%{http_code}" '"https://localhost:${DOCKER_HTTPS_PORT}/manage/account/login"')" != "200" ]]; do sleep 5; done'
@@ -45,7 +47,7 @@ case "$1" in
     docker stop unifi
     ;;
   "update")
-    docker pull jacobalberty/unifi:${2:-stable}
+    docker pull jacobalberty/unifi:${2:-$default_tag}
     ;;
   "reset")
     git checkout - testdata/unifi/
