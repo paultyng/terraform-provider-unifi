@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -16,8 +17,19 @@ func TestAccSite_basic(t *testing.T) {
 		CheckDestroy:      testAccCheckSiteResourceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSiteConfig,
+				Config: testAccSiteConfig("tfacc-desc1"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_site.test", "description", "tfacc-desc1"),
+				),
 			},
+			importStep("unifi_site.test"),
+			{
+				Config: testAccSiteConfig("tfacc-desc2"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_site.test", "description", "tfacc-desc2"),
+				),
+			},
+			importStep("unifi_site.test"),
 		},
 	})
 }
@@ -28,15 +40,17 @@ func testAccCheckSiteResourceDestroy(s *terraform.State) error {
 		return err
 	}
 	for _, site := range sites {
-		if site.Description == "tfacc" {
-			return fmt.Errorf("site tfacc not destroyed")
+		if strings.HasPrefix(site.Description, "tfacc-") {
+			return fmt.Errorf("site not destroyed")
 		}
 	}
 	return nil
 }
 
-const testAccSiteConfig = `
+func testAccSiteConfig(desc string) string {
+	return fmt.Sprintf(`
 resource "unifi_site" "test" {
-	description = "tfacc"
+	description = %q
 }
-`
+`, desc)
+}
