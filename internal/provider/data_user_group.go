@@ -14,6 +14,11 @@ func dataUserGroup() *schema.Resource {
 		Read: dataUserGroupRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The ID of this AP group.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"name": {
 				Description: "The name of the user group to look up.",
 				Type:        schema.TypeString,
