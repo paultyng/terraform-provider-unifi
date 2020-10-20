@@ -14,6 +14,11 @@ func dataRADIUSProfile() *schema.Resource {
 		Read: dataRADIUSProfileRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The ID of this AP group.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"name": {
 				Description: "The name of the RADIUS profile to look up.",
 				Type:        schema.TypeString,

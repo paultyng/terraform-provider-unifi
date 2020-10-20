@@ -15,7 +15,10 @@ description: |-
 
 ### Optional
 
-- **id** (String, Optional) The ID of this resource.
 - **name** (String, Optional) The name of the RADIUS profile to look up. Defaults to `Default`.
+
+### Read-only
+
+- **id** (String, Read-only) The ID of this AP group.
 
 

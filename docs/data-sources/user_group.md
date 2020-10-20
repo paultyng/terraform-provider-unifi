@@ -15,11 +15,11 @@ description: |-
 
 ### Optional
 
-- **id** (String, Optional) The ID of this resource.
 - **name** (String, Optional) The name of the user group to look up. Defaults to `Default`.
 
 ### Read-only
 
+- **id** (String, Read-only) The ID of this AP group.
 - **qos_rate_max_down** (Number, Read-only)
 - **qos_rate_max_up** (Number, Read-only)
 
