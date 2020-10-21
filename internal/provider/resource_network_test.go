@@ -126,6 +126,40 @@ func TestAccNetwork_v6(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_wan(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1", 1, "username", "password"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_ip", "192.168.1.1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
+				),
+			},
+			importStep("unifi_network.wan_test"),
+			{
+				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1", 1, "username", "password"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_ip", "192.168.1.1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
+				),
+			},
+			importStep("unifi_network.wan_test"),
+		},
+	})
+}
+
 // TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
@@ -183,4 +217,19 @@ resource "unifi_network" "test" {
 	ipv6_ra_enable = true
 }
 `, vlan, ipv6Type, ipv6Subnet)
+}
+
+func testWanNetworkConfig(networkGroup string, wanType string, wanIP string, wanEgressQOS int, wanUsername string, wanPassword string) string {
+	return fmt.Sprintf(`
+resource "unifi_network" "wan_test" {
+	name    = "tfwan"
+	purpose = "wan"
+	wan_networkgroup = "%s"
+	wan_type = "%s"
+	wan_ip = "%s"
+	wan_egress_qos = %d
+	wan_username = "%s"
+	x_wan_password = "%s"
+}
+`, networkGroup, wanType, wanIP, wanEgressQOS, wanUsername, wanPassword)
 }
