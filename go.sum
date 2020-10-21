@@ -336,8 +336,6 @@ github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWb
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/oklog/run v1.0.0 h1:Ru7dDtJNOyC66gQ5dQmaCa0qIsAUFY3sFpK1Xk8igrw=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
-github.com/paultyng/go-unifi v1.8.1 h1:N2IZDGBvFOMxwgOEOUB7j6bysxXMG6ZzQ22Qeqgpu8o=
-github.com/paultyng/go-unifi v1.8.1/go.mod h1:136w8wenUPfYXRTAYtKqYJ/u32ZFMHE9QVD3NQfEcuI=
 github.com/paultyng/go-unifi v1.10.0 h1:B42QK7OxW8laPSMpFp+uLh5eX/tskal3qF+5LSGnJVY=
 github.com/paultyng/go-unifi v1.10.0/go.mod h1:0QJAKEi4w9CU1qraI3Co2huU1KsklzEbLc5/19MqONE=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
