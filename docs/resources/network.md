@@ -2,12 +2,12 @@
 page_title: "unifi_network Resource - terraform-provider-unifi"
 subcategory: ""
 description: |-
-  unifi_network manages LAN/VLAN networks.
+  unifi_network manages WAN/LAN/VLAN networks.
 ---
 
 # Resource `unifi_network`
 
-`unifi_network` manages LAN/VLAN networks.
+`unifi_network` manages WAN/LAN/VLAN networks.
 
 ## Example Usage
 
@@ -26,6 +26,18 @@ resource "unifi_network" "vlan" {
   dhcp_stop    = "10.0.0.254"
   dhcp_enabled = true
 }
+
+resource "unifi_network" "wan" {
+  name    = "wan"
+  purpose = "wan"
+
+  wan_networkgroup = "WAN"
+  wan_type         = "pppoe"
+  wan_ip           = "192.168.1.1"
+  wan_egress_qos   = 1
+  wan_username     = "username"
+  x_wan_password   = "password"
+}
 ```
 
 ## Schema
@@ -33,7 +45,7 @@ resource "unifi_network" "vlan" {
 ### Required
 
 - **name** (String, Required) The name of the network.
-- **purpose** (String, Required) The purpose of the network. Must be one of `corporate`, `guest`, or `vlan-only`.
+- **purpose** (String, Required) The purpose of the network. Must be one of `corporate`, `guest`, `wan`, or `vlan-only`.
 
 ### Optional
 
@@ -53,5 +65,11 @@ resource "unifi_network" "vlan" {
 - **network_group** (String, Optional) The group of the network. Defaults to `LAN`.
 - **subnet** (String, Optional) The subnet of the network. Must be a valid CIDR address.
 - **vlan_id** (Number, Optional) The VLAN ID of the network.
+- **wan_egress_qos** (Number, Optional) Specifies the WAN egress quality of service. Defaults to `0`.
+- **wan_ip** (String, Optional) The IPv4 address of the WAN.
+- **wan_networkgroup** (String, Optional) Specifies the WAN network group. Must be one of either `WAN`, `WAN2` or `WAN_LTE_FAILOVER`.
+- **wan_type** (String, Optional) Specifies the IPV4 WAN connection type. Must be one of either `disabled` or `pppoe`. Defaults to `disabled`.
+- **wan_username** (String, Optional) Specifies the IPV4 WAN username.
+- **x_wan_password** (String, Optional) Specifies the IPV4 WAN password.
 
 
