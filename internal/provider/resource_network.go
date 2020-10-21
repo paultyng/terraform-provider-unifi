@@ -28,7 +28,7 @@ func resourceNetwork() *schema.Resource {
 				Required:    true,
 			},
 			"purpose": {
-				Description:  "The purpose of the network. Must be one of `corporate`, `guest`, or `vlan-only`.",
+				Description:  "The purpose of the network. Must be one of `corporate`, `guest`, `wan`, or `vlan-only`.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
@@ -133,14 +133,14 @@ func resourceNetwork() *schema.Resource {
 				ValidateFunc: validation.IsIPv4Address,
 			},
 			"wan_type": {
-				Description:  "Specifies the IPV4 connection type.",
+				Description:  "Specifies the IPV4 WAN connection type. Must be one of either `disabled` or `pppoe`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "disabled",
 				ValidateFunc: validateWANType,
 			},
 			"wan_networkgroup": {
-				Description:  "Specifies the WAN network group.",
+				Description:  "Specifies the WAN network group. Must be one of either `WAN`, `WAN2` or `WAN_LTE_FAILOVER`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateWANNetworkGroup,
