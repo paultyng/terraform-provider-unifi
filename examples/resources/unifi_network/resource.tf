@@ -12,3 +12,15 @@ resource "unifi_network" "vlan" {
   dhcp_stop    = "10.0.0.254"
   dhcp_enabled = true
 }
+
+resource "unifi_network" "wan" {
+  name    = "wan"
+  purpose = "wan"
+
+  wan_networkgroup = "WAN"
+  wan_type         = "pppoe"
+  wan_ip           = "192.168.1.1"
+  wan_egress_qos   = 1
+  wan_username     = "username"
+  x_wan_password   = "password"
+}
