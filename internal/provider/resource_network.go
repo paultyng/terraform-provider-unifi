@@ -3,15 +3,30 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
+var (
+	wanUsernameRegexp   = regexp.MustCompile("[^\"' ]+")
+	validateWANUsername = validation.StringMatch(wanUsernameRegexp, "invalid WAN username")
+
+	wanTypeRegexp   = regexp.MustCompile("disabled|dhcp|static|pppoe")
+	validateWANType = validation.StringMatch(wanTypeRegexp, "invalid WAN connection type")
+
+	wanPasswordRegexp   = regexp.MustCompile("[^\"' ]+")
+	validateWANPassword = validation.StringMatch(wanPasswordRegexp, "invalid WAN password")
+
+	wanNetworkGroupRegexp   = regexp.MustCompile("WAN[2]?|WAN_LTE_FAILOVER")
+	validateWANNetworkGroup = validation.StringMatch(wanNetworkGroupRegexp, "invalid WAN network group")
+)
+
 func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_network` manages LAN/VLAN networks.",
+		Description: "`unifi_network` manages WAN/LAN/VLAN networks.",
 
 		Create: resourceNetworkCreate,
 		Read:   resourceNetworkRead,
@@ -33,11 +48,11 @@ func resourceNetwork() *schema.Resource {
 				Required:    true,
 			},
 			"purpose": {
-				Description:  "The purpose of the network. Must be one of `corporate`, `guest`, or `vlan-only`.",
+				Description:  "The purpose of the network. Must be one of `corporate`, `guest`, `wan`, or `vlan-only`.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "vlan-only"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "wan", "vlan-only"}, false),
 			},
 			"vlan_id": {
 				Description: "The VLAN ID of the network.",
@@ -131,6 +146,43 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"wan_ip": {
+				Description:  "The IPv4 address of the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			"wan_type": {
+				Description:  "Specifies the IPV4 WAN connection type. Must be one of either `disabled` or `pppoe`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "disabled",
+				ValidateFunc: validateWANType,
+			},
+			"wan_networkgroup": {
+				Description:  "Specifies the WAN network group. Must be one of either `WAN`, `WAN2` or `WAN_LTE_FAILOVER`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANNetworkGroup,
+			},
+			"wan_egress_qos": {
+				Description: "Specifies the WAN egress quality of service.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     0,
+			},
+			"wan_username": {
+				Description:  "Specifies the IPV4 WAN username.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANUsername,
+			},
+			"x_wan_password": {
+				Description:  "Specifies the IPV4 WAN password.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANPassword,
+			},
 		},
 	}
 }
@@ -189,6 +241,13 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		IPV6PDInterface:   d.Get("ipv6_pd_interface").(string),
 		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
 		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
+
+		WANIP:           d.Get("wan_ip").(string),
+		WANType:         d.Get("wan_type").(string),
+		WANNetworkGroup: d.Get("wan_networkgroup").(string),
+		WANEgressQOS:    d.Get("wan_egress_qos").(int),
+		WANUsername:     d.Get("wan_username").(string),
+		XWANPassword:    d.Get("x_wan_password").(string),
 	}, nil
 }
 
@@ -235,6 +294,12 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
 	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
+	d.Set("wan_ip", resp.WANIP)
+	d.Set("wan_type", resp.WANType)
+	d.Set("wan_networkgroup", resp.WANNetworkGroup)
+	d.Set("wan_egress_qos", resp.WANEgressQOS)
+	d.Set("wan_username", resp.WANUsername)
+	d.Set("x_wan_password", resp.XWANPassword)
 
 	return nil
 }
