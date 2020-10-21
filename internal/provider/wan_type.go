@@ -8,6 +8,6 @@ import (
 
 var (
 	wanTypeRegexp   = regexp.MustCompile("disabled|dhcp|static|pppoe")
-	validateWANType = validation.StringMatch(wanTypeRegexp, "invalid WAN password")
+	validateWANType = validation.StringMatch(wanTypeRegexp, "invalid WAN connection type")
 )
 
