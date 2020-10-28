@@ -41,6 +41,11 @@ func resourceNetwork() *schema.Resource {
 				Description: "The ID of the network.",
 				Type:        schema.TypeString,
 				Computed:    true,
+			"site_name": {
+				Description: "The name of the site to associate the network with.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "default",
 			},
 			"name": {
 				Description: "The name of the network.",
@@ -195,7 +200,9 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := c.c.CreateNetwork(context.TODO(), c.site, req)
+	siteName := d.Get("site_name").(string)
+
+	resp, err := c.c.CreateNetwork(context.TODO(), siteName, req)
 	if err != nil {
 		return err
 	}
@@ -309,7 +316,9 @@ func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetNetwork(context.TODO(), c.site, id)
+	siteName := d.Get("site_name").(string)
+
+	resp, err := c.c.GetNetwork(context.TODO(), siteName, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -330,9 +339,10 @@ func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req.ID = d.Id()
-	req.SiteID = c.site
+	siteName := d.Get("site_name").(string)
+	req.SiteID = siteName
 
-	resp, err := c.c.UpdateNetwork(context.TODO(), c.site, req)
+	resp, err := c.c.UpdateNetwork(context.TODO(), siteName, req)
 	if err != nil {
 		return err
 	}
@@ -344,9 +354,10 @@ func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
+	siteName := d.Get("site_name").(string)
 	id := d.Id()
 
-	err := c.c.DeleteNetwork(context.TODO(), c.site, id, name)
+	err := c.c.DeleteNetwork(context.TODO(), siteName, id, name)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

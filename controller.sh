@@ -52,7 +52,7 @@ case "$1" in
   "reset")
     git checkout - testdata/unifi/
     for file in $( git ls-files --others --exclude-standard | grep testdata/unifi ) ; do
-            rm -f ${file}
+            rm -f ${file} || sudo rm -f ${file}
     done
     ;;
   *)
