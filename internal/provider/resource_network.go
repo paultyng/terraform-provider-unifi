@@ -41,11 +41,13 @@ func resourceNetwork() *schema.Resource {
 				Description: "The ID of the network.",
 				Type:        schema.TypeString,
 				Computed:    true,
-			"site_name": {
+			},
+			"site": {
 				Description: "The name of the site to associate the network with.",
 				Type:        schema.TypeString,
+				Computed:    true,
 				Optional:    true,
-				Default:     "default",
+				ForceNew:    true,
 			},
 			"name": {
 				Description: "The name of the network.",
@@ -200,16 +202,19 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	siteName := d.Get("site_name").(string)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
 
-	resp, err := c.c.CreateNetwork(context.TODO(), siteName, req)
+	resp, err := c.c.CreateNetwork(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(resp.ID)
 
-	return resourceNetworkSetResourceData(resp, d)
+	return resourceNetworkSetResourceData(resp, d, site)
 }
 
 func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, error) {
@@ -258,7 +263,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 	}, nil
 }
 
-func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData) error {
+func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData, site string) error {
 	vlan := 0
 	if resp.VLANEnabled {
 		vlan = resp.VLAN
@@ -284,6 +289,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData)
 		}
 	}
 
+	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("purpose", resp.Purpose)
 	d.Set("vlan_id", vlan)
@@ -316,9 +322,12 @@ func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	siteName := d.Get("site_name").(string)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
 
-	resp, err := c.c.GetNetwork(context.TODO(), siteName, id)
+	resp, err := c.c.GetNetwork(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -327,7 +336,7 @@ func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourceNetworkSetResourceData(resp, d)
+	return resourceNetworkSetResourceData(resp, d, site)
 }
 
 func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -339,25 +348,31 @@ func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req.ID = d.Id()
-	siteName := d.Get("site_name").(string)
-	req.SiteID = siteName
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	req.SiteID = site
 
-	resp, err := c.c.UpdateNetwork(context.TODO(), siteName, req)
+	resp, err := c.c.UpdateNetwork(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
-	return resourceNetworkSetResourceData(resp, d)
+	return resourceNetworkSetResourceData(resp, d, site)
 }
 
 func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
-	siteName := d.Get("site_name").(string)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
 	id := d.Id()
 
-	err := c.c.DeleteNetwork(context.TODO(), siteName, id, name)
+	err := c.c.DeleteNetwork(context.TODO(), site, id, name)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

@@ -49,6 +49,7 @@ resource "unifi_wlan" "wifi" {
 - **passphrase** (String, Optional) The passphrase for the network, this is only required if `security` is not set to `open`.
 - **radius_profile_id** (String, Optional) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
 - **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
+- **site** (String, Optional) The name of the site to associate the wlan with.
 - **vlan_id** (Number, Optional, Deprecated) VLAN ID for the network. Set network_id instead of vlan_id for controller version >= 6.
 - **wlan_group_id** (String, Optional, Deprecated) ID of the WLAN group to use for this network. Set ap_group_ids instead of wlan_group_id for controller version >= 6.
 

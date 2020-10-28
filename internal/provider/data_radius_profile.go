@@ -19,6 +19,12 @@ func dataRADIUSProfile() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site the radius profile is associated with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+			},
 			"name": {
 				Description: "The name of the RADIUS profile to look up.",
 				Type:        schema.TypeString,
@@ -33,14 +39,19 @@ func dataRADIUSProfileRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
 
-	profiles, err := c.c.ListRADIUSProfile(context.TODO(), c.site)
+	profiles, err := c.c.ListRADIUSProfile(context.TODO(), site)
 	if err != nil {
 		return err
 	}
 	for _, g := range profiles {
 		if g.Name == name {
 			d.SetId(g.ID)
+			d.Set("site", site)
 			return nil
 		}
 	}

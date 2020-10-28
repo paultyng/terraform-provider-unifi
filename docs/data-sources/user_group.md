@@ -16,6 +16,7 @@ description: |-
 ### Optional
 
 - **name** (String, Optional) The name of the user group to look up. Defaults to `Default`.
+- **site** (String, Optional) The name of the site the user group is associated with.
 
 ### Read-only
 

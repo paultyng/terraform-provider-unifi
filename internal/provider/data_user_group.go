@@ -19,6 +19,12 @@ func dataUserGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site the user group is associated with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+			},
 			"name": {
 				Description: "The name of the user group to look up.",
 				Type:        schema.TypeString,
@@ -42,8 +48,12 @@ func dataUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
 
-	groups, err := c.c.ListUserGroup(context.TODO(), c.site)
+	groups, err := c.c.ListUserGroup(context.TODO(), site)
 	if err != nil {
 		return err
 	}
@@ -51,6 +61,7 @@ func dataUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 		if g.Name == name {
 			d.SetId(g.ID)
 
+			d.Set("site", site)
 			d.Set("qos_rate_max_down", g.QOSRateMaxDown)
 			d.Set("qos_rate_max_up", g.QOSRateMaxUp)
 

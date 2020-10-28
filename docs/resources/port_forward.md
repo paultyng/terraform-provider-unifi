@@ -23,6 +23,7 @@ description: |-
 - **name** (String, Optional) The name of the port forwarding rule.
 - **port_forward_interface** (String, Optional) The port forwarding interface. Can be `wan`, `wan2`, or `both`.
 - **protocol** (String, Optional) The protocol for the port forwarding rule. Can be `tcp`, `udp`, or `tcp_udp`. Defaults to `tcp_udp`.
+- **site** (String, Optional) The name of the site to associate the port forwarding rule with.
 - **src_ip** (String, Optional) The source IPv4 address (or CIDR) of the port forwarding rule. For all traffic, specify `any`. Defaults to `any`.
 
 ### Read-only

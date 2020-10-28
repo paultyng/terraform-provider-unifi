@@ -19,6 +19,12 @@ func dataAPGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site the AP group is associated with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+			},
 			"name": {
 				Description: "The name of the AP group to look up, leave blank to look up the default AP group.",
 				Type:        schema.TypeString,
@@ -36,14 +42,19 @@ func dataAPGroupRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	name := d.Get("name").(string)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
 
-	groups, err := c.c.ListAPGroup(context.TODO(), c.site)
+	groups, err := c.c.ListAPGroup(context.TODO(), site)
 	if err != nil {
 		return err
 	}
 	for _, g := range groups {
 		if (name == "" && g.HiddenID == "default") || g.Name == name {
 			d.SetId(g.ID)
+			d.Set("site", site)
 			return nil
 		}
 	}

@@ -26,6 +26,13 @@ func resourceFirewallGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site to associate the firewall group with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"name": {
 				Description: "The name of the firewall group.",
 				Type:        schema.TypeString,
@@ -55,14 +62,19 @@ func resourceFirewallGroupCreate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	resp, err := c.c.CreateFirewallGroup(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.CreateFirewallGroup(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(resp.ID)
 
-	return resourceFirewallGroupSetResourceData(resp, d)
+	return resourceFirewallGroupSetResourceData(resp, d, site)
 }
 
 func resourceFirewallGroupGetResourceData(d *schema.ResourceData) (*unifi.FirewallGroup, error) {
@@ -78,7 +90,8 @@ func resourceFirewallGroupGetResourceData(d *schema.ResourceData) (*unifi.Firewa
 	}, nil
 }
 
-func resourceFirewallGroupSetResourceData(resp *unifi.FirewallGroup, d *schema.ResourceData) error {
+func resourceFirewallGroupSetResourceData(resp *unifi.FirewallGroup, d *schema.ResourceData, site string) error {
+	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("type", resp.GroupType)
 	d.Set("members", stringSliceToSet(resp.GroupMembers))
@@ -91,7 +104,12 @@ func resourceFirewallGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetFirewallGroup(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.GetFirewallGroup(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -100,7 +118,7 @@ func resourceFirewallGroupRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourceFirewallGroupSetResourceData(resp, d)
+	return resourceFirewallGroupSetResourceData(resp, d, site)
 }
 
 func resourceFirewallGroupUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -112,14 +130,19 @@ func resourceFirewallGroupUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	req.ID = d.Id()
-	req.SiteID = c.site
 
-	resp, err := c.c.UpdateFirewallGroup(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	req.SiteID = site
+
+	resp, err := c.c.UpdateFirewallGroup(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
-	return resourceFirewallGroupSetResourceData(resp, d)
+	return resourceFirewallGroupSetResourceData(resp, d, site)
 }
 
 func resourceFirewallGroupDelete(d *schema.ResourceData, meta interface{}) error {
@@ -127,7 +150,12 @@ func resourceFirewallGroupDelete(d *schema.ResourceData, meta interface{}) error
 
 	id := d.Id()
 
-	err := c.c.DeleteFirewallGroup(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	err := c.c.DeleteFirewallGroup(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
