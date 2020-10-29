@@ -29,6 +29,13 @@ func resourceFirewallRule() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site to associate the firewall rule with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"name": {
 				Description: "The name of the firewall rule.",
 				Type:        schema.TypeString,
@@ -161,14 +168,19 @@ func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	resp, err := c.c.CreateFirewallRule(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.CreateFirewallRule(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(resp.ID)
 
-	return resourceFirewallRuleSetResourceData(resp, d)
+	return resourceFirewallRuleSetResourceData(resp, d, site)
 }
 
 func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.FirewallRule, error) {
@@ -209,7 +221,8 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 	}, nil
 }
 
-func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.ResourceData) error {
+func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.ResourceData, site string) error {
+	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("action", resp.Action)
 	d.Set("ruleset", resp.Ruleset)
@@ -243,7 +256,12 @@ func resourceFirewallRuleRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetFirewallRule(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.GetFirewallRule(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -252,7 +270,7 @@ func resourceFirewallRuleRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourceFirewallRuleSetResourceData(resp, d)
+	return resourceFirewallRuleSetResourceData(resp, d, site)
 }
 
 func resourceFirewallRuleUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -264,14 +282,19 @@ func resourceFirewallRuleUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	req.ID = d.Id()
-	req.SiteID = c.site
 
-	resp, err := c.c.UpdateFirewallRule(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	req.SiteID = site
+
+	resp, err := c.c.UpdateFirewallRule(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
-	return resourceFirewallRuleSetResourceData(resp, d)
+	return resourceFirewallRuleSetResourceData(resp, d, site)
 }
 
 func resourceFirewallRuleDelete(d *schema.ResourceData, meta interface{}) error {
@@ -279,7 +302,11 @@ func resourceFirewallRuleDelete(d *schema.ResourceData, meta interface{}) error 
 
 	id := d.Id()
 
-	err := c.c.DeleteFirewallRule(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	err := c.c.DeleteFirewallRule(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
