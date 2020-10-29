@@ -29,12 +29,18 @@ func resourceWLAN() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site to associate the wlan with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"name": {
 				Description: "The SSID of the network.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
-
 			"user_group_id": {
 				Description: "ID of the user group to use for this network.",
 				Type:        schema.TypeString,
@@ -257,17 +263,22 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := c.c.CreateWLAN(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.CreateWLAN(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(resp.ID)
 
-	return resourceWLANSetResourceData(resp, d, meta)
+	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
-func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}) error {
+func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}, site string) error {
 	// c := meta.(*client)
 
 	vlan := 0
@@ -298,6 +309,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 		return fmt.Errorf("unable to parse schedule: %w", err)
 	}
 
+	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("user_group_id", resp.UserGroupID)
 	d.Set("passphrase", passphrase)
@@ -327,8 +339,12 @@ func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
 	id := d.Id()
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
 
-	resp, err := c.c.GetWLAN(context.TODO(), c.site, id)
+	resp, err := c.c.GetWLAN(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -337,7 +353,7 @@ func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourceWLANSetResourceData(resp, d, meta)
+	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
 func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -349,22 +365,30 @@ func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req.ID = d.Id()
-	req.SiteID = c.site
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	req.SiteID = site
 
-	resp, err := c.c.UpdateWLAN(context.TODO(), c.site, req)
+	resp, err := c.c.UpdateWLAN(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
-	return resourceWLANSetResourceData(resp, d, meta)
+	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
 func resourceWLANDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
 	id := d.Id()
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
 
-	err := c.c.DeleteWLAN(context.TODO(), c.site, id)
+	err := c.c.DeleteWLAN(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

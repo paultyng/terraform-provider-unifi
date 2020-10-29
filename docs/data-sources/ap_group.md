@@ -21,6 +21,7 @@ data "unifi_ap_group" "default" {
 ### Optional
 
 - **name** (String, Optional) The name of the AP group to look up, leave blank to look up the default AP group.
+- **site** (String, Optional) The name of the site the AP group is associated with.
 
 ### Read-only
 

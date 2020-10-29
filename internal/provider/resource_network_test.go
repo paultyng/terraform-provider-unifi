@@ -160,6 +160,23 @@ func TestAccNetwork_wan(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_differentSite(t *testing.T) {
+	vlanID1 := getTestVLAN(t)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkWithSiteConfig(vlanID1),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair("unifi_network.test", "site", "unifi_site.test", "name"),
+				),
+			},
+		},
+	})
+}
+
 // TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
@@ -232,4 +249,31 @@ resource "unifi_network" "wan_test" {
 	x_wan_password = "%s"
 }
 `, networkGroup, wanType, wanIP, wanEgressQOS, wanUsername, wanPassword)
+}
+
+func testAccNetworkWithSiteConfig(vlan int) string {
+	return fmt.Sprintf(`
+locals {
+	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	vlan_id       = %[1]d
+}
+
+resource "unifi_site" "test" {
+  description = "tfacc"
+}
+
+resource "unifi_network" "test" {
+	site = unifi_site.test.name
+	name    = "tfacc"
+	purpose = "corporate"
+
+	subnet        = local.subnet
+	vlan_id       = local.vlan_id
+	dhcp_start    = cidrhost(local.subnet, 6)
+	dhcp_stop     = cidrhost(local.subnet, 254)
+	dhcp_enabled  = true
+	domain_name   = "foo.local"
+	igmp_snooping = true
+}
+`, vlan)
 }

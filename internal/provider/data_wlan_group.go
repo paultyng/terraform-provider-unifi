@@ -22,6 +22,12 @@ func dataWLANGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site the wlan group is associated with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+			},
 			"name": {
 				Description: "The name of the WLAN group to look up.",
 				Type:        schema.TypeString,
@@ -41,13 +47,19 @@ func dataWLANGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Get("name").(string)
 
-	groups, err := c.c.ListWLANGroup(context.TODO(), c.site)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	groups, err := c.c.ListWLANGroup(context.TODO(), site)
 	if err != nil {
 		return err
 	}
 	for _, g := range groups {
 		if g.Name == name {
 			d.SetId(g.ID)
+			d.Set("site", site)
 			return nil
 		}
 	}

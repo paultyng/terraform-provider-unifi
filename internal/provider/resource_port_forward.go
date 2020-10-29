@@ -26,6 +26,13 @@ func resourcePortForward() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site to associate the port forwarding rule with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"dst_port": {
 				Description:  "The destination port for the forwarding.",
 				Type:         schema.TypeString,
@@ -99,14 +106,18 @@ func resourcePortForwardCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := c.c.CreatePortForward(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	resp, err := c.c.CreatePortForward(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(resp.ID)
 
-	return resourcePortForwardSetResourceData(resp, d)
+	return resourcePortForwardSetResourceData(resp, d, site)
 }
 
 func resourcePortForwardGetResourceData(d *schema.ResourceData) (*unifi.PortForward, error) {
@@ -123,7 +134,8 @@ func resourcePortForwardGetResourceData(d *schema.ResourceData) (*unifi.PortForw
 	}, nil
 }
 
-func resourcePortForwardSetResourceData(resp *unifi.PortForward, d *schema.ResourceData) error {
+func resourcePortForwardSetResourceData(resp *unifi.PortForward, d *schema.ResourceData, site string) error {
+	d.Set("site", site)
 	d.Set("dst_port", resp.DstPort)
 	d.Set("enabled", resp.Enabled)
 	d.Set("fwd_ip", resp.Fwd)
@@ -142,7 +154,11 @@ func resourcePortForwardRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetPortForward(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	resp, err := c.c.GetPortForward(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -151,7 +167,7 @@ func resourcePortForwardRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourcePortForwardSetResourceData(resp, d)
+	return resourcePortForwardSetResourceData(resp, d, site)
 }
 
 func resourcePortForwardUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -163,14 +179,19 @@ func resourcePortForwardUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req.ID = d.Id()
-	req.SiteID = c.site
 
-	resp, err := c.c.UpdatePortForward(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	req.SiteID = site
+
+	resp, err := c.c.UpdatePortForward(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
-	return resourcePortForwardSetResourceData(resp, d)
+	return resourcePortForwardSetResourceData(resp, d, site)
 }
 
 func resourcePortForwardDelete(d *schema.ResourceData, meta interface{}) error {
@@ -178,6 +199,11 @@ func resourcePortForwardDelete(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	err := c.c.DeletePortForward(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	err := c.c.DeletePortForward(context.TODO(), site, id)
 	return err
 }

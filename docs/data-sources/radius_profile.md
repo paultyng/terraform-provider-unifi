@@ -16,6 +16,7 @@ description: |-
 ### Optional
 
 - **name** (String, Optional) The name of the RADIUS profile to look up. Defaults to `Default`.
+- **site** (String, Optional) The name of the site the radius profile is associated with.
 
 ### Read-only
 

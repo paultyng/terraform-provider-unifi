@@ -26,6 +26,13 @@ func resourceUserGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site to associate the user group with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"name": {
 				Description: "The name of the user group.",
 				Type:        schema.TypeString,
@@ -57,7 +64,12 @@ func resourceUserGroupCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := c.c.CreateUserGroup(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.CreateUserGroup(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
@@ -88,7 +100,12 @@ func resourceUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetUserGroup(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.GetUserGroup(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -109,9 +126,14 @@ func resourceUserGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req.ID = d.Id()
-	req.SiteID = c.site
 
-	resp, err := c.c.UpdateUserGroup(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	req.SiteID = site
+
+	resp, err := c.c.UpdateUserGroup(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
@@ -124,7 +146,11 @@ func resourceUserGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	err := c.c.DeleteUserGroup(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+	err := c.c.DeleteUserGroup(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}

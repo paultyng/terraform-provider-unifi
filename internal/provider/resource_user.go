@@ -29,6 +29,13 @@ func resourceUser() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"site": {
+				Description: "The name of the site to associate the user with.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"mac": {
 				Description:      "The MAC address of the user.",
 				Type:             schema.TypeString,
@@ -109,7 +116,12 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 
 	allowExisting := d.Get("allow_existing").(bool)
 
-	resp, err := c.c.CreateUser(context.TODO(), c.site, req)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.CreateUser(context.TODO(), site, req)
 	if err != nil {
 		apiErr, ok := err.(*unifi.APIError)
 		if !ok || (apiErr.Message != "api.err.MacUsed" || !allowExisting) {
@@ -118,7 +130,7 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 
 		// mac in use, just absorb it
 		mac := d.Get("mac").(string)
-		existing, err := c.c.GetUserByMAC(context.TODO(), c.site, mac)
+		existing, err := c.c.GetUserByMAC(context.TODO(), site, mac)
 		if err != nil {
 			return err
 		}
@@ -126,7 +138,7 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 		req.ID = existing.ID
 		req.SiteID = existing.SiteID
 
-		resp, err = c.c.UpdateUser(context.TODO(), c.site, req)
+		resp, err = c.c.UpdateUser(context.TODO(), site, req)
 		if err != nil {
 			return err
 		}
@@ -135,13 +147,13 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(resp.ID)
 
 	if d.Get("blocked").(bool) {
-		err := c.c.BlockUserByMAC(context.TODO(), c.site, d.Get("mac").(string))
+		err := c.c.BlockUserByMAC(context.TODO(), site, d.Get("mac").(string))
 		if err != nil {
 			return err
 		}
 	}
 
-	return resourceUserSetResourceData(resp, d)
+	return resourceUserSetResourceData(resp, d, site)
 }
 
 func resourceUserGetResourceData(d *schema.ResourceData) (*unifi.User, error) {
@@ -160,12 +172,13 @@ func resourceUserGetResourceData(d *schema.ResourceData) (*unifi.User, error) {
 	}, nil
 }
 
-func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData) error {
+func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData, site string) error {
 	fixedIP := ""
 	if resp.UseFixedIP {
 		fixedIP = resp.FixedIP
 	}
 
+	d.Set("site", site)
 	d.Set("mac", resp.MAC)
 	d.Set("name", resp.Name)
 	d.Set("user_group_id", resp.UserGroupID)
@@ -185,7 +198,12 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 
-	resp, err := c.c.GetUser(context.TODO(), c.site, id)
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	resp, err := c.c.GetUser(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -195,7 +213,7 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// for some reason the IP address is only on this endpoint, so issue another request
-	macResp, err := c.c.GetUserByMAC(context.TODO(), c.site, resp.MAC)
+	macResp, err := c.c.GetUserByMAC(context.TODO(), site, resp.MAC)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
@@ -206,21 +224,26 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 
 	resp.IP = macResp.IP
 
-	return resourceUserSetResourceData(resp, d)
+	return resourceUserSetResourceData(resp, d, site)
 }
 
 func resourceUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client)
 
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
 	if d.HasChange("blocked") {
 		mac := d.Get("mac").(string)
 		if d.Get("blocked").(bool) {
-			err := c.c.BlockUserByMAC(context.TODO(), c.site, mac)
+			err := c.c.BlockUserByMAC(context.TODO(), site, mac)
 			if err != nil {
 				return err
 			}
 		} else {
-			err := c.c.UnblockUserByMAC(context.TODO(), c.site, mac)
+			err := c.c.UnblockUserByMAC(context.TODO(), site, mac)
 			if err != nil {
 				return err
 			}
@@ -233,14 +256,14 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req.ID = d.Id()
-	req.SiteID = c.site
+	req.SiteID = site
 
-	resp, err := c.c.UpdateUser(context.TODO(), c.site, req)
+	resp, err := c.c.UpdateUser(context.TODO(), site, req)
 	if err != nil {
 		return err
 	}
 
-	return resourceUserSetResourceData(resp, d)
+	return resourceUserSetResourceData(resp, d, site)
 }
 
 func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
@@ -252,8 +275,13 @@ func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
 	// lookup MAC instead of trusting state
-	u, err := c.c.GetUser(context.TODO(), c.site, id)
+	u, err := c.c.GetUser(context.TODO(), site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
@@ -261,6 +289,6 @@ func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	err = c.c.DeleteUserByMAC(context.TODO(), c.site, u.MAC)
+	err = c.c.DeleteUserByMAC(context.TODO(), site, u.MAC)
 	return err
 }

@@ -19,6 +19,7 @@ Please note that WLAN Groups are deprecated in v6 of the controller.
 ### Optional
 
 - **name** (String, Optional) The name of the WLAN group to look up. Defaults to `Default`.
+- **site** (String, Optional) The name of the site the wlan group is associated with.
 
 ### Read-only
 

@@ -62,6 +62,7 @@ resource "unifi_network" "wan" {
 - **ipv6_ra_enable** (Boolean, Optional) Specifies whether to enable router advertisements or not.
 - **ipv6_static_subnet** (String, Optional) Specifies the static IPv6 subnet when ipv6_interface_type is 'static'.
 - **network_group** (String, Optional) The group of the network. Defaults to `LAN`.
+- **site** (String, Optional) The name of the site to associate the network with.
 - **subnet** (String, Optional) The subnet of the network. Must be a valid CIDR address.
 - **vlan_id** (Number, Optional) The VLAN ID of the network.
 - **wan_egress_qos** (Number, Optional) Specifies the WAN egress quality of service. Defaults to `0`.

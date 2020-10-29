@@ -39,6 +39,7 @@ resource "unifi_user" "test" {
 - **fixed_ip** (String, Optional) A fixed IPv4 address for this user.
 - **network_id** (String, Optional) The network ID for this user.
 - **note** (String, Optional) A note with additional information for the user.
+- **site** (String, Optional) The name of the site to associate the user with.
 - **skip_forget_on_destroy** (Boolean, Optional) Specifies whether this resource should tell the controller to "forget" the user on destroy. Defaults to `false`.
 - **user_group_id** (String, Optional) The user group ID for the user.
 
