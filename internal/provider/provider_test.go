@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -54,6 +56,18 @@ func importStep(name string, ignore ...string) resource.TestStep {
 	}
 
 	return step
+}
+
+func siteAndIDImportStateIDFunc(resourceName string) func(*terraform.State) (string, error) {
+	return func(s *terraform.State) (string, error) {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return "", fmt.Errorf("not found: %s", resourceName)
+		}
+		networkID := rs.Primary.Attributes["id"]
+		site := rs.Primary.Attributes["site"]
+		return site + ":" + networkID, nil
+	}
 }
 
 func preCheck(t *testing.T) {

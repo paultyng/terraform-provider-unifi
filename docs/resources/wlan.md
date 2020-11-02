@@ -66,4 +66,14 @@ Required:
 - **block_start** (String, Required) Time of day to start the block.
 - **day_of_week** (String, Required) Day of week for the block. Valid values are `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+# import from provider configured site
+terraform import unifi_wlan.mywlan 5dc28e5e9106d105bdc87217
+
+# import from another site
+terraform import unifi_wlan.mywlan bfa2l6i7:5dc28e5e9106d105bdc87217
+```

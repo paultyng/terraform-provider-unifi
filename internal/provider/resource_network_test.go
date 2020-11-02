@@ -34,6 +34,13 @@ func TestAccNetwork_basic(t *testing.T) {
 				),
 			},
 			importStep("unifi_network.test"),
+			// re-test import here with default site, but full ID string
+			{
+				ResourceName:      "unifi_network.test",
+				ImportState:       true,
+				ImportStateIdFunc: siteAndIDImportStateIDFunc("unifi_network.test"),
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -162,6 +169,7 @@ func TestAccNetwork_wan(t *testing.T) {
 
 func TestAccNetwork_differentSite(t *testing.T) {
 	vlanID1 := getTestVLAN(t)
+	vlanID2 := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -172,6 +180,24 @@ func TestAccNetwork_differentSite(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair("unifi_network.test", "site", "unifi_site.test", "name"),
 				),
+			},
+			{
+				ResourceName:      "unifi_network.test",
+				ImportState:       true,
+				ImportStateIdFunc: siteAndIDImportStateIDFunc("unifi_network.test"),
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccNetworkWithSiteConfig(vlanID2),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair("unifi_network.test", "site", "unifi_site.test", "name"),
+				),
+			},
+			{
+				ResourceName:      "unifi_network.test",
+				ImportState:       true,
+				ImportStateIdFunc: siteAndIDImportStateIDFunc("unifi_network.test"),
+				ImportStateVerify: true,
 			},
 		},
 	})
