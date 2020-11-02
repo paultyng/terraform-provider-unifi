@@ -17,7 +17,7 @@ func resourcePortForward() *schema.Resource {
 		Update: resourcePortForwardUpdate,
 		Delete: resourcePortForwardDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
