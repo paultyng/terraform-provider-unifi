@@ -20,7 +20,7 @@ func resourceFirewallRule() *schema.Resource {
 		Update: resourceFirewallRuleUpdate,
 		Delete: resourceFirewallRuleDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: ImportHandleSite,
 		},
 
 		Schema: map[string]*schema.Schema{

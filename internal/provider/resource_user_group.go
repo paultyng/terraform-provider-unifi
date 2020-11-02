@@ -17,7 +17,7 @@ func resourceUserGroup() *schema.Resource {
 		Update: resourceUserGroupUpdate,
 		Delete: resourceUserGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: ImportHandleSite,
 		},
 
 		Schema: map[string]*schema.Schema{

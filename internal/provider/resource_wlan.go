@@ -20,7 +20,7 @@ func resourceWLAN() *schema.Resource {
 		Update: resourceWLANUpdate,
 		Delete: resourceWLANDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: ImportHandleSite,
 		},
 
 		Schema: map[string]*schema.Schema{
