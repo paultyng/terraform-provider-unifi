@@ -33,7 +33,7 @@ func resourceNetwork() *schema.Resource {
 		Update: resourceNetworkUpdate,
 		Delete: resourceNetworkDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
