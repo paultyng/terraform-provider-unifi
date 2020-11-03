@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccNetwork_basic(t *testing.T) {
@@ -172,6 +173,21 @@ func TestAccNetwork_differentSite(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair("unifi_network.test", "site", "unifi_site.test", "name"),
 				),
+			},
+			{
+				ResourceName: "unifi_network.test",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					resourceName := "unifi_network.test"
+					rs, ok := s.RootModule().Resources[resourceName]
+					if !ok {
+						return "", fmt.Errorf("not found: %s", resourceName)
+					}
+					networkID := rs.Primary.Attributes["id"]
+					site := rs.Primary.Attributes["site"]
+					return site + ":" + networkID, nil
+				},
+				ImportStateVerify: true,
 			},
 		},
 	})
