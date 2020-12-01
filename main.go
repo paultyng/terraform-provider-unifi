@@ -10,6 +10,9 @@ import (
 	"github.com/paultyng/terraform-provider-unifi/internal/provider"
 )
 
+// Generate docs for website
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+
 var (
 	// these will be set by the goreleaser configuration
 	// to appropriate values for the compiled binary
@@ -29,7 +32,7 @@ func main() {
 
 	if debugMode {
 		// TODO: update this string with the full name of your provider as used in your configs
-		err := plugin.Debug(context.Background(), "registry.terraform.io/hashicorp/scaffolding", opts)
+		err := plugin.Debug(context.Background(), "registry.terraform.io/paultyng/unifi", opts)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
