@@ -15,11 +15,11 @@ description: |-
 
 ### Optional
 
-- **name** (String, Optional) The name of the RADIUS profile to look up. Defaults to `Default`.
-- **site** (String, Optional) The name of the site the radius profile is associated with.
+- **name** (String) The name of the RADIUS profile to look up. Defaults to `Default`.
+- **site** (String) The name of the site the radius profile is associated with.
 
 ### Read-only
 
-- **id** (String, Read-only) The ID of this AP group.
+- **id** (String) The ID of this AP group.
 
 
