@@ -21,11 +21,11 @@ resource "unifi_site" "mysite" {
 
 ### Required
 
-- **description** (String, Required) The description of the site.
+- **description** (String) The description of the site.
 
 ### Read-only
 
-- **id** (String, Read-only) The ID of the site.
-- **name** (String, Read-only) The name of the site.
+- **id** (String) The ID of the site.
+- **name** (String) The name of the site.
 
 

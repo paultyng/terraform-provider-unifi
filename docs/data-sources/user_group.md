@@ -15,13 +15,13 @@ description: |-
 
 ### Optional
 
-- **name** (String, Optional) The name of the user group to look up. Defaults to `Default`.
-- **site** (String, Optional) The name of the site the user group is associated with.
+- **name** (String) The name of the user group to look up. Defaults to `Default`.
+- **site** (String) The name of the site the user group is associated with.
 
 ### Read-only
 
-- **id** (String, Read-only) The ID of this AP group.
-- **qos_rate_max_down** (Number, Read-only)
-- **qos_rate_max_up** (Number, Read-only)
+- **id** (String) The ID of this AP group.
+- **qos_rate_max_down** (Number)
+- **qos_rate_max_up** (Number)
 
 
