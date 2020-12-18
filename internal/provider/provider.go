@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	schema.DescriptionKind = 1
+	schema.DescriptionKind = schema.StringMarkdown
 
 	schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
 		desc := s.Description
