@@ -335,8 +335,8 @@ github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWb
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/oklog/run v1.0.0 h1:Ru7dDtJNOyC66gQ5dQmaCa0qIsAUFY3sFpK1Xk8igrw=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
-github.com/paultyng/go-unifi v1.10.2 h1:SfGdPO57Q10faKM45IE4t6jwLFgPRJ3yjrb3gbqy0M0=
-github.com/paultyng/go-unifi v1.10.2/go.mod h1:zxR4AJ442/zQmWeFC3O7/tbvUlorLG7+ke+aQb69iF8=
+github.com/paultyng/go-unifi v1.11.0 h1:53o5SDR3p71zVm76+xl0iJ9u7kZvZe3QpuRExU0SkN8=
+github.com/paultyng/go-unifi v1.11.0/go.mod h1:zxR4AJ442/zQmWeFC3O7/tbvUlorLG7+ke+aQb69iF8=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
