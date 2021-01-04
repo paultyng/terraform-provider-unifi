@@ -27,7 +27,7 @@ require (
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mitchellh/cli v1.1.2 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
-	github.com/paultyng/go-unifi v1.10.2
+	github.com/paultyng/go-unifi v1.11.0
 	github.com/posener/complete v1.2.1 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/zclconf/go-cty v1.6.1 // indirect
