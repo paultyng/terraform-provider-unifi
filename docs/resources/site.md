@@ -28,4 +28,10 @@ resource "unifi_site" "mysite" {
 - **id** (String) The ID of the site.
 - **name** (String) The name of the site.
 
+## Import
 
+Sites can be imported using the `id`, e.g.
+
+```
+$ terraform import unifi_site.mysite 5fe6261995fe130013456a36
+```
