@@ -36,4 +36,11 @@ resource "unifi_user_group" "wifi" {
 
 - **id** (String) The ID of the user group.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+# import using the ID
+terraform import unifi_user_group.wifi 5fe6261995fe130013456a36
+```
