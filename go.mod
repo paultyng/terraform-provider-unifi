@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-version v1.2.1
 	github.com/hashicorp/terraform-exec v0.11.0 // indirect
 	github.com/hashicorp/terraform-json v0.6.0 // indirect
-	github.com/hashicorp/terraform-plugin-docs v0.3.0
+	github.com/hashicorp/terraform-plugin-docs v0.3.1-0.20210107204619-bf524a84dc08
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.0.5-0.20201016174159-3a1c6c51f716
 	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
