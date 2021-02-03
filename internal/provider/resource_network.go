@@ -163,7 +163,6 @@ func resourceNetwork() *schema.Resource {
 				Description:  "Specifies the IPV4 WAN connection type. Must be one of either `disabled` or `pppoe`.",
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      "disabled",
 				ValidateFunc: validateWANType,
 			},
 			"wan_networkgroup": {
