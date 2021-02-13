@@ -123,6 +123,12 @@ func resourceFirewallRule() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"dst_port": {
+				Description: "The destination port of the firewall rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				ValidateFunc: validatePortRange,
+			},
 
 			// advanced
 			"logging": {
@@ -216,6 +222,7 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 
 		DstNetworkType:      d.Get("dst_network_type").(string),
 		DstAddress:          d.Get("dst_address").(string),
+		DstPort:             d.Get("dst_port").(string),
 		DstNetworkID:        d.Get("dst_network_id").(string),
 		DstFirewallGroupIDs: dstFirewallGroupIDs,
 	}, nil
@@ -247,6 +254,7 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	d.Set("dst_firewall_group_ids", stringSliceToSet(resp.DstFirewallGroupIDs))
 	d.Set("dst_address", resp.DstAddress)
 	d.Set("dst_network_id", resp.DstNetworkID)
+	d.Set("dst_port", resp.DstPort)
 
 	return nil
 }
