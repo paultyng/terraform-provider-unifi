@@ -353,3 +353,38 @@ func (c *lazyClient) UpdateSite(ctx context.Context, name, description string) (
 	}
 	return c.inner.UpdateSite(ctx, name, description)
 }
+
+func (c *lazyClient) ListPortProfile(ctx context.Context, site string) ([]unifi.PortProfile, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListPortProfile(ctx, site)
+}
+
+func (c *lazyClient) GetPortProfile(ctx context.Context, site, id string) (*unifi.PortProfile, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetPortProfile(ctx, site, id)
+}
+
+func (c *lazyClient) DeletePortProfile(ctx context.Context, site, id string) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.DeletePortProfile(ctx, site, id)
+}
+
+func (c *lazyClient) CreatePortProfile(ctx context.Context, site string, d *unifi.PortProfile) (*unifi.PortProfile, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.CreatePortProfile(ctx, site, d)
+}
+
+func (c *lazyClient) UpdatePortProfile(ctx context.Context, site string, d *unifi.PortProfile) (*unifi.PortProfile, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdatePortProfile(ctx, site, d)
+}
