@@ -164,6 +164,7 @@ func resourceNetwork() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateWANType,
+				Default:      "disabled",
 			},
 			"wan_networkgroup": {
 				Description:  "Specifies the WAN network group. Must be one of either `WAN`, `WAN2` or `WAN_LTE_FAILOVER`.",
