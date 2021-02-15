@@ -126,10 +126,10 @@ func resourcePortProfile() *schema.Resource {
 				Default:     false,
 			},
 			"port_security_mac_address": {
-				Description:  "The MAC addresses associated with the port security for the port profile.",
-				Type:         schema.TypeSet,
-				Optional:     true,
-				Elem:         &schema.Schema{Type: schema.TypeString},
+				Description: "The MAC addresses associated with the port security for the port profile.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"priority_queue1_level": {
 				Description:  "The priority queue 1 level for the port profile. Can be between 0 and 100.",
