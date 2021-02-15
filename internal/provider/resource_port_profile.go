@@ -130,7 +130,6 @@ func resourcePortProfile() *schema.Resource {
 				Type:         schema.TypeSet,
 				Optional:     true,
 				Elem:         &schema.Schema{Type: schema.TypeString},
-				ValidateFunc: validation.All(validation.IsMACAddress),
 			},
 			"priority_queue1_level": {
 				Description:  "The priority queue 1 level for the port profile. Can be between 0 and 100.",
