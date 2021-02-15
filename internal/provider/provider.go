@@ -75,6 +75,7 @@ func New(version string) func() *schema.Provider {
 			},
 			DataSourcesMap: map[string]*schema.Resource{
 				"unifi_ap_group":       dataAPGroup(),
+				"unifi_port_profile":   dataPortProfile(),
 				"unifi_radius_profile": dataRADIUSProfile(),
 				"unifi_user_group":     dataUserGroup(),
 				"unifi_wlan_group":     dataWLANGroup(),
