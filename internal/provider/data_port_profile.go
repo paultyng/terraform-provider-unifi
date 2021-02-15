@@ -29,7 +29,7 @@ func dataPortProfile() *schema.Resource {
 				Description: "The name of the port profile to look up.",
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "Default",
+				Default:     "All",
 			},
 		},
 	}
