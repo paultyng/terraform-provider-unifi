@@ -68,7 +68,7 @@ resource "unifi_firewall_rule" "test" {
 	action  = "accept"
 	ruleset = "LAN_IN"
 
-	rule_index = 2010
+	rule_index = 2011
 
 	protocol = "tcp"
 
