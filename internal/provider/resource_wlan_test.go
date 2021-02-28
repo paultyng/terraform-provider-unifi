@@ -204,6 +204,33 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_wlan_band(t *testing.T) {
+	vlanID := getTestVLAN(t)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			preCheckV6Only(t)
+			wlanPreCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_wlan_band(vlanID),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
 func testAccWLANConfig_wpapsk(vlanID int) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {
@@ -355,6 +382,36 @@ resource "unifi_wlan" "test" {
 	mac_filter_enabled = true
 	mac_filter_list    = ["ab:cd:ef:12:34:56"]
 	mac_filter_policy  = "allow"
+}
+`, vlanID)
+}
+
+func testAccWLANConfig_wlan_band(vlanID int) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {
+}
+
+data "unifi_user_group" "default" {
+}
+
+resource "unifi_network" "test" {
+	name    = "tfacc"
+	purpose = "corporate"
+
+	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	vlan_id       = %[1]d
+}
+
+resource "unifi_wlan" "test" {
+	name          = "tfacc-wpapsk"
+	network_id    = unifi_network.test.id
+	passphrase    = "12345678"
+	ap_group_ids = [data.unifi_ap_group.default.id]
+	user_group_id = data.unifi_user_group.default.id
+	security      = "wpapsk"
+	wlan_band = "5g"
+	
+	multicast_enhance = true
 }
 `, vlanID)
 }
