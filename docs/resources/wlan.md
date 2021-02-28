@@ -69,6 +69,7 @@ resource "unifi_wlan" "wifi" {
 - **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
 - **site** (String) The name of the site to associate the wlan with.
 - **vlan_id** (Number, Deprecated) VLAN ID for the network. Set network_id instead of vlan_id for controller version >= 6.
+- **wlan_band** (String) Radio band your WiFi network will use.
 - **wlan_group_id** (String, Deprecated) ID of the WLAN group to use for this network. Set ap_group_ids instead of wlan_group_id for controller version >= 6.
 
 ### Read-only
