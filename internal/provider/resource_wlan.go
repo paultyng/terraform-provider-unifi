@@ -131,6 +131,13 @@ func resourceWLAN() *schema.Resource {
 					},
 				},
 			},
+			// TODO: this could be defaulted to "both" once v5 controller support is dropped
+			"wlan_band": {
+				Description:  "Radio band your WiFi network will use.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"2g", "5g", "both"}, false),
+			},
 
 			// controller v6 fields
 			"network_id": {
@@ -195,6 +202,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		return nil, err
 	}
 	wlanGroupID := d.Get("wlan_group_id").(string)
+	wlanBand := d.Get("wlan_band").(string)
 	switch v := c.ControllerVersion(); {
 	case v.GreaterThanOrEqual(controllerV6):
 		if wlanGroupID != "" {
@@ -209,6 +217,9 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		}
 		if len(apGroupIDs) > 0 {
 			return nil, fmt.Errorf("ap_group_ids is not supported on controller version %q", v)
+		}
+		if wlanBand != "" {
+			return nil, fmt.Errorf("wlan_band is not supported on controller version %q", v)
 		}
 	default:
 		return nil, fmt.Errorf("controller version %q not supported", v)
@@ -236,6 +247,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		RADIUSProfileID:         d.Get("radius_profile_id").(string),
 		Schedule:                schedule,
 		ScheduleEnabled:         len(schedule) > 0,
+		WLANBand:                wlanBand,
 
 		// v5
 		VLAN:        vlan,
@@ -322,6 +334,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("mac_filter_policy", macFilterPolicy)
 	d.Set("radius_profile_id", resp.RADIUSProfileID)
 	d.Set("schedule", schedule)
+	d.Set("wlan_band", resp.WLANBand)
 
 	// switch v := c.ControllerVersion(); {
 	// case v.GreaterThanOrEqual(controllerV6):
