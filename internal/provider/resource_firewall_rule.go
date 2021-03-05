@@ -68,6 +68,11 @@ func resourceFirewallRule() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validation.StringMatch(firewallRuleProtocolRegexp, "must be a valid protocol"),
 			},
+			"icmp_typename": {
+				Description: "ICMP type name.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 
 			// sources
 			"src_network_id": {
@@ -124,9 +129,9 @@ func resourceFirewallRule() *schema.Resource {
 				Optional:    true,
 			},
 			"dst_port": {
-				Description: "The destination port of the firewall rule.",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description:  "The destination port of the firewall rule.",
+				Type:         schema.TypeString,
+				Optional:     true,
 				ValidateFunc: validatePortRange,
 			},
 
@@ -207,6 +212,7 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 		Ruleset:          d.Get("ruleset").(string),
 		RuleIndex:        d.Get("rule_index").(int),
 		Protocol:         d.Get("protocol").(string),
+		ICMPTypename:     d.Get("icmp_typename").(string),
 		Logging:          d.Get("logging").(bool),
 		IPSec:            d.Get("ip_sec").(string),
 		StateEstablished: d.Get("state_established").(bool),
@@ -235,6 +241,7 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	d.Set("ruleset", resp.Ruleset)
 	d.Set("rule_index", resp.RuleIndex)
 	d.Set("protocol", resp.Protocol)
+	d.Set("icmp_typename", resp.ICMPTypename)
 	d.Set("logging", resp.Logging)
 	d.Set("ip_sec", resp.IPSec)
 	d.Set("state_established", resp.StateEstablished)
