@@ -10,6 +10,10 @@ Functionality first needs to be added to the [go-unifi](https://github.com/pault
 
 You can browse documentation on the [Terraform provider registry](https://registry.terraform.io/providers/paultyng/unifi/latest/docs).
 
+## Supported Unifi Controller Versions
+
+Currently this provider is tested against [Docker versions of the v5 and v6 controller](https://github.com/paultyng/terraform-provider-unifi/blob/main/.github/workflows/acctest.yml#L45-L46). The UDM and UDM-Pro versions are slightly different (the API is proxied a little differently) but for the most part should also be supported. Individual patch versions of the controller are not tested, just the latest stable versions.
+
 ## Using the Provider
 
 ### Terraform 0.13 and above
