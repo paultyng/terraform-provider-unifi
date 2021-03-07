@@ -66,4 +66,11 @@ resource "unifi_firewall_rule" "drop_all" {
 
 - **id** (String) The ID of the firewall rule.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+# import using the ID from the controller API/UI
+terraform import unifi_firewall_rule.my_rule 5f7080eb6b8969064f80494f
+```
