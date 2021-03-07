@@ -131,6 +131,8 @@ func resourceWLAN() *schema.Resource {
 					},
 				},
 			},
+
+			// controller v6 fields
 			// TODO: this could be defaulted to "both" once v5 controller support is dropped
 			"wlan_band": {
 				Description:  "Radio band your WiFi network will use.",
@@ -138,8 +140,6 @@ func resourceWLAN() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"2g", "5g", "both"}, false),
 			},
-
-			// controller v6 fields
 			"network_id": {
 				Description:   "ID of the network for this SSID",
 				Type:          schema.TypeString,
