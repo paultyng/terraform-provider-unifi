@@ -6,7 +6,7 @@ description: |-
   unifi_user_group manages a user group (called "client group" in the UI), which can be used to limit bandwidth for groups of users.
 ---
 
-# Resource `unifi_user_group`
+# unifi_user_group (Resource)
 
 `unifi_user_group` manages a user group (called "client group" in the UI), which can be used to limit bandwidth for groups of users.
 
@@ -34,7 +34,7 @@ resource "unifi_user_group" "wifi" {
 - **qos_rate_max_up** (Number) The QOS maximum upload rate. Defaults to `-1`.
 - **site** (String) The name of the site to associate the user group with.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of the user group.
 

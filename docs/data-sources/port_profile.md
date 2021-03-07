@@ -6,7 +6,7 @@ description: |-
   unifi_port_profile data source can be used to retrieve the ID for a port profile by name.
 ---
 
-# Data Source `unifi_port_profile`
+# unifi_port_profile (Data Source)
 
 `unifi_port_profile` data source can be used to retrieve the ID for a port profile by name.
 
@@ -25,7 +25,7 @@ data "unifi_port_profile" "all" {
 - **name** (String) The name of the port profile to look up. Defaults to `All`.
 - **site** (String) The name of the site the port profile is associated with.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of this port profile.
 

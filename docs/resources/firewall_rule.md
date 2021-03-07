@@ -6,7 +6,7 @@ description: |-
   unifi_firewall_rule manages an individual firewall rule on the gateway.
 ---
 
-# Resource `unifi_firewall_rule`
+# unifi_firewall_rule (Resource)
 
 `unifi_firewall_rule` manages an individual firewall rule on the gateway.
 
@@ -48,7 +48,7 @@ resource "unifi_firewall_rule" "drop_all" {
 - **dst_network_id** (String) The destination network ID of the firewall rule.
 - **dst_network_type** (String) The destination network type of the firewall rule. Can be one of `ADDRv4` or `NETv4`. Defaults to `NETv4`.
 - **dst_port** (String) The destination port of the firewall rule.
-- **icmp_typename** (String) The ICMP type name.
+- **icmp_typename** (String) ICMP type name.
 - **ip_sec** (String) Specify whether the rule matches on IPsec packets. Can be one of `match-ipset` or `match-none`.
 - **logging** (Boolean) Enable logging for the firewall rule.
 - **site** (String) The name of the site to associate the firewall rule with.
@@ -62,7 +62,7 @@ resource "unifi_firewall_rule" "drop_all" {
 - **state_new** (Boolean) Match where the state is new.
 - **state_related** (Boolean) Match where the state is related.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of the firewall rule.
 
