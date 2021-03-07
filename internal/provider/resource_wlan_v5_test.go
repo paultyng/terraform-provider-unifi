@@ -169,6 +169,36 @@ func TestAccWLAN_v5_wpaeap(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_v5_no2ghz_oui(t *testing.T) {
+	if os.Getenv("UNIFI_TEST_RADIUS") == "" {
+		t.Skip("UNIFI_TEST_RADIUS not set, skipping RADIUS test")
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			preCheckV5Only(t)
+			wlanPreCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_v5_no2ghz_oui,
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
 const testAccWLANConfig_v5_wpapsk = `
 data "unifi_wlan_group" "default" {
 }
@@ -271,5 +301,25 @@ resource "unifi_wlan" "test" {
 	mac_filter_enabled = true
 	mac_filter_list    = ["ab:cd:ef:12:34:56"]
 	mac_filter_policy  = "allow"
+}
+`
+
+const testAccWLANConfig_v5_no2ghz_oui = `
+data "unifi_wlan_group" "default" {
+}
+
+data "unifi_user_group" "default" {
+}
+
+resource "unifi_wlan" "test" {
+	name          = "tfacc-wpapsk"
+	vlan_id       = 202
+	passphrase    = "12345678"
+	wlan_group_id = data.unifi_wlan_group.default.id
+	user_group_id = data.unifi_user_group.default.id
+	security      = "wpapsk"
+	no2ghz_oui    = false
+	
+	multicast_enhance = true
 }
 `
