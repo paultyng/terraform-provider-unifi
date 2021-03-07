@@ -64,6 +64,7 @@ resource "unifi_wlan" "wifi" {
 - **mac_filter_policy** (String) MAC address filter policy (only valid if `mac_filter_enabled` is `true`). Defaults to `deny`.
 - **multicast_enhance** (Boolean) Indicates whether or not Multicast Enhance is turned of for the network.
 - **network_id** (String) ID of the network for this SSID
+- **no2ghz_oui** (Boolean) Connect high performance clients to 5 GHz only Defaults to `true`.
 - **passphrase** (String, Sensitive) The passphrase for the network, this is only required if `security` is not set to `open`.
 - **radius_profile_id** (String) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
 - **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))

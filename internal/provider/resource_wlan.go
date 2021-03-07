@@ -131,6 +131,12 @@ func resourceWLAN() *schema.Resource {
 					},
 				},
 			},
+			"no2ghz_oui": {
+				Description: "Connect high performance clients to 5 GHz only",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
 
 			// controller v6 fields
 			// TODO: this could be defaulted to "both" once v5 controller support is dropped
@@ -262,7 +268,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 
 		GroupRekey:               3600,
 		DTIMMode:                 "default",
-		No2GhzOui:                true,
+		No2GhzOui:                d.Get("no2ghz_oui").(bool),
 		MinrateNgCckRatesEnabled: true,
 	}, nil
 }
@@ -335,6 +341,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("radius_profile_id", resp.RADIUSProfileID)
 	d.Set("schedule", schedule)
 	d.Set("wlan_band", resp.WLANBand)
+	d.Set("no2ghz_oui", resp.No2GhzOui)
 
 	// switch v := c.ControllerVersion(); {
 	// case v.GreaterThanOrEqual(controllerV6):
