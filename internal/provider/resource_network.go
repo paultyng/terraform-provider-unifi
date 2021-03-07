@@ -160,7 +160,7 @@ func resourceNetwork() *schema.Resource {
 				ValidateFunc: validation.IsIPv4Address,
 			},
 			"wan_type": {
-				Description:  "Specifies the IPV4 WAN connection type. Must be one of either `disabled` or `pppoe`.",
+				Description:  "Specifies the IPV4 WAN connection type. Must be one of either `disabled`, `static`, `dhcp`, or `pppoe`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateWANType,

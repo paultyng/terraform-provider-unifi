@@ -70,7 +70,7 @@ resource "unifi_network" "wan" {
 - **wan_egress_qos** (Number) Specifies the WAN egress quality of service. Defaults to `0`.
 - **wan_ip** (String) The IPv4 address of the WAN.
 - **wan_networkgroup** (String) Specifies the WAN network group. Must be one of either `WAN`, `WAN2` or `WAN_LTE_FAILOVER`.
-- **wan_type** (String) Specifies the IPV4 WAN connection type. Must be one of either `disabled` or `pppoe`.
+- **wan_type** (String) Specifies the IPV4 WAN connection type. Must be one of either `disabled`, `static`, `dhcp`, or `pppoe`.
 - **wan_username** (String) Specifies the IPV4 WAN username.
 - **x_wan_password** (String) Specifies the IPV4 WAN password.
 
