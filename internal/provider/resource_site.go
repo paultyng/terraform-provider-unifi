@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
@@ -16,7 +18,7 @@ func resourceSite() *schema.Resource {
 		Update: resourceSiteUpdate,
 		Delete: resourceSiteDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: resourceSiteImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -37,6 +39,37 @@ func resourceSite() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceSiteImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	c := meta.(*client)
+
+	id := d.Id()
+	_, err := c.c.GetSite(ctx, id)
+	if err != nil {
+		var nf *unifi.NotFoundError
+		if !errors.As(err, &nf) {
+			return nil, err
+		}
+	} else {
+		// id is a valid site
+		return []*schema.ResourceData{d}, nil
+	}
+
+	// lookup site by name
+	sites, err := c.c.ListSites(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, s := range sites {
+		if s.Name == id {
+			d.SetId(s.ID)
+			return []*schema.ResourceData{d}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("unable to find site %q on controller", id)
 }
 
 func resourceSiteCreate(d *schema.ResourceData, meta interface{}) error {
