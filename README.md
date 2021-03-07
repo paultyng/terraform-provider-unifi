@@ -16,6 +16,8 @@ Currently this provider is tested against [Docker versions of the v5 and v6 cont
 
 There are some differences to be aware of between v5 and v6 controller usages (AP groups vs WLAN groups as an example), but in many cases, the provider should warn or error if used incorrectly. Examples will mostly show v6 usage, and a future major version of the provider will probably remove v5 support.
 
+When reporting issues, please include your controller version and the method you use to run it.
+
 ## Using the Provider
 
 ### Terraform 0.13 and above
