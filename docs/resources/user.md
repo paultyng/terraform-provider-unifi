@@ -7,7 +7,7 @@ description: |-
   Users are created in the controller when observed on the network, so the resource defaults to allowing itself to just take over management of a MAC address, but this can be turned off.
 ---
 
-# Resource `unifi_user`
+# unifi_user (Resource)
 
 `unifi_user` manages a user (or "client" in the UI) of the network, these are identified by unique MAC addresses.
 
@@ -45,7 +45,7 @@ resource "unifi_user" "test" {
 - **skip_forget_on_destroy** (Boolean) Specifies whether this resource should tell the controller to "forget" the user on destroy. Defaults to `false`.
 - **user_group_id** (String) The user group ID for the user.
 
-### Read-only
+### Read-Only
 
 - **hostname** (String) The hostname of the user.
 - **id** (String) The ID of the user.

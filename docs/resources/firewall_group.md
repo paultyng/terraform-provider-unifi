@@ -6,7 +6,7 @@ description: |-
   unifi_firewall_group manages groups of addresses or ports for use in firewall rules (unifi_firewall_rule).
 ---
 
-# Resource `unifi_firewall_group`
+# unifi_firewall_group (Resource)
 
 `unifi_firewall_group` manages groups of addresses or ports for use in firewall rules (`unifi_firewall_rule`).
 
@@ -38,7 +38,7 @@ resource "unifi_firewall_group" "can_print" {
 
 - **site** (String) The name of the site to associate the firewall group with.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of the firewall group.
 

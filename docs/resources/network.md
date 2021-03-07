@@ -6,7 +6,7 @@ description: |-
   unifi_network manages WAN/LAN/VLAN networks.
 ---
 
-# Resource `unifi_network`
+# unifi_network (Resource)
 
 `unifi_network` manages WAN/LAN/VLAN networks.
 
@@ -74,7 +74,7 @@ resource "unifi_network" "wan" {
 - **wan_username** (String) Specifies the IPV4 WAN username.
 - **x_wan_password** (String) Specifies the IPV4 WAN password.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of the network.
 

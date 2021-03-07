@@ -6,7 +6,7 @@ description: |-
   unifi_site manages Unifi sites
 ---
 
-# Resource `unifi_site`
+# unifi_site (Resource)
 
 `unifi_site` manages Unifi sites
 
@@ -25,7 +25,7 @@ resource "unifi_site" "mysite" {
 
 - **description** (String) The description of the site.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of the site.
 - **name** (String) The name of the site.
