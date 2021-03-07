@@ -263,6 +263,12 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 }
 
 func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData, site string) error {
+	wanType := ""
+	if resp.Purpose == "wan" {
+		wanType = resp.WANType
+		// TODO: set other wan only fields here?
+	}
+
 	vlan := 0
 	if resp.VLANEnabled {
 		vlan = resp.VLAN
@@ -307,7 +313,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
 	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
 	d.Set("wan_ip", resp.WANIP)
-	d.Set("wan_type", resp.WANType)
+	d.Set("wan_type", wanType)
 	d.Set("wan_networkgroup", resp.WANNetworkGroup)
 	d.Set("wan_egress_qos", resp.WANEgressQOS)
 	d.Set("wan_username", resp.WANUsername)
