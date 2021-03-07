@@ -6,7 +6,7 @@ description: |-
   unifi_wlan manages a WiFi network / SSID.
 ---
 
-# Resource `unifi_wlan`
+# unifi_wlan (Resource)
 
 `unifi_wlan` manages a WiFi network / SSID.
 
@@ -72,7 +72,7 @@ resource "unifi_wlan" "wifi" {
 - **wlan_band** (String) Radio band your WiFi network will use.
 - **wlan_group_id** (String, Deprecated) ID of the WLAN group to use for this network. Set ap_group_ids instead of wlan_group_id for controller version >= 6.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of the network.
 

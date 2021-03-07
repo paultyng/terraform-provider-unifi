@@ -6,7 +6,7 @@ description: |-
   unifi_port_forward manages a port forwarding rule on the gateway.
 ---
 
-# Resource `unifi_port_forward`
+# unifi_port_forward (Resource)
 
 `unifi_port_forward` manages a port forwarding rule on the gateway.
 
@@ -28,7 +28,7 @@ description: |-
 - **site** (String) The name of the site to associate the port forwarding rule with.
 - **src_ip** (String) The source IPv4 address (or CIDR) of the port forwarding rule. For all traffic, specify `any`. Defaults to `any`.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of the port forwarding rule.
 

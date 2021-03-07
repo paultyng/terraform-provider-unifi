@@ -6,7 +6,7 @@ description: |-
   unifi_port_profile manages a port profile for use on network switches.
 ---
 
-# Resource `unifi_port_profile`
+# unifi_port_profile (Resource)
 
 `unifi_port_profile` manages a port profile for use on network switches.
 
@@ -77,7 +77,7 @@ resource "unifi_port_profile" "poe_disabled" {
 - **tagged_networkconf_ids** (Set of String) The IDs of networks to tag traffic with for the port profile.
 - **voice_networkconf_id** (String) The ID of network to use as the voice network on the port profile.
 
-### Read-only
+### Read-Only
 
 - **id** (String) The ID of the port profile.
 
