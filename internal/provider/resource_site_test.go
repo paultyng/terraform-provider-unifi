@@ -11,6 +11,8 @@ import (
 )
 
 func TestAccSite_basic(t *testing.T) {
+	var siteName string
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -20,6 +22,12 @@ func TestAccSite_basic(t *testing.T) {
 				Config: testAccSiteConfig("tfacc-desc1"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_site.test", "description", "tfacc-desc1"),
+
+					// extract siteName for future use
+					func(s *terraform.State) error {
+						siteName = s.RootModule().Resources["unifi_site.test"].Primary.Attributes["name"]
+						return nil
+					},
 				),
 			},
 			importStep("unifi_site.test"),
@@ -30,6 +38,16 @@ func TestAccSite_basic(t *testing.T) {
 				),
 			},
 			importStep("unifi_site.test"),
+
+			// test importing from name, not id
+			{
+				ResourceName: "unifi_site.test",
+				ImportStateIdFunc: func(*terraform.State) (string, error) {
+					return siteName, nil
+				},
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
