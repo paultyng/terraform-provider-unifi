@@ -149,6 +149,7 @@ type unifiClient interface {
 	DeleteNetwork(ctx context.Context, site, id, name string) error
 	CreateNetwork(ctx context.Context, site string, d *unifi.Network) (*unifi.Network, error)
 	GetNetwork(ctx context.Context, site, id string) (*unifi.Network, error)
+	ListNetwork(ctx context.Context, site string) ([]unifi.Network, error)
 	UpdateNetwork(ctx context.Context, site string, d *unifi.Network) (*unifi.Network, error)
 
 	DeleteWLAN(ctx context.Context, site, id string) error

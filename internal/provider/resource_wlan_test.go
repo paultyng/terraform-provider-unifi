@@ -270,7 +270,7 @@ resource "unifi_network" "test" {
 	name    = "tfacc"
 	purpose = "corporate"
 
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
@@ -302,7 +302,7 @@ resource "unifi_network" "test" {
 	name    = "tfacc"
 	purpose = "corporate"
 
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
@@ -331,7 +331,7 @@ resource "unifi_network" "test" {
 	name    = "tfacc"
 	purpose = "corporate"
 
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
@@ -357,7 +357,7 @@ resource "unifi_network" "test" {
 	name    = "tfacc"
 	purpose = "corporate"
 
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
@@ -395,7 +395,7 @@ resource "unifi_network" "test" {
 	name    = "tfacc"
 	purpose = "corporate"
 
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
@@ -425,7 +425,7 @@ resource "unifi_network" "test" {
 	name    = "tfacc"
 	purpose = "corporate"
 
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
@@ -455,7 +455,7 @@ resource "unifi_network" "test" {
 	name    = "tfacc"
 	purpose = "corporate"
 
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
