@@ -113,6 +113,12 @@ func (c *lazyClient) GetNetwork(ctx context.Context, site, id string) (*unifi.Ne
 	}
 	return c.inner.GetNetwork(ctx, site, id)
 }
+func (c *lazyClient) ListNetwork(ctx context.Context, site string) ([]unifi.Network, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListNetwork(ctx, site)
+}
 func (c *lazyClient) UpdateNetwork(ctx context.Context, site string, d *unifi.Network) (*unifi.Network, error) {
 	if err := c.init(ctx); err != nil {
 		return nil, err
