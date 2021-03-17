@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -15,7 +16,7 @@ func resourceDevice() *schema.Resource {
 			"Devices are adopted by the controller, so it may not be possible " +
 			"for this resource to be created through terraform.",
 
-		//Create: resourceDeviceCreate,
+		Create: resourceDeviceCreate,
 		Read:   resourceDeviceRead,
 		Update: resourceDeviceUpdate,
 		Delete: resourceDeviceDelete,
@@ -83,7 +84,7 @@ func resourceDevice() *schema.Resource {
 }
 
 func resourceDeviceCreate(d *schema.ResourceData, meta interface{}) error {
-	return &unifi.NotFoundError{}
+	return errors.New("unifi_device can only be imported, not created")
 }
 
 func resourceDeviceUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -111,7 +112,7 @@ func resourceDeviceUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDeviceDelete(d *schema.ResourceData, meta interface{}) error {
-	return &unifi.NotFoundError{}
+	return errors.New("Deleting unifi_device is not supported yet")
 }
 
 func resourceDeviceRead(d *schema.ResourceData, meta interface{}) error {
