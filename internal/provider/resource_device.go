@@ -56,7 +56,7 @@ func resourceDevice() *schema.Resource {
 			},
 			"port_overrides": {
 				Description: "Settings overrides for specific switch ports.",
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
