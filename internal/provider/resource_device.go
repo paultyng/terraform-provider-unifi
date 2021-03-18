@@ -112,6 +112,7 @@ func resourceDeviceUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDeviceDelete(d *schema.ResourceData, meta interface{}) error {
+	// TODO: return warning and remove from state
 	return errors.New("Deleting unifi_device is not supported yet")
 }
 
