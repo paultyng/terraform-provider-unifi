@@ -316,9 +316,11 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 			wanDNS = append(wanDNS, dns)
 		}
 
-		wanIP = resp.WANIP
-		wanNetmask = resp.WANNetmask
-		wanGateway = resp.WANGateway
+		if wanType != "dhcp" {
+			wanIP = resp.WANIP
+			wanNetmask = resp.WANNetmask
+			wanGateway = resp.WANGateway
+		}
 
 		// TODO: set other wan only fields here?
 	}
