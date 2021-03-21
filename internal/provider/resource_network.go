@@ -78,6 +78,7 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "LAN",
+				DiffSuppressFunc: ignoreForWAN,
 			},
 			"dhcp_start": {
 				Description:  "The IPv4 address where the DHCP range of addresses starts.",
@@ -101,6 +102,7 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     86400,
+				DiffSuppressFunc: ignoreForWAN,
 			},
 			"dhcp_dns": {
 				Description: "Specifies the IPv4 addresses for the DNS server to be returned from the DHCP " +
@@ -132,6 +134,7 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "none",
+				DiffSuppressFunc: ignoreForWAN,
 			},
 			"ipv6_static_subnet": {
 				Description: "Specifies the static IPv6 subnet when ipv6_interface_type is 'static'.",
@@ -176,6 +179,7 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     0,
+				DiffSuppressFunc: ignoreForLAN,
 			},
 			"wan_username": {
 				Description:  "Specifies the IPV4 WAN username.",
@@ -223,43 +227,58 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		return nil, fmt.Errorf("unable to convert dhcp_dns to string slice: %w", err)
 	}
 
-	return &unifi.Network{
-		Name:           d.Get("name").(string),
-		Purpose:        d.Get("purpose").(string),
-		VLAN:           vlan,
-		IPSubnet:       cidrOneBased(d.Get("subnet").(string)),
-		NetworkGroup:   d.Get("network_group").(string),
-		DHCPDStart:     d.Get("dhcp_start").(string),
-		DHCPDStop:      d.Get("dhcp_stop").(string),
-		DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
-		DHCPDLeaseTime: d.Get("dhcp_lease").(int),
-		DomainName:     d.Get("domain_name").(string),
-		IGMPSnooping:   d.Get("igmp_snooping").(bool),
+	var network *unifi.Network
 
-		DHCPDDNSEnabled: len(dhcpDNS) > 0,
-		// this is kinda hacky but ¯\_(ツ)_/¯
-		DHCPDDNS1: append(dhcpDNS, "")[0],
-		DHCPDDNS2: append(dhcpDNS, "", "")[1],
-		DHCPDDNS3: append(dhcpDNS, "", "", "")[2],
-		DHCPDDNS4: append(dhcpDNS, "", "", "", "")[3],
+	switch d.Get("purpose").(string) {
+	case "wan":
+		network = &unifi.Network{
+			Name:    d.Get("name").(string),
+			Purpose: d.Get("purpose").(string),
 
-		VLANEnabled: vlan != 0 && vlan != 1,
+			WANIP:           d.Get("wan_ip").(string),
+			WANType:         d.Get("wan_type").(string),
+			WANNetworkGroup: d.Get("wan_networkgroup").(string),
+			WANEgressQOS:    d.Get("wan_egress_qos").(int),
+			WANUsername:     d.Get("wan_username").(string),
+			XWANPassword:    d.Get("x_wan_password").(string),
 
-		Enabled: true,
+			Enabled: true,
+		}
+	default:
+		network = &unifi.Network{
+			Name:    d.Get("name").(string),
+			Purpose: d.Get("purpose").(string),
 
-		IPV6InterfaceType: d.Get("ipv6_interface_type").(string),
-		IPV6Subnet:        d.Get("ipv6_static_subnet").(string),
-		IPV6PDInterface:   d.Get("ipv6_pd_interface").(string),
-		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
-		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
+			VLAN:           vlan,
+			IPSubnet:       cidrOneBased(d.Get("subnet").(string)),
+			NetworkGroup:   d.Get("network_group").(string),
+			DHCPDStart:     d.Get("dhcp_start").(string),
+			DHCPDStop:      d.Get("dhcp_stop").(string),
+			DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
+			DHCPDLeaseTime: d.Get("dhcp_lease").(int),
+			DomainName:     d.Get("domain_name").(string),
+			IGMPSnooping:   d.Get("igmp_snooping").(bool),
 
-		WANIP:           d.Get("wan_ip").(string),
-		WANType:         d.Get("wan_type").(string),
-		WANNetworkGroup: d.Get("wan_networkgroup").(string),
-		WANEgressQOS:    d.Get("wan_egress_qos").(int),
-		WANUsername:     d.Get("wan_username").(string),
-		XWANPassword:    d.Get("x_wan_password").(string),
-	}, nil
+			DHCPDDNSEnabled: len(dhcpDNS) > 0,
+			// this is kinda hacky but ¯\_(ツ)_/¯
+			DHCPDDNS1: append(dhcpDNS, "")[0],
+			DHCPDDNS2: append(dhcpDNS, "", "")[1],
+			DHCPDDNS3: append(dhcpDNS, "", "", "")[2],
+			DHCPDDNS4: append(dhcpDNS, "", "", "", "")[3],
+
+			VLANEnabled: vlan != 0 && vlan != 1,
+
+			Enabled: true,
+
+			IPV6InterfaceType: d.Get("ipv6_interface_type").(string),
+			IPV6Subnet:        d.Get("ipv6_static_subnet").(string),
+			IPV6PDInterface:   d.Get("ipv6_pd_interface").(string),
+			IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
+			IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
+		}
+	}
+
+	return network, nil
 }
 
 func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData, site string) error {
@@ -382,4 +401,18 @@ func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 	return err
+}
+
+func ignoreForLAN(k, old, new string, d *schema.ResourceData) bool {
+    if d.Get("purpose").(string) == "lan" {
+      return true
+    }
+    return false
+}
+
+func ignoreForWAN(k, old, new string, d *schema.ResourceData) bool {
+    if d.Get("purpose").(string) == "wan" {
+      return true
+    }
+    return false
 }
