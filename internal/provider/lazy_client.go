@@ -167,6 +167,36 @@ func (c *lazyClient) UpdateUserGroup(ctx context.Context, site string, d *unifi.
 	}
 	return c.inner.UpdateUserGroup(ctx, site, d)
 }
+func (c *lazyClient) GetDevice(ctx context.Context, site, id string) (*unifi.Device, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetDevice(ctx, site, id)
+}
+func (c *lazyClient) CreateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.CreateDevice(ctx, site, d)
+}
+func (c *lazyClient) UpdateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateDevice(ctx, site, d)
+}
+func (c *lazyClient) DeleteDevice(ctx context.Context, site, id string) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.DeleteDevice(ctx, site, id)
+}
+func (c *lazyClient) ListDevice(ctx context.Context, site string) ([]unifi.Device, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListDevice(ctx, site)
+}
 func (c *lazyClient) GetUser(ctx context.Context, site, id string) (*unifi.User, error) {
 	if err := c.init(ctx); err != nil {
 		return nil, err

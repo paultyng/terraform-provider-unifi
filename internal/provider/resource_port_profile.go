@@ -2,9 +2,9 @@ package provider
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -66,7 +66,7 @@ func resourcePortProfile() *schema.Resource {
 				Default:     false,
 			},
 			"forward": {
-				Description:  "The type  forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`.",
+				Description:  "The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "native",
@@ -96,6 +96,7 @@ func resourcePortProfile() *schema.Resource {
 				Optional:    true,
 				//ValidateFunc: ,
 			},
+			// TODO: rename to native_network_id
 			"native_networkconf_id": {
 				Description: "The ID of network to use as the main network on the port profile.",
 				Type:        schema.TypeString,
@@ -230,12 +231,14 @@ func resourcePortProfile() *schema.Resource {
 				Optional:    true,
 				Default:     true,
 			},
+			// TODO: renamed to tagged_network_ids
 			"tagged_networkconf_ids": {
 				Description: "The IDs of networks to tag traffic with for the port profile.",
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			// TODO: rename to voice_network_id
 			"voice_networkconf_id": {
 				Description: "The ID of network to use as the voice network on the port profile.",
 				Type:        schema.TypeString,
