@@ -161,6 +161,7 @@ type unifiClient interface {
 	CreateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error)
 	UpdateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error)
 	DeleteDevice(ctx context.Context, site, id string) error
+	ListDevice(ctx context.Context, site string) ([]unifi.Device, error)
 
 	GetUser(ctx context.Context, site, id string) (*unifi.User, error)
 	GetUserByMAC(ctx context.Context, site, mac string) (*unifi.User, error)

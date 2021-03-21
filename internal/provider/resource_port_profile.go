@@ -2,9 +2,9 @@ package provider
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -66,7 +66,7 @@ func resourcePortProfile() *schema.Resource {
 				Default:     false,
 			},
 			"forward": {
-				Description:  "The type  forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`.",
+				Description:  "The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "native",
