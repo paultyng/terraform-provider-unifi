@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -69,6 +71,11 @@ func resourceFirewallGroupCreate(d *schema.ResourceData, meta interface{}) error
 
 	resp, err := c.c.CreateFirewallGroup(context.TODO(), site, req)
 	if err != nil {
+		var apiErr *unifi.APIError
+		if errors.As(err, &apiErr) && apiErr.Message == "api.err.FirewallGroupExisted" {
+			return fmt.Errorf("firewall groups must have unique names: %w", err)
+		}
+
 		return err
 	}
 
