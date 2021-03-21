@@ -149,8 +149,9 @@ func TestAccNetwork_wan(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
-					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dns1", "8.8.8.8"),
-					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dns2", "4.4.4.4"),
+
+					resource.TestCheckOutput("wan_dns1", "8.8.8.8"),
+					resource.TestCheckOutput("wan_dns2", "4.4.4.4"),
 				),
 			},
 			importStep("unifi_network.wan_test"),
@@ -163,8 +164,9 @@ func TestAccNetwork_wan(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
-					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dns1", "8.8.8.8"),
-					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dns2", "4.4.4.4"),
+
+					resource.TestCheckOutput("wan_dns1", "8.8.8.8"),
+					resource.TestCheckOutput("wan_dns2", "4.4.4.4"),
 				),
 			},
 			importStep("unifi_network.wan_test"),
@@ -323,8 +325,16 @@ resource "unifi_network" "wan_test" {
 	wan_egress_qos = %d
 	wan_username = "%s"
 	x_wan_password = "%s"
-	wan_dns1 = "%s"
-	wan_dns2 = "%s"
+
+	wan_dns = ["%s", "%s"]
+}
+
+output "wan_dns1" {
+	value = unifi_network.wan_test.wan_dns[0]
+}
+
+output "wan_dns2" {
+	value = unifi_network.wan_test.wan_dns[1]
 }
 `, networkGroup, wanType, wanIP, wanEgressQOS, wanUsername, wanPassword, wanDNS1, wanDNS2)
 }
