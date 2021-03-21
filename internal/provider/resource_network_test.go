@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -203,6 +204,51 @@ func TestAccNetwork_differentSite(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_importByName(t *testing.T) {
+	vlanID1 := getTestVLAN(t)
+	vlanID2 := getTestVLAN(t)
+	vlanID3 := getTestVLAN(t)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			// Apply and import network by name.
+			{
+				Config: testAccNetworkConfig(vlanID1, true, nil),
+			},
+			{
+				Config:            testAccNetworkConfig(vlanID1, true, nil),
+				ResourceName:      "unifi_network.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "name=tfacc",
+			},
+			// Apply and test errors.
+			{
+				Config: testAccNetworkWithDuplicateNames(vlanID2, vlanID3, "DUPLICATE_NAME"),
+			},
+			// Test error on name that doesn't exist.
+			{
+				Config:            testAccNetworkWithDuplicateNames(vlanID2, vlanID3, "DUPLICATE_NAME"),
+				ResourceName:      "unifi_network.test1",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "name=BAD_NAME",
+				ExpectError:       regexp.MustCompile("BAD_NAME"),
+			},
+			// Test error on multiple matches.
+			{
+				Config:            testAccNetworkWithDuplicateNames(vlanID2, vlanID3, "DUPLICATE_NAME"),
+				ResourceName:      "unifi_network.test1",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "name=DUPLICATE_NAME",
+				ExpectError:       regexp.MustCompile("DUPLICATE_NAME"),
+			},
+		},
+	})
+}
+
 // TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
@@ -216,7 +262,7 @@ func quoteStrings(src []string) []string {
 func testAccNetworkConfig(vlan int, igmpSnoop bool, dhcpDNS []string) string {
 	return fmt.Sprintf(`
 locals {
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
@@ -240,7 +286,7 @@ resource "unifi_network" "test" {
 func testAccNetworkConfigV6(vlan int, ipv6Type string, ipv6Subnet string) string {
 	return fmt.Sprintf(`
 locals {
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 	
@@ -280,7 +326,7 @@ resource "unifi_network" "wan_test" {
 func testAccNetworkWithSiteConfig(vlan int) string {
 	return fmt.Sprintf(`
 locals {
-	subnet        = cidrsubnet("10.0.0.0/8", 4, %[1]d)
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
 	vlan_id       = %[1]d
 }
 
@@ -302,4 +348,31 @@ resource "unifi_network" "test" {
 	igmp_snooping = true
 }
 `, vlan)
+}
+
+func testAccNetworkWithDuplicateNames(vlan1, vlan2 int, networkName string) string {
+	return fmt.Sprintf(`
+locals {
+	subnet1        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
+	vlan_id1       = %[1]d
+	subnet2        = cidrsubnet("10.0.0.0/8", 6, %[2]d)
+	vlan_id2       = %[2]d
+}
+
+resource "unifi_network" "test1" {
+	name    = "%[3]s"
+	purpose = "corporate"
+
+	subnet        = local.subnet1
+	vlan_id       = local.vlan_id1
+}
+
+resource "unifi_network" "test2" {
+	name    = "%[3]s"
+	purpose = "corporate"
+
+	subnet        = local.subnet2
+	vlan_id       = local.vlan_id2
+}
+`, vlan1, vlan2, networkName)
 }

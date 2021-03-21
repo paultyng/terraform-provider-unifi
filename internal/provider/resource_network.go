@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -33,7 +34,7 @@ func resourceNetwork() *schema.Resource {
 		Update: resourceNetworkUpdate,
 		Delete: resourceNetworkDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			State: importNetwork,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -382,4 +383,60 @@ func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 	return err
+}
+
+func importNetwork(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	c := meta.(*client)
+	id := d.Id()
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	if strings.Contains(id, ":") {
+		importParts := strings.SplitN(id, ":", 2)
+		site = importParts[0]
+		id = importParts[1]
+	}
+
+	if strings.HasPrefix(id, "name=") {
+		targetName := strings.TrimPrefix(id, "name=")
+		var err error
+		if id, err = getNetworkIDByName(c.c, targetName, site); err != nil {
+			return nil, err
+		}
+	}
+
+	if id != "" {
+		d.SetId(id)
+	}
+	if site != "" {
+		d.Set("site", site)
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func getNetworkIDByName(client unifiClient, networkName, site string) (string, error) {
+	networks, err := client.ListNetwork(context.TODO(), site)
+	if err != nil {
+		return "", err
+	}
+
+	idMatchingName := ""
+	allNames := []string{}
+	for _, network := range networks {
+		allNames = append(allNames, network.Name)
+		if network.Name != networkName {
+			continue
+		}
+		if idMatchingName != "" {
+			return "", fmt.Errorf("Found multiple networks with name '%s'", networkName)
+		}
+		idMatchingName = network.ID
+	}
+	if idMatchingName == "" {
+		return "", fmt.Errorf("Found no networks with name '%s', found: %s", networkName, strings.Join(allNames, ", "))
+	}
+	return idMatchingName, nil
 }
