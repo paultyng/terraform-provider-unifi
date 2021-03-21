@@ -1,0 +1,32 @@
+data "unifi_port_profile" "disabled" {
+  # look up the built-in disabled port profile
+  name = "Disabled"
+}
+
+resource "unifi_port_profile" "poe" {
+  name    = "poe"
+  forward = "customize"
+
+  native_networkconf_id = var.native_network_id
+  tagged_networkconf_ids = [
+    var.some_vlan_network_id,
+  ]
+
+  poe_mode = "auto"
+}
+
+resource "unifi_device" "us_24_poe" {
+  name = "Switch with POE"
+
+  port_override {
+    number          = 1
+    name            = "port w/ poe"
+    port_profile_id = unifi_port_profile.poe.id
+  }
+
+  port_override {
+    number          = 2
+    name            = "disabled"
+    port_profile_id = data.unifi_port_profile.disabled.id
+  }
+}

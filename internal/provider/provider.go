@@ -82,6 +82,7 @@ func New(version string) func() *schema.Provider {
 			},
 			ResourcesMap: map[string]*schema.Resource{
 				// TODO: "unifi_ap_group"
+				"unifi_device":         resourceDevice(),
 				"unifi_firewall_group": resourceFirewallGroup(),
 				"unifi_firewall_rule":  resourceFirewallRule(),
 				"unifi_network":        resourceNetwork(),
@@ -155,6 +156,12 @@ type unifiClient interface {
 	CreateWLAN(ctx context.Context, site string, d *unifi.WLAN) (*unifi.WLAN, error)
 	GetWLAN(ctx context.Context, site, id string) (*unifi.WLAN, error)
 	UpdateWLAN(ctx context.Context, site string, d *unifi.WLAN) (*unifi.WLAN, error)
+
+	GetDevice(ctx context.Context, site, id string) (*unifi.Device, error)
+	CreateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error)
+	UpdateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error)
+	DeleteDevice(ctx context.Context, site, id string) error
+	ListDevice(ctx context.Context, site string) ([]unifi.Device, error)
 
 	GetUser(ctx context.Context, site, id string) (*unifi.User, error)
 	GetUserByMAC(ctx context.Context, site, mac string) (*unifi.User, error)
