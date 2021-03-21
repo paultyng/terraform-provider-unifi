@@ -73,6 +73,8 @@ resource "unifi_network" "wan" {
 - **wan_type** (String) Specifies the IPV4 WAN connection type. Must be one of either `disabled`, `static`, `dhcp`, or `pppoe`.
 - **wan_username** (String) Specifies the IPV4 WAN username.
 - **x_wan_password** (String) Specifies the IPV4 WAN password.
+- **wan_dns1** (String) The IPv4 address of the primary DNS server for the WAN.
+- **wan_dns2** (String) The IPv4 address of the secondary DNS server for the WAN.
 
 ### Read-Only
 
