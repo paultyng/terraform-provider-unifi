@@ -141,7 +141,7 @@ func TestAccNetwork_wan(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1", 1, "username", "password"),
+				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1", 1, "username", "password", "8.8.8.8", "4.4.4.4"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
@@ -149,11 +149,13 @@ func TestAccNetwork_wan(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dns1", "8.8.8.8"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dns2", "4.4.4.4"),
 				),
 			},
 			importStep("unifi_network.wan_test"),
 			{
-				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1", 1, "username", "password"),
+				Config: testWanNetworkConfig("WAN", "pppoe", "192.168.1.1", 1, "username", "password", "8.8.8.8", "4.4.4.4"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
@@ -161,6 +163,8 @@ func TestAccNetwork_wan(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dns1", "8.8.8.8"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dns2", "4.4.4.4"),
 				),
 			},
 			importStep("unifi_network.wan_test"),
@@ -308,7 +312,7 @@ resource "unifi_network" "test" {
 `, vlan, ipv6Type, ipv6Subnet)
 }
 
-func testWanNetworkConfig(networkGroup string, wanType string, wanIP string, wanEgressQOS int, wanUsername string, wanPassword string) string {
+func testWanNetworkConfig(networkGroup string, wanType string, wanIP string, wanEgressQOS int, wanUsername string, wanPassword string, wanDNS1 string, wanDNS2 string) string {
 	return fmt.Sprintf(`
 resource "unifi_network" "wan_test" {
 	name    = "tfwan"
@@ -319,8 +323,10 @@ resource "unifi_network" "wan_test" {
 	wan_egress_qos = %d
 	wan_username = "%s"
 	x_wan_password = "%s"
+	wan_dns1 = "%s"
+	wan_dns2 = "%s"
 }
-`, networkGroup, wanType, wanIP, wanEgressQOS, wanUsername, wanPassword)
+`, networkGroup, wanType, wanIP, wanEgressQOS, wanUsername, wanPassword, wanDNS1, wanDNS2)
 }
 
 func testAccNetworkWithSiteConfig(vlan int) string {

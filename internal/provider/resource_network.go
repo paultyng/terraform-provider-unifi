@@ -190,6 +190,18 @@ func resourceNetwork() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateWANPassword,
 			},
+			"wan_dns1": {
+				Description:  "Primary DNS server for the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			"wan_dns2": {
+				Description:  "Secondary DNS server for the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
 		},
 	}
 }
@@ -260,6 +272,8 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		WANEgressQOS:    d.Get("wan_egress_qos").(int),
 		WANUsername:     d.Get("wan_username").(string),
 		XWANPassword:    d.Get("x_wan_password").(string),
+		WANDNS1:         d.Get("wan_dns1").(string),
+		WANDNS2:         d.Get("wan_dns2").(string),
 	}, nil
 }
 
@@ -319,6 +333,8 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("wan_egress_qos", resp.WANEgressQOS)
 	d.Set("wan_username", resp.WANUsername)
 	d.Set("x_wan_password", resp.XWANPassword)
+	d.Set("wan_dns1", resp.WANDNS1)
+	d.Set("wan_dns2", resp.WANDNS2)
 
 	return nil
 }
