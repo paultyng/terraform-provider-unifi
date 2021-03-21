@@ -67,10 +67,11 @@ resource "unifi_network" "wan" {
 - **site** (String) The name of the site to associate the network with.
 - **subnet** (String) The subnet of the network. Must be a valid CIDR address.
 - **vlan_id** (Number) The VLAN ID of the network.
-- **wan_dns1** (String) Primary DNS server for the WAN.
-- **wan_dns2** (String) Secondary DNS server for the WAN.
+- **wan_dns** (List of String) DNS servers IPs of the WAN.
 - **wan_egress_qos** (Number) Specifies the WAN egress quality of service. Defaults to `0`.
+- **wan_gateway** (String) The IPv4 gateway of the WAN.
 - **wan_ip** (String) The IPv4 address of the WAN.
+- **wan_netmask** (String) The IPv4 netmask of the WAN.
 - **wan_networkgroup** (String) Specifies the WAN network group. Must be one of either `WAN`, `WAN2` or `WAN_LTE_FAILOVER`.
 - **wan_type** (String) Specifies the IPV4 WAN connection type. Must be one of either `disabled`, `static`, `dhcp`, or `pppoe`.
 - **wan_username** (String) Specifies the IPV4 WAN username.

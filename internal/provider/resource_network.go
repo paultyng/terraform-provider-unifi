@@ -160,6 +160,28 @@ func resourceNetwork() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.IsIPv4Address,
 			},
+			"wan_netmask": {
+				Description:  "The IPv4 netmask of the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			"wan_gateway": {
+				Description:  "The IPv4 gateway of the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			"wan_dns": {
+				Description: "DNS servers IPs of the WAN.",
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    4,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.IsIPv4Address,
+				},
+			},
 			"wan_type": {
 				Description:  "Specifies the IPV4 WAN connection type. Must be one of either `disabled`, `static`, `dhcp`, or `pppoe`.",
 				Type:         schema.TypeString,
@@ -189,18 +211,6 @@ func resourceNetwork() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateWANPassword,
-			},
-			"wan_dns1": {
-				Description:  "Primary DNS server for the WAN.",
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.IsIPv4Address,
-			},
-			"wan_dns2": {
-				Description:  "Secondary DNS server for the WAN.",
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.IsIPv4Address,
 			},
 		},
 	}
@@ -235,6 +245,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert dhcp_dns to string slice: %w", err)
 	}
+	wanDNS, err := listToStringSlice(d.Get("wan_dns").([]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert wan_dns to string slice: %w", err)
+	}
 
 	return &unifi.Network{
 		Name:           d.Get("name").(string),
@@ -268,19 +282,49 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 
 		WANIP:           d.Get("wan_ip").(string),
 		WANType:         d.Get("wan_type").(string),
+		WANNetmask:      d.Get("wan_netmask").(string),
+		WANGateway:      d.Get("wan_gateway").(string),
 		WANNetworkGroup: d.Get("wan_networkgroup").(string),
 		WANEgressQOS:    d.Get("wan_egress_qos").(int),
 		WANUsername:     d.Get("wan_username").(string),
 		XWANPassword:    d.Get("x_wan_password").(string),
-		WANDNS1:         d.Get("wan_dns1").(string),
-		WANDNS2:         d.Get("wan_dns2").(string),
+
+		// this is kinda hacky but ¯\_(ツ)_/¯
+		WANDNS1: append(wanDNS, "")[0],
+		WANDNS2: append(wanDNS, "", "")[1],
+		WANDNS3: append(wanDNS, "", "", "")[2],
+		WANDNS4: append(wanDNS, "", "", "", "")[3],
 	}, nil
 }
 
 func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData, site string) error {
 	wanType := ""
+	wanDNS := []string{}
+	wanIP := ""
+	wanNetmask := ""
+	wanGateway := ""
+
 	if resp.Purpose == "wan" {
 		wanType = resp.WANType
+
+		for _, dns := range []string{
+			resp.WANDNS1,
+			resp.WANDNS2,
+			resp.WANDNS3,
+			resp.WANDNS4,
+		} {
+			if dns == "" {
+				continue
+			}
+			wanDNS = append(wanDNS, dns)
+		}
+
+		if wanType != "dhcp" {
+			wanIP = resp.WANIP
+			wanNetmask = resp.WANNetmask
+			wanGateway = resp.WANGateway
+		}
+
 		// TODO: set other wan only fields here?
 	}
 
@@ -327,14 +371,15 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
 	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
-	d.Set("wan_ip", resp.WANIP)
+	d.Set("wan_ip", wanIP)
+	d.Set("wan_netmask", wanNetmask)
+	d.Set("wan_gateway", wanGateway)
 	d.Set("wan_type", wanType)
+	d.Set("wan_dns", wanDNS)
 	d.Set("wan_networkgroup", resp.WANNetworkGroup)
 	d.Set("wan_egress_qos", resp.WANEgressQOS)
 	d.Set("wan_username", resp.WANUsername)
 	d.Set("x_wan_password", resp.XWANPassword)
-	d.Set("wan_dns1", resp.WANDNS1)
-	d.Set("wan_dns2", resp.WANDNS2)
 
 	return nil
 }
