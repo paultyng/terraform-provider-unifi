@@ -96,6 +96,7 @@ func resourcePortProfile() *schema.Resource {
 				Optional:    true,
 				//ValidateFunc: ,
 			},
+			// TODO: rename to native_network_id
 			"native_networkconf_id": {
 				Description: "The ID of network to use as the main network on the port profile.",
 				Type:        schema.TypeString,
@@ -230,12 +231,14 @@ func resourcePortProfile() *schema.Resource {
 				Optional:    true,
 				Default:     true,
 			},
+			// TODO: renamed to tagged_network_ids
 			"tagged_networkconf_ids": {
 				Description: "The IDs of networks to tag traffic with for the port profile.",
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			// TODO: rename to voice_network_id
 			"voice_networkconf_id": {
 				Description: "The ID of network to use as the voice network on the port profile.",
 				Type:        schema.TypeString,
