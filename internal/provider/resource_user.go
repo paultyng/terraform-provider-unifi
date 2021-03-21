@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -123,8 +124,8 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := c.c.CreateUser(context.TODO(), site, req)
 	if err != nil {
-		apiErr, ok := err.(*unifi.APIError)
-		if !ok || (apiErr.Message != "api.err.MacUsed" || !allowExisting) {
+		var apiErr *unifi.APIError
+		if !errors.As(err, &apiErr) || (apiErr.Message != "api.err.MacUsed" || !allowExisting) {
 			return err
 		}
 

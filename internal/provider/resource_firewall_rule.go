@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -186,6 +188,11 @@ func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error 
 
 	resp, err := c.c.CreateFirewallRule(context.TODO(), site, req)
 	if err != nil {
+		var apiErr *unifi.APIError
+		if errors.As(err, &apiErr) && apiErr.Message == "api.err.FirewallGroupTypeExists" {
+			return fmt.Errorf("firewall rule groups must be of different group types (ie. a port group and address group): %w", err)
+		}
+
 		return err
 	}
 

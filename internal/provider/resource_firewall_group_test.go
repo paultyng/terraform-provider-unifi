@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -54,6 +55,20 @@ func TestAccFirewallGroup_address_group(t *testing.T) {
 	})
 }
 
+func TestAccFirewallGroup_same_name(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccFirewallGroupConfig_same_name,
+				ExpectError: regexp.MustCompile("firewall groups must have unique names"),
+			},
+		},
+	})
+}
+
 func testAccFirewallGroupConfig(name, ty string, members []string) string {
 	joined := strings.Join(members, "\",\"")
 	if len(joined) > 0 {
@@ -69,3 +84,19 @@ resource "unifi_firewall_group" "test" {
 }
 `, name, ty, joined)
 }
+
+const testAccFirewallGroupConfig_same_name = `
+resource "unifi_firewall_group" "test_a" {
+	name = "tf-acc fg"
+	type = "address-group"
+	
+	members = []
+}
+
+resource "unifi_firewall_group" "test_b" {
+	name = "tf-acc fg"
+	type = "address-group"
+	
+	members = []
+}
+`
