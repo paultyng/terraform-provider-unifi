@@ -57,9 +57,9 @@ func resourceDevice() *schema.Resource {
 			"port_override": {
 				Description: "Settings overrides for specific switch ports.",
 				// TODO: this should really be a map or something when possible in the SDK
+				// see https://github.com/hashicorp/terraform-plugin-sdk/issues/62
 				Type:     schema.TypeSet,
 				Optional: true,
-				Set:      resourceDevicePortOverrideSet,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"number": {
@@ -240,8 +240,8 @@ func setToPortOverrides(set *schema.Set) ([]unifi.DevicePortOverrides, error) {
 	return pos, nil
 }
 
-func setFromPortOverrides(pos []unifi.DevicePortOverrides) (*schema.Set, error) {
-	list := make([]interface{}, 0, len(pos))
+func setFromPortOverrides(pos []unifi.DevicePortOverrides) ([]map[string]interface{}, error) {
+	list := make([]map[string]interface{}, 0, len(pos))
 	for _, po := range pos {
 		v, err := fromPortOverride(po)
 		if err != nil {
@@ -249,7 +249,7 @@ func setFromPortOverrides(pos []unifi.DevicePortOverrides) (*schema.Set, error) 
 		}
 		list = append(list, v)
 	}
-	return schema.NewSet(resourceDevicePortOverrideSet, list), nil
+	return list, nil
 }
 
 func toPortOverride(data map[string]interface{}) (unifi.DevicePortOverrides, error) {
