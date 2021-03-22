@@ -303,8 +303,12 @@ github.com/nsf/jsondiff v0.0.0-20200515183724-f29ed568f4ce/go.mod h1:uFMI8w+ref4
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/run v1.1.0 h1:GEenZ1cK0+q0+wsJew9qUg/DyD8k3JzYsZAi5gYi2mA=
 github.com/oklog/run v1.1.0/go.mod h1:sVPdnTZT1zYwAJeCMu2Th4T21pA3FPOQRfWjQlk7DVU=
-github.com/paultyng/go-unifi v1.13.0 h1:j44gxcCqXkkJxdJ6NSrUdCBOLRiuLzkgWQtNDjk99qo=
-github.com/paultyng/go-unifi v1.13.0/go.mod h1:aF1ya3pylyb7RRCcFxaOB6oZSWYlAnmD8ycv4AMW2+I=
+github.com/paultyng/go-unifi v1.13.1 h1:lhQxrPIzeWgHbXtUlf7Kydu2aMeqezFKfrAmdIkZZEk=
+github.com/paultyng/go-unifi v1.13.1/go.mod h1:aF1ya3pylyb7RRCcFxaOB6oZSWYlAnmD8ycv4AMW2+I=
+github.com/paultyng/go-unifi v1.13.2 h1:aRVu3Ps+G9IeXG6Uko8TvjEaJubHl6U0sRmSGflHago=
+github.com/paultyng/go-unifi v1.13.2/go.mod h1:aF1ya3pylyb7RRCcFxaOB6oZSWYlAnmD8ycv4AMW2+I=
+github.com/paultyng/go-unifi v1.13.3 h1:QnnRO0+Rvs6AX4wj5Gy0ClfLmdp62W8BShWybrWMfXs=
+github.com/paultyng/go-unifi v1.13.3/go.mod h1:aF1ya3pylyb7RRCcFxaOB6oZSWYlAnmD8ycv4AMW2+I=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
