@@ -4,14 +4,14 @@ page_title: "unifi_device Resource - terraform-provider-unifi"
 subcategory: ""
 description: |-
   unifi_device manages a device of the network.
-  Devices are adopted by the controller, so it is not possible for this resource to be created through Terraform.
+  Devices are adopted by the controller, so it is not possible for this resource to be created through Terraform, the create operation instead will simply start managing the device specified by MAC address. It's safer to start this process with an explicit import of the device.
 ---
 
 # unifi_device (Resource)
 
 `unifi_device` manages a device of the network.
 
-Devices are adopted by the controller, so it is not possible for this resource to be created through Terraform.
+Devices are adopted by the controller, so it is not possible for this resource to be created through Terraform, the create operation instead will simply start managing the device specified by MAC address. It's safer to start this process with an explicit import of the device.
 
 ## Example Usage
 
@@ -34,6 +34,10 @@ resource "unifi_port_profile" "poe" {
 }
 
 resource "unifi_device" "us_24_poe" {
+  # optionally specify MAC address to skip manually importing
+  # manual import is the safest way to add a device
+  mac = "01:23:45:67:89:AB"
+
   name = "Switch with POE"
 
   port_override {
@@ -55,6 +59,7 @@ resource "unifi_device" "us_24_poe" {
 
 ### Optional
 
+- **mac** (String) The MAC address of the device. This can be specified so that the provider can take control of a device (since devices are created through adoption).
 - **name** (String) The name of the device.
 - **port_override** (Block Set) Settings overrides for specific switch ports. (see [below for nested schema](#nestedblock--port_override))
 - **site** (String) The name of the site to associate the device with.
@@ -63,7 +68,6 @@ resource "unifi_device" "us_24_poe" {
 
 - **disabled** (Boolean) Specifies whether this device should be disabled.
 - **id** (String) The ID of the device.
-- **mac** (String) The MAC address of the device.
 
 <a id="nestedblock--port_override"></a>
 ### Nested Schema for `port_override`
