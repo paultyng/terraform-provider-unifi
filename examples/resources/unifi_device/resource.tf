@@ -16,6 +16,10 @@ resource "unifi_port_profile" "poe" {
 }
 
 resource "unifi_device" "us_24_poe" {
+  # optionally specify MAC address to skip manually importing
+  # manual import is the safest way to add a device
+  mac = "01:23:45:67:89:AB"
+
   name = "Switch with POE"
 
   port_override {

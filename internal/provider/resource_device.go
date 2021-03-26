@@ -2,20 +2,21 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
 func resourceDevice() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_device` manages a device of the network.\n\n" +
-			"Devices are adopted by the controller, so it is not possible " +
-			"for this resource to be created through Terraform.",
+			"Devices are adopted by the controller, so it is not possible for this resource to be created through " +
+			"Terraform, the create operation instead will simply start managing the device specified by MAC address. " +
+			"It's safer to start this process with an explicit import of the device.",
 
 		Create:        resourceDeviceCreate,
 		Read:          resourceDeviceRead,
@@ -39,9 +40,13 @@ func resourceDevice() *schema.Resource {
 				ForceNew:    true,
 			},
 			"mac": {
-				Description: "The MAC address of the device.",
-				Type:        schema.TypeString,
-				Computed:    true,
+				Description:      "The MAC address of the device. This can be specified so that the provider can take control of a device (since devices are created through adoption).",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: macDiffSuppressFunc,
+				ValidateFunc:     validation.StringMatch(macAddressRegexp, "Mac address is invalid"),
 			},
 			"name": {
 				Description: "The name of the device.",
@@ -130,7 +135,38 @@ func resourceDeviceImport(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceDeviceCreate(d *schema.ResourceData, meta interface{}) error {
-	return errors.New("unifi_device can only be imported, not created")
+	c := meta.(*client)
+
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	mac := d.Get("mac").(string)
+	if mac == "" {
+		return fmt.Errorf("no MAC address specified, please import the device using terraform import")
+	}
+
+	mac = cleanMAC(mac)
+	devices, err := c.c.ListDevice(context.TODO(), site)
+	if err != nil {
+		return fmt.Errorf("unable to list devices: %w", err)
+	}
+
+	var found *unifi.Device
+	for _, dev := range devices {
+		if cleanMAC(dev.MAC) == mac {
+			found = &dev
+			break
+		}
+	}
+	if found == nil {
+		return fmt.Errorf("device not found using mac %q", mac)
+	}
+
+	d.SetId(found.ID)
+
+	return resourceDeviceSetResourceData(found, d, site)
 }
 
 func resourceDeviceUpdate(d *schema.ResourceData, meta interface{}) error {
