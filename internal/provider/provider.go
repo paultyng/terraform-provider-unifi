@@ -88,10 +88,11 @@ func New(version string) func() *schema.Provider {
 				"unifi_network":        resourceNetwork(),
 				"unifi_port_forward":   resourcePortForward(),
 				"unifi_port_profile":   resourcePortProfile(),
+				"unifi_site":           resourceSite(),
+				"unifi_static_route":   resourceStaticRoute(),
 				"unifi_user_group":     resourceUserGroup(),
 				"unifi_user":           resourceUser(),
 				"unifi_wlan":           resourceWLAN(),
-				"unifi_site":           resourceSite(),
 			},
 		}
 
@@ -194,6 +195,12 @@ type unifiClient interface {
 	DeletePortProfile(ctx context.Context, site, id string) error
 	CreatePortProfile(ctx context.Context, site string, d *unifi.PortProfile) (*unifi.PortProfile, error)
 	UpdatePortProfile(ctx context.Context, site string, d *unifi.PortProfile) (*unifi.PortProfile, error)
+
+	ListRouting(ctx context.Context, site string) ([]unifi.Routing, error)
+	GetRouting(ctx context.Context, site, id string) (*unifi.Routing, error)
+	DeleteRouting(ctx context.Context, site, id string) error
+	CreateRouting(ctx context.Context, site string, d *unifi.Routing) (*unifi.Routing, error)
+	UpdateRouting(ctx context.Context, site string, d *unifi.Routing) (*unifi.Routing, error)
 }
 
 type client struct {
