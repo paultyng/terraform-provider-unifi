@@ -424,3 +424,38 @@ func (c *lazyClient) UpdatePortProfile(ctx context.Context, site string, d *unif
 	}
 	return c.inner.UpdatePortProfile(ctx, site, d)
 }
+
+func (c *lazyClient) ListRouting(ctx context.Context, site string) ([]unifi.Routing, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListRouting(ctx, site)
+}
+
+func (c *lazyClient) GetRouting(ctx context.Context, site, id string) (*unifi.Routing, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetRouting(ctx, site, id)
+}
+
+func (c *lazyClient) DeleteRouting(ctx context.Context, site, id string) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.DeleteRouting(ctx, site, id)
+}
+
+func (c *lazyClient) CreateRouting(ctx context.Context, site string, d *unifi.Routing) (*unifi.Routing, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.CreateRouting(ctx, site, d)
+}
+
+func (c *lazyClient) UpdateRouting(ctx context.Context, site string, d *unifi.Routing) (*unifi.Routing, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateRouting(ctx, site, d)
+}
