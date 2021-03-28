@@ -9,6 +9,10 @@ description: |-
 
 The Unifi provider provides resources to interact with a Unifi controller API.
 
+It is not recommended to use your own account for management of your controller. A user specific to
+Terraform is recommended. You can create a **Limited Admin** with **Local Access Only** and
+provide that information for authentication. Two-factor authentication is not supported in the provider.
+
 ## Example Usage
 
 ```terraform
