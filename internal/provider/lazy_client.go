@@ -459,3 +459,38 @@ func (c *lazyClient) UpdateRouting(ctx context.Context, site string, d *unifi.Ro
 	}
 	return c.inner.UpdateRouting(ctx, site, d)
 }
+
+func (c *lazyClient) ListDynamicDNS(ctx context.Context, site string) ([]unifi.DynamicDNS, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListDynamicDNS(ctx, site)
+}
+
+func (c *lazyClient) GetDynamicDNS(ctx context.Context, site, id string) (*unifi.DynamicDNS, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetDynamicDNS(ctx, site, id)
+}
+
+func (c *lazyClient) DeleteDynamicDNS(ctx context.Context, site, id string) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.DeleteDynamicDNS(ctx, site, id)
+}
+
+func (c *lazyClient) CreateDynamicDNS(ctx context.Context, site string, d *unifi.DynamicDNS) (*unifi.DynamicDNS, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.CreateDynamicDNS(ctx, site, d)
+}
+
+func (c *lazyClient) UpdateDynamicDNS(ctx context.Context, site string, d *unifi.DynamicDNS) (*unifi.DynamicDNS, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateDynamicDNS(ctx, site, d)
+}
