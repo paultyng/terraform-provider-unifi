@@ -83,6 +83,7 @@ func New(version string) func() *schema.Provider {
 			ResourcesMap: map[string]*schema.Resource{
 				// TODO: "unifi_ap_group"
 				"unifi_device":         resourceDevice(),
+				"unifi_dynamic_dns":    resourceDynamicDNS(),
 				"unifi_firewall_group": resourceFirewallGroup(),
 				"unifi_firewall_rule":  resourceFirewallRule(),
 				"unifi_network":        resourceNetwork(),
@@ -201,6 +202,12 @@ type unifiClient interface {
 	DeleteRouting(ctx context.Context, site, id string) error
 	CreateRouting(ctx context.Context, site string, d *unifi.Routing) (*unifi.Routing, error)
 	UpdateRouting(ctx context.Context, site string, d *unifi.Routing) (*unifi.Routing, error)
+
+	ListDynamicDNS(ctx context.Context, site string) ([]unifi.DynamicDNS, error)
+	GetDynamicDNS(ctx context.Context, site, id string) (*unifi.DynamicDNS, error)
+	DeleteDynamicDNS(ctx context.Context, site, id string) error
+	CreateDynamicDNS(ctx context.Context, site string, d *unifi.DynamicDNS) (*unifi.DynamicDNS, error)
+	UpdateDynamicDNS(ctx context.Context, site string, d *unifi.DynamicDNS) (*unifi.DynamicDNS, error)
 }
 
 type client struct {
