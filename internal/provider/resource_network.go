@@ -78,7 +78,7 @@ func resourceNetwork() *schema.Resource {
 				Description: "The group of the network.",
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "LAN",
+				Computed:    true,
 			},
 			"dhcp_start": {
 				Description:  "The IPv4 address where the DHCP range of addresses starts.",
@@ -101,7 +101,7 @@ func resourceNetwork() *schema.Resource {
 				Description: "Specifies the lease time for DHCP addresses.",
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     86400,
+				Computed:    true,
 			},
 			"dhcp_dns": {
 				Description: "Specifies the IPv4 addresses for the DNS server to be returned from the DHCP " +
@@ -132,7 +132,7 @@ func resourceNetwork() *schema.Resource {
 				Description: "Specifies which type of IPv6 connection to use.",
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "none",
+				Computed:    true,
 			},
 			"ipv6_static_subnet": {
 				Description: "Specifies the static IPv6 subnet when ipv6_interface_type is 'static'.",

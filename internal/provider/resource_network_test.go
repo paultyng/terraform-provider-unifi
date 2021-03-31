@@ -24,6 +24,10 @@ func TestAccNetwork_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID1)),
 					resource.TestCheckResourceAttr("unifi_network.test", "igmp_snooping", "true"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -32,6 +36,10 @@ func TestAccNetwork_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID2)),
 					resource.TestCheckResourceAttr("unifi_network.test", "igmp_snooping", "false"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -56,8 +64,10 @@ func TestAccNetwork_weird_cidr(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccNetworkConfig(vlanID, true, nil),
-				Check:  resource.ComposeTestCheckFunc(
-				// TODO: ...
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -77,6 +87,10 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 				Config: testAccNetworkConfig(vlanID, true, []string{"192.168.1.101"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.0", "192.168.1.101"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -85,6 +99,10 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.0", "192.168.1.101"),
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.1", "192.168.1.102"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -92,12 +110,20 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 				Config: testAccNetworkConfig(vlanID, true, nil),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckNoResourceAttr("unifi_network.test", "dhcp_dns"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 			{
 				Config: testAccNetworkConfig(vlanID, true, []string{"192.168.1.101"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.0", "192.168.1.101"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 		},
@@ -119,6 +145,10 @@ func TestAccNetwork_v6(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID1)),
 					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e362::1/64"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "static"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -127,6 +157,10 @@ func TestAccNetwork_v6(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID2)),
 					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e363::1/64"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "static"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -150,6 +184,10 @@ func TestAccNetwork_wan(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
 
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "network_group", ""),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "dhcp_lease", ""),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "ipv6_interface_type", ""),
+
 					resource.TestCheckOutput("wan_dns1", "8.8.8.8"),
 					resource.TestCheckOutput("wan_dns2", "4.4.4.4"),
 				),
@@ -164,6 +202,10 @@ func TestAccNetwork_wan(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "1"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
+
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "network_group", ""),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "dhcp_lease", ""),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "ipv6_interface_type", ""),
 
 					resource.TestCheckOutput("wan_dns1", "8.8.8.8"),
 					resource.TestCheckOutput("wan_dns2", "4.4.4.4"),
@@ -186,6 +228,10 @@ func TestAccNetwork_differentSite(t *testing.T) {
 				Config: testAccNetworkWithSiteConfig(vlanID1),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair("unifi_network.test", "site", "unifi_site.test", "name"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 			{
@@ -198,6 +244,10 @@ func TestAccNetwork_differentSite(t *testing.T) {
 				Config: testAccNetworkWithSiteConfig(vlanID2),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair("unifi_network.test", "site", "unifi_site.test", "name"),
+
+					resource.TestCheckResourceAttr("unifi_network.test", "network_group", "LAN"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_lease", "86400"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_interface_type", "none"),
 				),
 			},
 			{
