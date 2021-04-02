@@ -494,3 +494,15 @@ func (c *lazyClient) UpdateDynamicDNS(ctx context.Context, site string, d *unifi
 	}
 	return c.inner.UpdateDynamicDNS(ctx, site, d)
 }
+func (c *lazyClient) GetSettingMgmt(ctx context.Context, site string) (*unifi.SettingMgmt, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetSettingMgmt(ctx, site)
+}
+func (c *lazyClient) UpdateSettingMgmt(ctx context.Context, site string, d *unifi.SettingMgmt) (*unifi.SettingMgmt, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateSettingMgmt(ctx, site, d)
+}

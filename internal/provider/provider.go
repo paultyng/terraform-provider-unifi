@@ -94,6 +94,7 @@ func New(version string) func() *schema.Provider {
 				"unifi_user_group":     resourceUserGroup(),
 				"unifi_user":           resourceUser(),
 				"unifi_wlan":           resourceWLAN(),
+				"unifi_setting_mgmt":   resourceSettingMgmt(),
 			},
 		}
 
@@ -208,6 +209,9 @@ type unifiClient interface {
 	DeleteDynamicDNS(ctx context.Context, site, id string) error
 	CreateDynamicDNS(ctx context.Context, site string, d *unifi.DynamicDNS) (*unifi.DynamicDNS, error)
 	UpdateDynamicDNS(ctx context.Context, site string, d *unifi.DynamicDNS) (*unifi.DynamicDNS, error)
+
+	GetSettingMgmt(ctx context.Context, id string) (*unifi.SettingMgmt, error)
+	UpdateSettingMgmt(ctx context.Context, site string, d *unifi.SettingMgmt) (*unifi.SettingMgmt, error)
 }
 
 type client struct {
