@@ -29,7 +29,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/oklog/run v1.1.0 // indirect
-	github.com/paultyng/go-unifi v1.16.1
+	github.com/paultyng/go-unifi v1.17.0
 	github.com/posener/complete v1.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
