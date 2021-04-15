@@ -47,7 +47,7 @@ jobs:
         terraform:
           - '0.13.6'
           - '0.14.10'
-          - '0.15.0-rc2'
+          - '0.15.0'
     steps:
 
     - name: Set up Go
