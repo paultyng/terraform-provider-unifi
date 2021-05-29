@@ -118,6 +118,21 @@ func resourceNetwork() *schema.Resource {
 					),
 				},
 			},
+			"dhcpd_boot_enabled": {
+				Description: "Toggles on the DHCP boot options. Should be set to true when you want to have dhcpd_boot_filename, and dhcpd_boot_server to take effect.",
+				Type: schema.TypeBool,
+				Optional: true,
+			},
+			"dhcpd_boot_server": {
+				Description: "Specifies the IPv4 address of a TFTP server to network boot from.",
+				Type: schema.TypeString,
+				Optional: true,
+			},
+			"dhcpd_boot_filename": {
+				Description: "Specifies the file to PXE boot from on the dhcpd_boot_server.",
+				Type: schema.TypeString,
+				Optional: true,
+			},
 			"domain_name": {
 				Description: "The domain name of this network.",
 				Type:        schema.TypeString,
@@ -251,17 +266,20 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 	}
 
 	return &unifi.Network{
-		Name:           d.Get("name").(string),
-		Purpose:        d.Get("purpose").(string),
-		VLAN:           vlan,
-		IPSubnet:       cidrOneBased(d.Get("subnet").(string)),
-		NetworkGroup:   d.Get("network_group").(string),
-		DHCPDStart:     d.Get("dhcp_start").(string),
-		DHCPDStop:      d.Get("dhcp_stop").(string),
-		DHCPDEnabled:   d.Get("dhcp_enabled").(bool),
-		DHCPDLeaseTime: d.Get("dhcp_lease").(int),
-		DomainName:     d.Get("domain_name").(string),
-		IGMPSnooping:   d.Get("igmp_snooping").(bool),
+		Name:              d.Get("name").(string),
+		Purpose:           d.Get("purpose").(string),
+		VLAN:              vlan,
+		IPSubnet:          cidrOneBased(d.Get("subnet").(string)),
+		NetworkGroup:      d.Get("network_group").(string),
+		DHCPDStart:        d.Get("dhcp_start").(string),
+		DHCPDStop:         d.Get("dhcp_stop").(string),
+		DHCPDEnabled:      d.Get("dhcp_enabled").(bool),
+		DHCPDLeaseTime:    d.Get("dhcp_lease").(int),
+		DHCPDBootEnabled:  d.Get("dhcpd_boot_enabled").(bool),
+		DHCPDBootServer:   d.Get("dhcpd_boot_server").(string),
+		DHCPDBootFilename: d.Get("dhcpd_boot_filename").(string),
+		DomainName:        d.Get("domain_name").(string),
+		IGMPSnooping:      d.Get("igmp_snooping").(bool),
 
 		DHCPDDNSEnabled: len(dhcpDNS) > 0,
 		// this is kinda hacky but ¯\_(ツ)_/¯
@@ -363,6 +381,9 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("dhcp_stop", resp.DHCPDStop)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
 	d.Set("dhcp_lease", dhcpLease)
+	d.Set("dhcpd_boot_enabled", resp.DHCPDBootEnabled)
+	d.Set("dhcpd_boot_server", resp.DHCPDBootServer)
+	d.Set("dhcpd_boot_filename", resp.DHCPDBootFilename)
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
 	d.Set("dhcp_dns", dhcpDNS)
