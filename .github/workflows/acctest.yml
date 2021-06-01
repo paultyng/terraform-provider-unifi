@@ -45,9 +45,9 @@ jobs:
           - stable-5
           - stable-6
         terraform:
-          - '0.13.6'
-          - '0.14.10'
-          - '0.15.0'
+          - '0.13.7'
+          - '0.14.11'
+          - '0.15.4'
     steps:
 
     - name: Set up Go
