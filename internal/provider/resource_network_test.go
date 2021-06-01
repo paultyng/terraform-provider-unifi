@@ -104,6 +104,25 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_dhcp_boot(t *testing.T) {
+	vlanID := getTestVLAN(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkConfigDHCPBoot(vlanID),
+				Check:  resource.ComposeTestCheckFunc(
+				// TODO: ...
+				),
+			},
+			importStep("unifi_network.test"),
+		},
+	})
+}
+
 func TestAccNetwork_v6(t *testing.T) {
 	vlanID1 := getTestVLAN(t)
 	vlanID2 := getTestVLAN(t)
@@ -263,6 +282,33 @@ func quoteStrings(src []string) []string {
 		dst = append(dst, fmt.Sprintf("%q", s))
 	}
 	return dst
+}
+
+func testAccNetworkConfigDHCPBoot(vlan int) string {
+	return fmt.Sprintf(`
+locals {
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
+	vlan_id       = %[1]d
+}
+
+resource "unifi_network" "test" {
+	name    = "tfacc"
+	purpose = "corporate"
+
+	subnet        = local.subnet
+	vlan_id       = local.vlan_id
+	dhcp_start    = cidrhost(local.subnet, 6)
+	dhcp_stop     = cidrhost(local.subnet, 254)
+	dhcp_enabled  = true
+	domain_name   = "foo.local"
+
+	dhcpd_boot_enabled  = true
+	dhcpd_boot_server   = "192.168.1.180"
+	dhcpd_boot_filename = "test.boot"
+
+	dhcp_dns = ["192.168.1.101", "192.168.1.102"]
+}
+`, vlan)
 }
 
 func testAccNetworkConfig(vlan int, igmpSnoop bool, dhcpDNS []string) string {
