@@ -57,8 +57,8 @@ resource "unifi_network" "wan" {
 - **dhcp_start** (String) The IPv4 address where the DHCP range of addresses starts.
 - **dhcp_stop** (String) The IPv4 address where the DHCP range of addresses stops.
 - **dhcpd_boot_enabled** (Boolean) Toggles on the DHCP boot options. Should be set to true when you want to have dhcpd_boot_filename, and dhcpd_boot_server to take effect.
-- **dhcpd_boot_server** (String) Specifies the IPv4 address of a TFTP server to network boot from.
 - **dhcpd_boot_filename** (String) Specifies the file to PXE boot from on the dhcpd_boot_server.
+- **dhcpd_boot_server** (String) Specifies the IPv4 address of a TFTP server to network boot from.
 - **domain_name** (String) The domain name of this network.
 - **igmp_snooping** (Boolean) Specifies whether IGMP snooping is enabled or not.
 - **ipv6_interface_type** (String) Specifies which type of IPv6 connection to use. Defaults to `none`.

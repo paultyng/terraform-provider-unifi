@@ -120,18 +120,19 @@ func resourceNetwork() *schema.Resource {
 			},
 			"dhcpd_boot_enabled": {
 				Description: "Toggles on the DHCP boot options. Should be set to true when you want to have dhcpd_boot_filename, and dhcpd_boot_server to take effect.",
-				Type: schema.TypeBool,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"dhcpd_boot_server": {
 				Description: "Specifies the IPv4 address of a TFTP server to network boot from.",
-				Type: schema.TypeString,
+				Type:        schema.TypeString,
+				// TODO: IPv4 validation?
 				Optional: true,
 			},
 			"dhcpd_boot_filename": {
 				Description: "Specifies the file to PXE boot from on the dhcpd_boot_server.",
-				Type: schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"domain_name": {
 				Description: "The domain name of this network.",
