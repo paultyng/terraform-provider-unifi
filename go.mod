@@ -27,7 +27,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/oklog/run v1.1.0 // indirect
-	github.com/paultyng/go-unifi v1.16.1
+	github.com/paultyng/go-unifi v1.17.1
 	github.com/posener/complete v1.2.1 // indirect
 	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
