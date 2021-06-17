@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"net"
 	"regexp"
 	"testing"
 
@@ -16,6 +18,10 @@ func userImportStep(name string) resource.TestStep {
 }
 
 // for test MAC addresses, see https://tools.ietf.org/html/rfc7042#section-2.1.2
+func generateTestMac() string {
+	mac := net.HardwareAddr{0x00, 0x00, 0x5e, 0x00, 0x53, byte(rand.Intn(256))}
+	return mac.String()
+}
 
 func TestAccUser_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
@@ -187,6 +193,56 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 	})
 }
 
+func TestAccUser_fingerprint(t *testing.T) {
+	testMAC := generateTestMac()
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: providerFactories,
+		CheckDestroy:      testCheckUserDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccUserConfig_fingerprint(testMAC, "tfacc", 123),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "123"),
+				),
+			},
+			{
+				Config: testAccUserConfig_fingerprint(testMAC, "tfacc", 456),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "456"),
+				),
+			},
+			{
+				Config: testAccUserConfig(testMAC, "tfacc", ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testCheckUserDestroy(s *terraform.State) error {
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "unifi_user" {
+			continue
+		}
+
+		_, err := testClient.GetUser(context.Background(), "default", rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("User still exists: %s", rs.Primary.ID)
+		}
+
+		if _, ok := err.(*unifi.NotFoundError); ok {
+			continue
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func testAccUserConfig(mac, name, note string) string {
 	return fmt.Sprintf(`
 resource "unifi_user" "test" {
@@ -252,4 +308,14 @@ resource "unifi_user" "test" {
 	skip_forget_on_destroy = %t
 }
 `, mac, name, note, allow, skip)
+}
+
+func testAccUserConfig_fingerprint(mac, name string, devIdOverride int) string {
+	return fmt.Sprintf(`
+resource "unifi_user" "test" {
+	mac             = "%s"
+	name            = "%s"
+	dev_id_override = %d
+}
+`, mac, name, devIdOverride)
 }

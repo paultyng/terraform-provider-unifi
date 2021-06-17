@@ -77,6 +77,11 @@ func resourceUser() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"dev_id_override": {
+				Description: "Override the device fingerprint.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+			},
 
 			// these are "meta" attributes that control TF UX
 			"allow_existing": {
@@ -154,6 +159,18 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("dev_id_override") {
+		mac := d.Get("mac").(string)
+		device := d.Get("dev_id_override").(int)
+
+		err := c.c.OverrideUserFingerprint(context.TODO(), site, mac, device)
+		if err != nil {
+			return err
+		}
+
+		resp.DevIdOverride = device
+	}
+
 	return resourceUserSetResourceData(resp, d, site)
 }
 
@@ -169,7 +186,8 @@ func resourceUserGetResourceData(d *schema.ResourceData) (*unifi.User, error) {
 		UseFixedIP:  fixedIP != "",
 		NetworkID:   d.Get("network_id").(string),
 		// not sure if this matters/works
-		Blocked: d.Get("blocked").(bool),
+		Blocked:       d.Get("blocked").(bool),
+		DevIdOverride: d.Get("dev_id_override").(int),
 	}, nil
 }
 
@@ -187,6 +205,7 @@ func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData, site 
 	d.Set("fixed_ip", fixedIP)
 	d.Set("network_id", resp.NetworkID)
 	d.Set("blocked", resp.Blocked)
+	d.Set("dev_id_override", resp.DevIdOverride)
 
 	d.Set("hostname", resp.Hostname)
 	d.Set("ip", resp.IP)
@@ -248,6 +267,20 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	if d.HasChange("dev_id_override") {
+		mac := d.Get("mac").(string)
+		device := d.Get("dev_id_override").(int)
+
+		err := c.c.OverrideUserFingerprint(context.TODO(), site, mac, device)
+		if err != nil {
+			return err
+		}
+
+		if !d.HasChangesExcept("dev_id_override") {
+			return nil
 		}
 	}
 
