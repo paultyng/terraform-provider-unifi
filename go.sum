@@ -317,8 +317,8 @@ github.com/nsf/jsondiff v0.0.0-20200515183724-f29ed568f4ce/go.mod h1:uFMI8w+ref4
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/run v1.1.0 h1:GEenZ1cK0+q0+wsJew9qUg/DyD8k3JzYsZAi5gYi2mA=
 github.com/oklog/run v1.1.0/go.mod h1:sVPdnTZT1zYwAJeCMu2Th4T21pA3FPOQRfWjQlk7DVU=
-github.com/paultyng/go-unifi v1.18.0 h1:8QDNQi8g6TYg+k86We8cdWvdIRF9rh7qnjcfNUTrSM4=
-github.com/paultyng/go-unifi v1.18.0/go.mod h1:8UZxH9XvrxcIWI6H/jtLyziMvqFmL85RbTLpWMf7xe4=
+github.com/paultyng/go-unifi v1.19.0 h1:1lsZZ9wwvvzY9/ybAlXwkPNBBwUlO7Fr4aXJJ2ioRjI=
+github.com/paultyng/go-unifi v1.19.0/go.mod h1:8UZxH9XvrxcIWI6H/jtLyziMvqFmL85RbTLpWMf7xe4=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
