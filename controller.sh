@@ -26,13 +26,20 @@ case "$1" in
       -p ${DOCKER_STUN_PORT}:3478/udp \
       -p ${DOCKER_AIRCONTROL_PORT}:10001/udp \
       -e TZ='America/New_York' \
-      -v $(pwd)/testdata/unifi:/unifi \
       --name unifi \
       jacobalberty/unifi:${2:-$default_tag}
 
     echo "Waiting for login page..."
-    timeout 300 bash -c 'while [[ "$(curl --insecure -s -o /dev/null -w "%{http_code}" '"https://localhost:${DOCKER_HTTPS_PORT}/manage/account/login"')" != "200" ]]; do sleep 5; done'
+    timeout 300 bash -c 'while [[ "$(curl --insecure --location -s -o /dev/null -w "%{http_code}" '"https://localhost:${DOCKER_HTTPS_PORT}/manage/account/login"')" != "200" ]]; do sleep 5; done'
     echo "Controller running."
+
+    echo "Bootstrapping controller..."
+    function unifi_curl() {
+      curl --data "${2}" --header 'Content-Type application/json' --insecure "https://localhost:${DOCKER_HTTPS_PORT}${1}"
+    }
+    unifi_curl /api/cmd/sitemgr '{"cmd":"add-default-admin","name":"tfacctest","email":"tfacctest@example.com","x_password":"tfacctest1234"}'
+    unifi_curl /api/set/setting/super_identity '{"name":"UniFi Network"}'
+    unifi_curl /api/cmd/system '{"cmd":"set-installed"}'
     ;;
   "test")
     TF_ACC=1 \
@@ -48,12 +55,6 @@ case "$1" in
     ;;
   "update")
     docker pull jacobalberty/unifi:${2:-$default_tag}
-    ;;
-  "reset")
-    git checkout - testdata/unifi/
-    for file in $( git ls-files --others --exclude-standard | grep testdata/unifi ) ; do
-            rm -f ${file}
-    done
     ;;
   *)
     echo "unrecognized command"
