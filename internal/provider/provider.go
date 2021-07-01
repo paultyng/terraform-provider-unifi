@@ -174,6 +174,7 @@ type unifiClient interface {
 	UnblockUserByMAC(ctx context.Context, site, mac string) error
 	UpdateUser(ctx context.Context, site string, d *unifi.User) (*unifi.User, error)
 	DeleteUserByMAC(ctx context.Context, site, mac string) error
+	OverrideUserFingerprint(ctx context.Context, site, mac string, devIdOveride int) error
 
 	GetPortForward(ctx context.Context, site, id string) (*unifi.PortForward, error)
 	DeletePortForward(ctx context.Context, site, id string) error
