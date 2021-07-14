@@ -1,0 +1,31 @@
+---
+services:
+  unifi:
+    image: 'jacobalberty/unifi:${UNIFI_VERSION:?}'
+    init: true
+    restart: 'always'
+    user: 'unifi'
+    ports:
+      - '${UNIFI_HTTP_PORT:-8080}:8080/tcp'
+      - '${UNIFI_HTTPS_PORT:-8443}:8443/tcp'
+
+  bootstrap:
+    image: 'alpine/httpie'
+    depends_on:
+      unifi:
+        condition: 'service_healthy'
+    entrypoint: '/bin/sh'
+    command:
+      - '-c'
+      - |
+        alias http='http --quiet --check-status --verify=no --ignore-stdin'
+
+        http https://unifi:8443/manage/account/login 2>/dev/null
+        case $$? in
+          0) echo 'Unifi controller has already been setup' >&2; exit 0;;
+          3) echo 'Bootstrapping Unifi controller';;
+          *) echo 'Unexpected HTTP response from Unifi controller' >&2; exit 1;;
+        esac
+
+        http https://unifi:8443/api/cmd/sitemgr cmd=add-default-admin "name=${UNIFI_USERNAME:?}" "email=${UNIFI_EMAIL:?}" "x_password=${UNIFI_PASSWORD:?}"
+        http https://unifi:8443/api/cmd/system cmd=set-installed
