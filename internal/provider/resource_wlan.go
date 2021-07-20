@@ -137,6 +137,12 @@ func resourceWLAN() *schema.Resource {
 				Optional:    true,
 				Default:     true,
 			},
+			"l2_isolation": {
+				Description: "Isolates stations on layer 2 (ethernet) level",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 
 			// controller v6 fields
 			// TODO: this could be defaulted to "both" once v5 controller support is dropped
@@ -269,6 +275,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		GroupRekey:               3600,
 		DTIMMode:                 "default",
 		No2GhzOui:                d.Get("no2ghz_oui").(bool),
+		L2Isolation:              d.Get("l2_isolation").(bool),
 		MinrateNgCckRatesEnabled: true,
 	}, nil
 }
@@ -342,6 +349,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("schedule", schedule)
 	d.Set("wlan_band", resp.WLANBand)
 	d.Set("no2ghz_oui", resp.No2GhzOui)
+	d.Set("l2_isolation", resp.L2Isolation)
 
 	// switch v := c.ControllerVersion(); {
 	// case v.GreaterThanOrEqual(controllerV6):

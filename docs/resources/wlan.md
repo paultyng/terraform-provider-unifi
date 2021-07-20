@@ -59,6 +59,7 @@ resource "unifi_wlan" "wifi" {
 - **ap_group_ids** (Set of String) IDs of the AP groups to use for this network.
 - **hide_ssid** (Boolean) Indicates whether or not to hide the SSID from broadcast.
 - **is_guest** (Boolean) Indicates that this is a guest WLAN and should use guest behaviors.
+- **l2_isolation** (Boolean) Isolates stations on layer 2 (ethernet) level Defaults to `false`.
 - **mac_filter_enabled** (Boolean) Indicates whether or not the MAC filter is turned of for the network.
 - **mac_filter_list** (Set of String) List of MAC addresses to filter (only valid if `mac_filter_enabled` is `true`).
 - **mac_filter_policy** (String) MAC address filter policy (only valid if `mac_filter_enabled` is `true`). Defaults to `deny`.
