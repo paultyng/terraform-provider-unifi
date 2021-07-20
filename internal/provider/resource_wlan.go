@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -160,6 +161,18 @@ func resourceWLAN() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 			},
+			"minimum_data_rate_2g": {
+				Description:  "Enable minimum data rate control for 2G devices",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"1Mbps", "2Mbps", "5.5Mbps", "6Mbps", "9Mbps", "11Mbps", "12Mbps", "18Mbps", "24Mbps", "36Mbps", "48Mbps", "54Mbps"}, false),
+			},
+			"minimum_data_rate_5g": {
+				Description:  "Enable minimum data rate control for 5G devices",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"6Mbps", "9Mbps", "12Mbps", "18Mbps", "24Mbps", "36Mbps", "48Mbps", "54Mbps"}, false),
+			},
 
 			// controller v6 fields
 			// TODO: this could be defaulted to "both" once v5 controller support is dropped
@@ -276,6 +289,26 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 	}
 	log.Printf("[TRACE] TF Schedule: %#v", schedule)
 
+	minimumDataRate2G := d.Get("minimum_data_rate_2g").(string)
+	minrateNgDataRateKbps := 0
+	if minimumDataRate2G != "" {
+		f, err := strconv.ParseFloat(strings.TrimSuffix(minimumDataRate2G, "Mbps"), 64)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert minimum data rate 2G to int: %w", err)
+		}
+		minrateNgDataRateKbps = int(f * 1000)
+	}
+
+	minimumDataRate5G := d.Get("minimum_data_rate_5g").(string)
+	minrateNaDataRateKbps := 0
+	if minimumDataRate5G != "" {
+		f, err := strconv.ParseFloat(strings.TrimSuffix(minimumDataRate5G, "Mbps"), 64)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert minimum data rate 5G to int: %w", err)
+		}
+		minrateNaDataRateKbps = int(f * 1000)
+	}
+
 	return &unifi.WLAN{
 		Name:                    d.Get("name").(string),
 		XPassphrase:             passphrase,
@@ -307,11 +340,18 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		Enabled:            true,
 		NameCombineEnabled: true,
 
-		GroupRekey:               3600,
-		DTIMMode:                 "default",
-		No2GhzOui:                d.Get("no2ghz_oui").(bool),
-		L2Isolation:              d.Get("l2_isolation").(bool),
-		UapsdEnabled:             d.Get("uapsd").(bool),
+		GroupRekey:   3600,
+		DTIMMode:     "default",
+		No2GhzOui:    d.Get("no2ghz_oui").(bool),
+		L2Isolation:  d.Get("l2_isolation").(bool),
+		UapsdEnabled: d.Get("uapsd").(bool),
+
+		MinrateNgEnabled:      minimumDataRate2G != "",
+		MinrateNgDataRateKbps: minrateNgDataRateKbps,
+
+		MinrateNaEnabled:      minimumDataRate5G != "",
+		MinrateNaDataRateKbps: minrateNaDataRateKbps,
+
 		MinrateNgCckRatesEnabled: true,
 	}, nil
 }
@@ -394,6 +434,18 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("no2ghz_oui", resp.No2GhzOui)
 	d.Set("l2_isolation", resp.L2Isolation)
 	d.Set("uapsd", resp.UapsdEnabled)
+
+	if resp.MinrateNgEnabled {
+		if resp.MinrateNgDataRateKbps == 5500 {
+			d.Set("minimum_data_rate_2g", "5.5Mbps")
+		} else {
+			d.Set("minimum_data_rate_2g", fmt.Sprintf("%dMbps", resp.MinrateNgDataRateKbps/1000))
+		}
+	}
+
+	if resp.MinrateNaEnabled {
+		d.Set("minimum_data_rate_5g", fmt.Sprintf("%dMbps", resp.MinrateNaDataRateKbps/1000))
+	}
 
 	// switch v := c.ControllerVersion(); {
 	// case v.GreaterThanOrEqual(controllerV6):

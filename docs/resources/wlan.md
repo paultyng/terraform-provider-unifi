@@ -67,6 +67,8 @@ resource "unifi_wlan" "wifi" {
 - **mac_filter_enabled** (Boolean) Indicates whether or not the MAC filter is turned of for the network.
 - **mac_filter_list** (Set of String) List of MAC addresses to filter (only valid if `mac_filter_enabled` is `true`).
 - **mac_filter_policy** (String) MAC address filter policy (only valid if `mac_filter_enabled` is `true`). Defaults to `deny`.
+- **minimum_data_rate_2g** (String) Enable minimum data rate control for 2G devices
+- **minimum_data_rate_5g** (String) Enable minimum data rate control for 5G devices
 - **multicast_enhance** (Boolean) Indicates whether or not Multicast Enhance is turned of for the network.
 - **network_id** (String) ID of the network for this SSID
 - **no2ghz_oui** (Boolean) Connect high performance clients to 5 GHz only Defaults to `true`.
