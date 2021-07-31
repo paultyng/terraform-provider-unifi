@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
@@ -12,12 +13,12 @@ func resourceUserGroup() *schema.Resource {
 		Description: "`unifi_user_group` manages a user group (called \"client group\" in the UI), which can be used " +
 			"to limit bandwidth for groups of users.",
 
-		Create: resourceUserGroupCreate,
-		Read:   resourceUserGroupRead,
-		Update: resourceUserGroupUpdate,
-		Delete: resourceUserGroupDelete,
+		CreateContext: resourceUserGroupCreate,
+		ReadContext:   resourceUserGroupRead,
+		UpdateContext: resourceUserGroupUpdate,
+		DeleteContext: resourceUserGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -56,12 +57,12 @@ func resourceUserGroup() *schema.Resource {
 	}
 }
 
-func resourceUserGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceUserGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceUserGroupGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
@@ -71,7 +72,7 @@ func resourceUserGroupCreate(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := c.c.CreateUserGroup(context.TODO(), site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -87,7 +88,7 @@ func resourceUserGroupGetResourceData(d *schema.ResourceData) (*unifi.UserGroup,
 	}, nil
 }
 
-func resourceUserGroupSetResourceData(resp *unifi.UserGroup, d *schema.ResourceData) error {
+func resourceUserGroupSetResourceData(resp *unifi.UserGroup, d *schema.ResourceData) diag.Diagnostics {
 	d.Set("name", resp.Name)
 	d.Set("qos_rate_max_down", resp.QOSRateMaxDown)
 	d.Set("qos_rate_max_up", resp.QOSRateMaxUp)
@@ -95,7 +96,7 @@ func resourceUserGroupSetResourceData(resp *unifi.UserGroup, d *schema.ResourceD
 	return nil
 }
 
-func resourceUserGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceUserGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -111,18 +112,18 @@ func resourceUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceUserGroupSetResourceData(resp, d)
 }
 
-func resourceUserGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceUserGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceUserGroupGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -135,13 +136,13 @@ func resourceUserGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := c.c.UpdateUserGroup(context.TODO(), site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceUserGroupSetResourceData(resp, d)
 }
 
-func resourceUserGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceUserGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -154,5 +155,5 @@ func resourceUserGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
-	return err
+	return diag.FromErr(err)
 }

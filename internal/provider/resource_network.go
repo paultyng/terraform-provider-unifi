@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"regexp"
 	"strings"
 
@@ -29,12 +30,12 @@ func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_network` manages WAN/LAN/VLAN networks.",
 
-		Create: resourceNetworkCreate,
-		Read:   resourceNetworkRead,
-		Update: resourceNetworkUpdate,
-		Delete: resourceNetworkDelete,
+		CreateContext: resourceNetworkCreate,
+		ReadContext:   resourceNetworkRead,
+		UpdateContext: resourceNetworkUpdate,
+		DeleteContext: resourceNetworkDelete,
 		Importer: &schema.ResourceImporter{
-			State: importNetwork,
+			StateContext: importNetwork,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -232,12 +233,12 @@ func resourceNetwork() *schema.Resource {
 	}
 }
 
-func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceNetworkGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
@@ -245,9 +246,9 @@ func resourceNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.CreateNetwork(context.TODO(), site, req)
+	resp, err := c.c.CreateNetwork(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -316,9 +317,9 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 	}, nil
 }
 
-func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData, site string) error {
+func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData, site string) diag.Diagnostics {
 	wanType := ""
-	wanDNS := []string{}
+	var wanDNS []string
 	wanIP := ""
 	wanNetmask := ""
 	wanGateway := ""
@@ -357,7 +358,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 		dhcpLease = 86400
 	}
 
-	dhcpDNS := []string{}
+	var dhcpDNS []string
 	if resp.DHCPDDNSEnabled {
 		for _, dns := range []string{
 			resp.DHCPDDNS1,
@@ -406,7 +407,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	return nil
 }
 
-func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -416,24 +417,24 @@ func resourceNetworkRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.GetNetwork(context.TODO(), site, id)
+	resp, err := c.c.GetNetwork(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceNetworkSetResourceData(resp, d, site)
 }
 
-func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceNetworkGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -443,15 +444,15 @@ func resourceNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	req.SiteID = site
 
-	resp, err := c.c.UpdateNetwork(context.TODO(), site, req)
+	resp, err := c.c.UpdateNetwork(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceNetworkSetResourceData(resp, d, site)
 }
 
-func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
@@ -461,14 +462,14 @@ func resourceNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	id := d.Id()
 
-	err := c.c.DeleteNetwork(context.TODO(), site, id, name)
+	err := c.c.DeleteNetwork(ctx, site, id, name)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
-	return err
+	return diag.FromErr(err)
 }
 
-func importNetwork(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func importNetwork(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	c := meta.(*client)
 	id := d.Id()
 	site := d.Get("site").(string)
@@ -485,7 +486,7 @@ func importNetwork(d *schema.ResourceData, meta interface{}) ([]*schema.Resource
 	if strings.HasPrefix(id, "name=") {
 		targetName := strings.TrimPrefix(id, "name=")
 		var err error
-		if id, err = getNetworkIDByName(c.c, targetName, site); err != nil {
+		if id, err = getNetworkIDByName(ctx, c.c, targetName, site); err != nil {
 			return nil, err
 		}
 	}
@@ -500,14 +501,14 @@ func importNetwork(d *schema.ResourceData, meta interface{}) ([]*schema.Resource
 	return []*schema.ResourceData{d}, nil
 }
 
-func getNetworkIDByName(client unifiClient, networkName, site string) (string, error) {
-	networks, err := client.ListNetwork(context.TODO(), site)
+func getNetworkIDByName(ctx context.Context, client unifiClient, networkName, site string) (string, error) {
+	networks, err := client.ListNetwork(ctx, site)
 	if err != nil {
 		return "", err
 	}
 
 	idMatchingName := ""
-	allNames := []string{}
+	var allNames []string
 	for _, network := range networks {
 		allNames = append(allNames, network.Name)
 		if network.Name != networkName {

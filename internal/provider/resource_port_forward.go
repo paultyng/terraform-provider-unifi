@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -12,12 +13,12 @@ func resourcePortForward() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_port_forward` manages a port forwarding rule on the gateway.",
 
-		Create: resourcePortForwardCreate,
-		Read:   resourcePortForwardRead,
-		Update: resourcePortForwardUpdate,
-		Delete: resourcePortForwardDelete,
+		CreateContext: resourcePortForwardCreate,
+		ReadContext:   resourcePortForwardRead,
+		UpdateContext: resourcePortForwardUpdate,
+		DeleteContext: resourcePortForwardDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -98,21 +99,21 @@ func resourcePortForward() *schema.Resource {
 	}
 }
 
-func resourcePortForwardCreate(d *schema.ResourceData, meta interface{}) error {
+func resourcePortForwardCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourcePortForwardGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
 	if site == "" {
 		site = c.site
 	}
-	resp, err := c.c.CreatePortForward(context.TODO(), site, req)
+	resp, err := c.c.CreatePortForward(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -134,7 +135,7 @@ func resourcePortForwardGetResourceData(d *schema.ResourceData) (*unifi.PortForw
 	}, nil
 }
 
-func resourcePortForwardSetResourceData(resp *unifi.PortForward, d *schema.ResourceData, site string) error {
+func resourcePortForwardSetResourceData(resp *unifi.PortForward, d *schema.ResourceData, site string) diag.Diagnostics {
 	d.Set("site", site)
 	d.Set("dst_port", resp.DstPort)
 	d.Set("enabled", resp.Enabled)
@@ -149,7 +150,7 @@ func resourcePortForwardSetResourceData(resp *unifi.PortForward, d *schema.Resou
 	return nil
 }
 
-func resourcePortForwardRead(d *schema.ResourceData, meta interface{}) error {
+func resourcePortForwardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -158,24 +159,24 @@ func resourcePortForwardRead(d *schema.ResourceData, meta interface{}) error {
 	if site == "" {
 		site = c.site
 	}
-	resp, err := c.c.GetPortForward(context.TODO(), site, id)
+	resp, err := c.c.GetPortForward(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourcePortForwardSetResourceData(resp, d, site)
 }
 
-func resourcePortForwardUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourcePortForwardUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourcePortForwardGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -186,15 +187,15 @@ func resourcePortForwardUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	req.SiteID = site
 
-	resp, err := c.c.UpdatePortForward(context.TODO(), site, req)
+	resp, err := c.c.UpdatePortForward(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourcePortForwardSetResourceData(resp, d, site)
 }
 
-func resourcePortForwardDelete(d *schema.ResourceData, meta interface{}) error {
+func resourcePortForwardDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -204,6 +205,6 @@ func resourcePortForwardDelete(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	err := c.c.DeletePortForward(context.TODO(), site, id)
-	return err
+	err := c.c.DeletePortForward(ctx, site, id)
+	return diag.FromErr(err)
 }

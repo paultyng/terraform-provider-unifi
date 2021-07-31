@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
@@ -13,10 +14,10 @@ func resourceSite() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_site` manages Unifi sites",
 
-		Create: resourceSiteCreate,
-		Read:   resourceSiteRead,
-		Update: resourceSiteUpdate,
-		Delete: resourceSiteDelete,
+		CreateContext: resourceSiteCreate,
+		ReadContext:   resourceSiteRead,
+		UpdateContext: resourceSiteUpdate,
+		DeleteContext: resourceSiteDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceSiteImport,
 		},
@@ -72,14 +73,14 @@ func resourceSiteImport(ctx context.Context, d *schema.ResourceData, meta interf
 	return nil, fmt.Errorf("unable to find site %q on controller", id)
 }
 
-func resourceSiteCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceSiteCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	description := d.Get("description").(string)
 
-	resp, err := c.c.CreateSite(context.TODO(), description)
+	resp, err := c.c.CreateSite(ctx, description)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := resp[0]
@@ -88,30 +89,30 @@ func resourceSiteCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceSiteSetResourceData(&site, d)
 }
 
-func resourceSiteSetResourceData(resp *unifi.Site, d *schema.ResourceData) error {
+func resourceSiteSetResourceData(resp *unifi.Site, d *schema.ResourceData) diag.Diagnostics {
 	d.Set("name", resp.Name)
 	d.Set("description", resp.Description)
 	return nil
 }
 
-func resourceSiteRead(d *schema.ResourceData, meta interface{}) error {
+func resourceSiteRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
 
-	site, err := c.c.GetSite(context.TODO(), id)
+	site, err := c.c.GetSite(ctx, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceSiteSetResourceData(site, d)
 }
 
-func resourceSiteUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceSiteUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := &unifi.Site{
@@ -120,17 +121,17 @@ func resourceSiteUpdate(d *schema.ResourceData, meta interface{}) error {
 		Description: d.Get("description").(string),
 	}
 
-	resp, err := c.c.UpdateSite(context.TODO(), site.Name, site.Description)
+	resp, err := c.c.UpdateSite(ctx, site.Name, site.Description)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceSiteSetResourceData(&resp[0], d)
 }
 
-func resourceSiteDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceSiteDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 	id := d.Id()
-	_, err := c.c.DeleteSite(context.TODO(), id)
-	return err
+	_, err := c.c.DeleteSite(ctx, id)
+	return diag.FromErr(err)
 }

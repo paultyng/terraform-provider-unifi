@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -11,7 +11,7 @@ func dataRADIUSProfile() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_radius_profile` data source can be used to retrieve the ID for a RADIUS profile by name.",
 
-		Read: dataRADIUSProfileRead,
+		ReadContext: dataRADIUSProfileRead,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -35,7 +35,7 @@ func dataRADIUSProfile() *schema.Resource {
 	}
 }
 
-func dataRADIUSProfileRead(d *schema.ResourceData, meta interface{}) error {
+func dataRADIUSProfileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
@@ -44,9 +44,9 @@ func dataRADIUSProfileRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	profiles, err := c.c.ListRADIUSProfile(context.TODO(), site)
+	profiles, err := c.c.ListRADIUSProfile(ctx, site)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	for _, g := range profiles {
 		if g.Name == name {
@@ -56,5 +56,5 @@ func dataRADIUSProfileRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return fmt.Errorf("RADIUS profile not found with name %s", name)
+	return diag.Errorf("RADIUS profile not found with name %s", name)
 }

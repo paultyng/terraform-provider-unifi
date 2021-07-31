@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"strings"
 
 	"github.com/hashicorp/go-version"
@@ -98,13 +99,13 @@ func New(version string) func() *schema.Provider {
 			},
 		}
 
-		p.ConfigureFunc = configure(version, p)
+		p.ConfigureContextFunc = configure(version, p)
 		return p
 	}
 }
 
-func configure(version string, p *schema.Provider) schema.ConfigureFunc {
-	return func(d *schema.ResourceData) (interface{}, error) {
+func configure(version string, p *schema.Provider) schema.ConfigureContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		user := d.Get("username").(string)
 		pass := d.Get("password").(string)
 		baseURL := d.Get("api_url").(string)

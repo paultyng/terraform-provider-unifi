@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -16,12 +17,12 @@ func resourceUser() *schema.Resource {
 			"Users are created in the controller when observed on the network, so the resource defaults to allowing " +
 			"itself to just take over management of a MAC address, but this can be turned off.",
 
-		Create: resourceUserCreate,
-		Read:   resourceUserRead,
-		Update: resourceUserUpdate,
-		Delete: resourceUserDelete,
+		CreateContext: resourceUserCreate,
+		ReadContext:   resourceUserRead,
+		UpdateContext: resourceUserUpdate,
+		DeleteContext: resourceUserDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -107,12 +108,12 @@ func resourceUser() *schema.Resource {
 	}
 }
 
-func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceUserGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	allowExisting := d.Get("allow_existing").(bool)
@@ -122,35 +123,35 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.CreateUser(context.TODO(), site, req)
+	resp, err := c.c.CreateUser(ctx, site, req)
 	if err != nil {
 		var apiErr *unifi.APIError
 		if !errors.As(err, &apiErr) || (apiErr.Message != "api.err.MacUsed" || !allowExisting) {
-			return err
+			return diag.FromErr(err)
 		}
 
 		// mac in use, just absorb it
 		mac := d.Get("mac").(string)
-		existing, err := c.c.GetUserByMAC(context.TODO(), site, mac)
+		existing, err := c.c.GetUserByMAC(ctx, site, mac)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		req.ID = existing.ID
 		req.SiteID = existing.SiteID
 
-		resp, err = c.c.UpdateUser(context.TODO(), site, req)
+		resp, err = c.c.UpdateUser(ctx, site, req)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	d.SetId(resp.ID)
 
 	if d.Get("blocked").(bool) {
-		err := c.c.BlockUserByMAC(context.TODO(), site, d.Get("mac").(string))
+		err := c.c.BlockUserByMAC(ctx, site, d.Get("mac").(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -173,7 +174,7 @@ func resourceUserGetResourceData(d *schema.ResourceData) (*unifi.User, error) {
 	}, nil
 }
 
-func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData, site string) error {
+func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData, site string) diag.Diagnostics {
 	fixedIP := ""
 	if resp.UseFixedIP {
 		fixedIP = resp.FixedIP
@@ -194,7 +195,7 @@ func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData, site 
 	return nil
 }
 
-func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
+func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -204,23 +205,23 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.GetUser(context.TODO(), site, id)
+	resp, err := c.c.GetUser(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// for some reason the IP address is only on this endpoint, so issue another request
-	macResp, err := c.c.GetUserByMAC(context.TODO(), site, resp.MAC)
+	macResp, err := c.c.GetUserByMAC(ctx, site, resp.MAC)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp.IP = macResp.IP
@@ -228,7 +229,7 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 	return resourceUserSetResourceData(resp, d, site)
 }
 
-func resourceUserUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -239,35 +240,35 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("blocked") {
 		mac := d.Get("mac").(string)
 		if d.Get("blocked").(bool) {
-			err := c.c.BlockUserByMAC(context.TODO(), site, mac)
+			err := c.c.BlockUserByMAC(ctx, site, mac)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		} else {
-			err := c.c.UnblockUserByMAC(context.TODO(), site, mac)
+			err := c.c.UnblockUserByMAC(ctx, site, mac)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	}
 
 	req, err := resourceUserGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
 	req.SiteID = site
 
-	resp, err := c.c.UpdateUser(context.TODO(), site, req)
+	resp, err := c.c.UpdateUser(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceUserSetResourceData(resp, d, site)
 }
 
-func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -282,14 +283,14 @@ func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// lookup MAC instead of trusting state
-	u, err := c.c.GetUser(context.TODO(), site, id)
+	u, err := c.c.GetUser(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	err = c.c.DeleteUserByMAC(context.TODO(), site, u.MAC)
-	return err
+	err = c.c.DeleteUserByMAC(ctx, site, u.MAC)
+	return diag.FromErr(err)
 }
