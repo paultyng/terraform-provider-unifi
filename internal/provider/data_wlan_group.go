@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -14,7 +14,7 @@ func dataWLANGroup() *schema.Resource {
 
 		DeprecationMessage: "WLAN groups are deprecated in controller version 6 and greater.",
 
-		Read: dataWLANGroupRead,
+		ReadContext: dataWLANGroupRead,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -38,11 +38,11 @@ func dataWLANGroup() *schema.Resource {
 	}
 }
 
-func dataWLANGroupRead(d *schema.ResourceData, meta interface{}) error {
+func dataWLANGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	if v := c.ControllerVersion(); !v.LessThan(controllerV6) {
-		return fmt.Errorf("WLAN groups are not supported on controller version %q", v)
+		return diag.Errorf("WLAN groups are not supported on controller version %q", v)
 	}
 
 	name := d.Get("name").(string)
@@ -52,9 +52,9 @@ func dataWLANGroupRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	groups, err := c.c.ListWLANGroup(context.TODO(), site)
+	groups, err := c.c.ListWLANGroup(ctx, site)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	for _, g := range groups {
 		if g.Name == name {
@@ -64,5 +64,5 @@ func dataWLANGroupRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return fmt.Errorf("WLAN group not found with name %s", name)
+	return diag.Errorf("WLAN group not found with name %s", name)
 }

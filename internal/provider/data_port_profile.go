@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -11,7 +11,7 @@ func dataPortProfile() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_port_profile` data source can be used to retrieve the ID for a port profile by name.",
 
-		Read: dataPortProfileRead,
+		ReadContext: dataPortProfileRead,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -35,7 +35,7 @@ func dataPortProfile() *schema.Resource {
 	}
 }
 
-func dataPortProfileRead(d *schema.ResourceData, meta interface{}) error {
+func dataPortProfileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
@@ -44,9 +44,9 @@ func dataPortProfileRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	groups, err := c.c.ListPortProfile(context.TODO(), site)
+	groups, err := c.c.ListPortProfile(ctx, site)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	for _, g := range groups {
 		if g.Name == name {
@@ -58,5 +58,5 @@ func dataPortProfileRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return fmt.Errorf("port profile not found with name %s", name)
+	return diag.Errorf("port profile not found with name %s", name)
 }

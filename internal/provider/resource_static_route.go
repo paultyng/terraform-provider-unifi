@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -13,12 +14,12 @@ func resourceStaticRoute() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_static_route` manages a static route.",
 
-		Create: resourceStaticRouteCreate,
-		Read:   resourceStaticRouteRead,
-		Update: resourceStaticRouteUpdate,
-		Delete: resourceStaticRouteDelete,
+		CreateContext: resourceStaticRouteCreate,
+		ReadContext:   resourceStaticRouteRead,
+		UpdateContext: resourceStaticRouteUpdate,
+		DeleteContext: resourceStaticRouteDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -74,12 +75,12 @@ func resourceStaticRoute() *schema.Resource {
 	}
 }
 
-func resourceStaticRouteCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceStaticRouteCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceStaticRouteGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
@@ -87,9 +88,9 @@ func resourceStaticRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.CreateRouting(context.TODO(), site, req)
+	resp, err := c.c.CreateRouting(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -123,7 +124,7 @@ func resourceStaticRouteGetResourceData(d *schema.ResourceData) (*unifi.Routing,
 	return r, nil
 }
 
-func resourceStaticRouteSetResourceData(resp *unifi.Routing, d *schema.ResourceData, site string) error {
+func resourceStaticRouteSetResourceData(resp *unifi.Routing, d *schema.ResourceData, site string) diag.Diagnostics {
 	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("network", cidrZeroBased(resp.StaticRouteNetwork))
@@ -143,13 +144,13 @@ func resourceStaticRouteSetResourceData(resp *unifi.Routing, d *schema.ResourceD
 	case "blackhole":
 		// no additional attributes
 	default:
-		return fmt.Errorf("unexpected static route type: %q", t)
+		return diag.Errorf("unexpected static route type: %q", t)
 	}
 
 	return nil
 }
 
-func resourceStaticRouteRead(d *schema.ResourceData, meta interface{}) error {
+func resourceStaticRouteRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -159,24 +160,24 @@ func resourceStaticRouteRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.GetRouting(context.TODO(), site, id)
+	resp, err := c.c.GetRouting(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceStaticRouteSetResourceData(resp, d, site)
 }
 
-func resourceStaticRouteUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceStaticRouteUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceStaticRouteGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -187,15 +188,15 @@ func resourceStaticRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	req.SiteID = site
 
-	resp, err := c.c.UpdateRouting(context.TODO(), site, req)
+	resp, err := c.c.UpdateRouting(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceStaticRouteSetResourceData(resp, d, site)
 }
 
-func resourceStaticRouteDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceStaticRouteDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -204,9 +205,9 @@ func resourceStaticRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	if site == "" {
 		site = c.site
 	}
-	err := c.c.DeleteRouting(context.TODO(), site, id)
+	err := c.c.DeleteRouting(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
-	return err
+	return diag.FromErr(err)
 }

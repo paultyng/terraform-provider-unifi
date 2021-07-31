@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"log"
 	"strings"
 
@@ -15,12 +16,12 @@ func resourceWLAN() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_wlan` manages a WiFi network / SSID.",
 
-		Create: resourceWLANCreate,
-		Read:   resourceWLANRead,
-		Update: resourceWLANUpdate,
-		Delete: resourceWLANDelete,
+		CreateContext: resourceWLANCreate,
+		ReadContext:   resourceWLANRead,
+		UpdateContext: resourceWLANUpdate,
+		DeleteContext: resourceWLANDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -280,12 +281,12 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 	}, nil
 }
 
-func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceWLANCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceWLANGetResourceData(d, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
@@ -293,9 +294,9 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.CreateWLAN(context.TODO(), site, req)
+	resp, err := c.c.CreateWLAN(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -303,7 +304,7 @@ func resourceWLANCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
-func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}, site string) error {
+func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}, site string) diag.Diagnostics {
 	// c := meta.(*client)
 
 	vlan := 0
@@ -331,7 +332,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	log.Printf("[TRACE] API Schedule: %#v", resp.Schedule)
 	schedule, err := listFromScheduleStrings(resp.Schedule)
 	if err != nil {
-		return fmt.Errorf("unable to parse schedule: %w", err)
+		return diag.Errorf("unable to parse schedule: %w", err)
 	}
 
 	d.Set("site", site)
@@ -363,7 +364,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
+func resourceWLANRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -372,24 +373,24 @@ func resourceWLANRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.GetWLAN(context.TODO(), site, id)
+	resp, err := c.c.GetWLAN(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
-func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceWLANUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceWLANGetResourceData(d, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -399,15 +400,15 @@ func resourceWLANUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	req.SiteID = site
 
-	resp, err := c.c.UpdateWLAN(context.TODO(), site, req)
+	resp, err := c.c.UpdateWLAN(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
-func resourceWLANDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceWLANDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -416,11 +417,11 @@ func resourceWLANDelete(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	err := c.c.DeleteWLAN(context.TODO(), site, id)
+	err := c.c.DeleteWLAN(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
-	return err
+	return diag.FromErr(err)
 }
 
 func listToScheduleStrings(list []interface{}) ([]string, error) {

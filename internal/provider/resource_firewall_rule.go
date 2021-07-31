@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
-	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -17,12 +17,12 @@ func resourceFirewallRule() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_firewall_rule` manages an individual firewall rule on the gateway.",
 
-		Create: resourceFirewallRuleCreate,
-		Read:   resourceFirewallRuleRead,
-		Update: resourceFirewallRuleUpdate,
-		Delete: resourceFirewallRuleDelete,
+		CreateContext: resourceFirewallRuleCreate,
+		ReadContext:   resourceFirewallRuleRead,
+		UpdateContext: resourceFirewallRuleUpdate,
+		DeleteContext: resourceFirewallRuleDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -173,12 +173,12 @@ func resourceFirewallRule() *schema.Resource {
 	}
 }
 
-func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFirewallRuleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceFirewallRuleGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
@@ -186,14 +186,14 @@ func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error 
 		site = c.site
 	}
 
-	resp, err := c.c.CreateFirewallRule(context.TODO(), site, req)
+	resp, err := c.c.CreateFirewallRule(ctx, site, req)
 	if err != nil {
 		var apiErr *unifi.APIError
 		if errors.As(err, &apiErr) && apiErr.Message == "api.err.FirewallGroupTypeExists" {
-			return fmt.Errorf("firewall rule groups must be of different group types (ie. a port group and address group): %w", err)
+			return diag.Errorf("firewall rule groups must be of different group types (ie. a port group and address group): %w", err)
 		}
 
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -241,7 +241,7 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 	}, nil
 }
 
-func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.ResourceData, site string) error {
+func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.ResourceData, site string) diag.Diagnostics {
 	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("action", resp.Action)
@@ -273,7 +273,7 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	return nil
 }
 
-func resourceFirewallRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceFirewallRuleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -283,24 +283,24 @@ func resourceFirewallRuleRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.GetFirewallRule(context.TODO(), site, id)
+	resp, err := c.c.GetFirewallRule(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceFirewallRuleSetResourceData(resp, d, site)
 }
 
-func resourceFirewallRuleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceFirewallRuleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceFirewallRuleGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -311,15 +311,15 @@ func resourceFirewallRuleUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 	req.SiteID = site
 
-	resp, err := c.c.UpdateFirewallRule(context.TODO(), site, req)
+	resp, err := c.c.UpdateFirewallRule(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceFirewallRuleSetResourceData(resp, d, site)
 }
 
-func resourceFirewallRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceFirewallRuleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -328,9 +328,9 @@ func resourceFirewallRuleDelete(d *schema.ResourceData, meta interface{}) error 
 	if site == "" {
 		site = c.site
 	}
-	err := c.c.DeleteFirewallRule(context.TODO(), site, id)
+	err := c.c.DeleteFirewallRule(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
-	return err
+	return diag.FromErr(err)
 }

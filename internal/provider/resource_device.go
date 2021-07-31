@@ -18,9 +18,9 @@ func resourceDevice() *schema.Resource {
 			"Terraform, the create operation instead will simply start managing the device specified by MAC address. " +
 			"It's safer to start this process with an explicit import of the device.",
 
-		Create:        resourceDeviceCreate,
-		Read:          resourceDeviceRead,
-		Update:        resourceDeviceUpdate,
+		CreateContext: resourceDeviceCreate,
+		ReadContext:   resourceDeviceRead,
+		UpdateContext: resourceDeviceUpdate,
 		DeleteContext: resourceDeviceDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceDeviceImport,
@@ -134,7 +134,7 @@ func resourceDeviceImport(ctx context.Context, d *schema.ResourceData, meta inte
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceDeviceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -144,13 +144,13 @@ func resourceDeviceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	mac := d.Get("mac").(string)
 	if mac == "" {
-		return fmt.Errorf("no MAC address specified, please import the device using terraform import")
+		return diag.Errorf("no MAC address specified, please import the device using terraform import")
 	}
 
 	mac = cleanMAC(mac)
-	devices, err := c.c.ListDevice(context.TODO(), site)
+	devices, err := c.c.ListDevice(ctx, site)
 	if err != nil {
-		return fmt.Errorf("unable to list devices: %w", err)
+		return diag.Errorf("unable to list devices: %w", err)
 	}
 
 	var found *unifi.Device
@@ -161,7 +161,7 @@ func resourceDeviceCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	if found == nil {
-		return fmt.Errorf("device not found using mac %q", mac)
+		return diag.Errorf("device not found using mac %q", mac)
 	}
 
 	d.SetId(found.ID)
@@ -169,7 +169,7 @@ func resourceDeviceCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceDeviceSetResourceData(found, d, site)
 }
 
-func resourceDeviceUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -179,15 +179,15 @@ func resourceDeviceUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	req, err := resourceDeviceGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
 	req.SiteID = site
 
-	resp, err := c.c.UpdateDevice(context.TODO(), site, req)
+	resp, err := c.c.UpdateDevice(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceDeviceSetResourceData(resp, d, site)
@@ -202,7 +202,7 @@ func resourceDeviceDelete(_ context.Context, d *schema.ResourceData, meta interf
 	}
 }
 
-func resourceDeviceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceDeviceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -212,22 +212,22 @@ func resourceDeviceRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.GetDevice(context.TODO(), site, id)
+	resp, err := c.c.GetDevice(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceDeviceSetResourceData(resp, d, site)
 }
 
-func resourceDeviceSetResourceData(resp *unifi.Device, d *schema.ResourceData, site string) error {
+func resourceDeviceSetResourceData(resp *unifi.Device, d *schema.ResourceData, site string) diag.Diagnostics {
 	portOverrides, err := setFromPortOverrides(resp.PortOverrides)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("site", site)

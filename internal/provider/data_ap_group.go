@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -11,7 +11,7 @@ func dataAPGroup() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_ap_group` data source can be used to retrieve the ID for an AP group by name.",
 
-		Read: dataAPGroupRead,
+		ReadContext: dataAPGroupRead,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -34,11 +34,11 @@ func dataAPGroup() *schema.Resource {
 	}
 }
 
-func dataAPGroupRead(d *schema.ResourceData, meta interface{}) error {
+func dataAPGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	if v := c.ControllerVersion(); !v.GreaterThanOrEqual(controllerV6) {
-		return fmt.Errorf("AP groups are not supported on controller version %q", v)
+		return diag.Errorf("AP groups are not supported on controller version %q", v)
 	}
 
 	name := d.Get("name").(string)
@@ -49,7 +49,7 @@ func dataAPGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	groups, err := c.c.ListAPGroup(context.TODO(), site)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	for _, g := range groups {
 		if (name == "" && g.HiddenID == "default") || g.Name == name {
@@ -59,5 +59,5 @@ func dataAPGroupRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return fmt.Errorf("AP group not found with name %s", name)
+	return diag.Errorf("AP group not found with name %s", name)
 }
