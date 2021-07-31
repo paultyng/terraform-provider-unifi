@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
@@ -12,12 +13,12 @@ func resourceSettingMgmt() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_setting_mgmt` manages settings for a unifi site.",
 
-		Create: resourceSettingMgmtCreate,
-		Read:   resourceSettingMgmtRead,
-		Update: resourceSettingMgmtUpdate,
-		Delete: resourceSettingMgmtDelete,
+		CreateContext: resourceSettingMgmtCreate,
+		ReadContext:   resourceSettingMgmtRead,
+		UpdateContext: resourceSettingMgmtUpdate,
+		DeleteContext: resourceSettingMgmtDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -135,12 +136,12 @@ func resourceSettingMgmtGetResourceData(d *schema.ResourceData, meta interface{}
 	}, nil
 }
 
-func resourceSettingMgmtCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceSettingMgmtCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceSettingMgmtGetResourceData(d, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
@@ -148,9 +149,9 @@ func resourceSettingMgmtCreate(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.UpdateSettingMgmt(context.TODO(), site, req)
+	resp, err := c.c.UpdateSettingMgmt(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -158,10 +159,10 @@ func resourceSettingMgmtCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceSettingMgmtSetResourceData(resp, d, meta, site)
 }
 
-func resourceSettingMgmtSetResourceData(resp *unifi.SettingMgmt, d *schema.ResourceData, meta interface{}, site string) error {
+func resourceSettingMgmtSetResourceData(resp *unifi.SettingMgmt, d *schema.ResourceData, meta interface{}, site string) diag.Diagnostics {
 	sshKeys, err := setFromSshKeys(resp.XSshKeys)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("site", site)
@@ -171,7 +172,7 @@ func resourceSettingMgmtSetResourceData(resp *unifi.SettingMgmt, d *schema.Resou
 	return nil
 }
 
-func resourceSettingMgmtRead(d *schema.ResourceData, meta interface{}) error {
+func resourceSettingMgmtRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -179,24 +180,24 @@ func resourceSettingMgmtRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.GetSettingMgmt(context.TODO(), site)
+	resp, err := c.c.GetSettingMgmt(ctx, site)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceSettingMgmtSetResourceData(resp, d, meta, site)
 }
 
-func resourceSettingMgmtUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceSettingMgmtUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceSettingMgmtGetResourceData(d, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -205,14 +206,14 @@ func resourceSettingMgmtUpdate(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.UpdateSettingMgmt(context.TODO(), site, req)
+	resp, err := c.c.UpdateSettingMgmt(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceSettingMgmtSetResourceData(resp, d, meta, site)
 }
 
-func resourceSettingMgmtDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceSettingMgmtDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return nil
 }

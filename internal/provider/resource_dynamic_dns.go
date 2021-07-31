@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/paultyng/go-unifi/unifi"
@@ -11,12 +12,12 @@ func resourceDynamicDNS() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_dynamic_dns` manages dynamic DNS settings for different providers.",
 
-		Create: resourceDynamicDNSCreate,
-		Read:   resourceDynamicDNSRead,
-		Update: resourceDynamicDNSUpdate,
-		Delete: resourceDynamicDNSDelete,
+		CreateContext: resourceDynamicDNSCreate,
+		ReadContext:   resourceDynamicDNSRead,
+		UpdateContext: resourceDynamicDNSUpdate,
+		DeleteContext: resourceDynamicDNSDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -72,12 +73,12 @@ func resourceDynamicDNS() *schema.Resource {
 	}
 }
 
-func resourceDynamicDNSCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDynamicDNSCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceDynamicDNSGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
@@ -85,9 +86,9 @@ func resourceDynamicDNSCreate(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.CreateDynamicDNS(context.TODO(), site, req)
+	resp, err := c.c.CreateDynamicDNS(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -110,7 +111,7 @@ func resourceDynamicDNSGetResourceData(d *schema.ResourceData) (*unifi.DynamicDN
 	return r, nil
 }
 
-func resourceDynamicDNSSetResourceData(resp *unifi.DynamicDNS, d *schema.ResourceData, site string) error {
+func resourceDynamicDNSSetResourceData(resp *unifi.DynamicDNS, d *schema.ResourceData, site string) diag.Diagnostics {
 	d.Set("interface", resp.Interface)
 	d.Set("service", resp.Service)
 
@@ -123,7 +124,7 @@ func resourceDynamicDNSSetResourceData(resp *unifi.DynamicDNS, d *schema.Resourc
 	return nil
 }
 
-func resourceDynamicDNSRead(d *schema.ResourceData, meta interface{}) error {
+func resourceDynamicDNSRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -133,24 +134,24 @@ func resourceDynamicDNSRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	resp, err := c.c.GetDynamicDNS(context.TODO(), site, id)
+	resp, err := c.c.GetDynamicDNS(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceDynamicDNSSetResourceData(resp, d, site)
 }
 
-func resourceDynamicDNSUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceDynamicDNSUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceDynamicDNSGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -161,15 +162,15 @@ func resourceDynamicDNSUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	req.SiteID = site
 
-	resp, err := c.c.UpdateDynamicDNS(context.TODO(), site, req)
+	resp, err := c.c.UpdateDynamicDNS(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourceDynamicDNSSetResourceData(resp, d, site)
 }
 
-func resourceDynamicDNSDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceDynamicDNSDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -178,9 +179,9 @@ func resourceDynamicDNSDelete(d *schema.ResourceData, meta interface{}) error {
 	if site == "" {
 		site = c.site
 	}
-	err := c.c.DeleteDynamicDNS(context.TODO(), site, id)
+	err := c.c.DeleteDynamicDNS(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		return nil
 	}
-	return err
+	return diag.FromErr(err)
 }

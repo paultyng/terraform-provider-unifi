@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -11,7 +11,7 @@ func dataUserGroup() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_user_group` data source can be used to retrieve the ID for a user group by name.",
 
-		Read: dataUserGroupRead,
+		ReadContext: dataUserGroupRead,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -44,7 +44,7 @@ func dataUserGroup() *schema.Resource {
 	}
 }
 
-func dataUserGroupRead(d *schema.ResourceData, meta interface{}) error {
+func dataUserGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
@@ -53,9 +53,9 @@ func dataUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	groups, err := c.c.ListUserGroup(context.TODO(), site)
+	groups, err := c.c.ListUserGroup(ctx, site)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	for _, g := range groups {
 		if g.Name == name {
@@ -69,5 +69,5 @@ func dataUserGroupRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return fmt.Errorf("user group not found with name %s", name)
+	return diag.Errorf("user group not found with name %s", name)
 }

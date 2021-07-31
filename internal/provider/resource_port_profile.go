@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -12,12 +13,12 @@ func resourcePortProfile() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_port_profile` manages a port profile for use on network switches.",
 
-		Create: resourcePortProfileCreate,
-		Read:   resourcePortProfileRead,
-		Update: resourcePortProfileUpdate,
-		Delete: resourcePortProfileDelete,
+		CreateContext: resourcePortProfileCreate,
+		ReadContext:   resourcePortProfileRead,
+		UpdateContext: resourcePortProfileUpdate,
+		DeleteContext: resourcePortProfileDelete,
 		Importer: &schema.ResourceImporter{
-			State: importSiteAndID,
+			StateContext: importSiteAndID,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -248,21 +249,21 @@ func resourcePortProfile() *schema.Resource {
 	}
 }
 
-func resourcePortProfileCreate(d *schema.ResourceData, meta interface{}) error {
+func resourcePortProfileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourcePortProfileGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	site := d.Get("site").(string)
 	if site == "" {
 		site = c.site
 	}
-	resp, err := c.c.CreatePortProfile(context.TODO(), site, req)
+	resp, err := c.c.CreatePortProfile(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.ID)
@@ -319,7 +320,7 @@ func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProf
 	}, nil
 }
 
-func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.ResourceData, site string) error {
+func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.ResourceData, site string) diag.Diagnostics {
 	d.Set("site", site)
 	d.Set("autoneg", resp.Autoneg)
 	d.Set("dot1x_ctrl", resp.Dot1XCtrl)
@@ -359,7 +360,7 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	return nil
 }
 
-func resourcePortProfileRead(d *schema.ResourceData, meta interface{}) error {
+func resourcePortProfileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -368,24 +369,24 @@ func resourcePortProfileRead(d *schema.ResourceData, meta interface{}) error {
 	if site == "" {
 		site = c.site
 	}
-	resp, err := c.c.GetPortProfile(context.TODO(), site, id)
+	resp, err := c.c.GetPortProfile(ctx, site, id)
 	if _, ok := err.(*unifi.NotFoundError); ok {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourcePortProfileSetResourceData(resp, d, site)
 }
 
-func resourcePortProfileUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourcePortProfileUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourcePortProfileGetResourceData(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
@@ -396,15 +397,15 @@ func resourcePortProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	req.SiteID = site
 
-	resp, err := c.c.UpdatePortProfile(context.TODO(), site, req)
+	resp, err := c.c.UpdatePortProfile(ctx, site, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return resourcePortProfileSetResourceData(resp, d, site)
 }
 
-func resourcePortProfileDelete(d *schema.ResourceData, meta interface{}) error {
+func resourcePortProfileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -414,6 +415,6 @@ func resourcePortProfileDelete(d *schema.ResourceData, meta interface{}) error {
 		site = c.site
 	}
 
-	err := c.c.DeletePortProfile(context.TODO(), site, id)
-	return err
+	err := c.c.DeletePortProfile(ctx, site, id)
+	return diag.FromErr(err)
 }
