@@ -332,7 +332,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	log.Printf("[TRACE] API Schedule: %#v", resp.Schedule)
 	schedule, err := listFromScheduleStrings(resp.Schedule)
 	if err != nil {
-		return diag.Errorf("unable to parse schedule: %w", err)
+		return diag.Errorf("unable to parse schedule: %s", err)
 	}
 
 	d.Set("site", site)
