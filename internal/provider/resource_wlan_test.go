@@ -520,7 +520,7 @@ resource "unifi_wlan" "test" {
 	name          = "tfacc-wpapsk"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
-	ap_group_ids = [data.unifi_ap_group.default.id]
+	ap_group_ids  = [data.unifi_ap_group.default.id]
 	user_group_id = data.unifi_user_group.default.id
 	security      = "wpapsk"
 	uapsd         = true
