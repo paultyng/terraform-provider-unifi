@@ -319,7 +319,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 
 func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData, site string) diag.Diagnostics {
 	wanType := ""
-	var wanDNS []string
+	wanDNS := []string{}
 	wanIP := ""
 	wanNetmask := ""
 	wanGateway := ""
@@ -358,7 +358,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 		dhcpLease = 86400
 	}
 
-	var dhcpDNS []string
+	dhcpDNS := []string{}
 	if resp.DHCPDDNSEnabled {
 		for _, dns := range []string{
 			resp.DHCPDDNS1,
@@ -508,7 +508,7 @@ func getNetworkIDByName(ctx context.Context, client unifiClient, networkName, si
 	}
 
 	idMatchingName := ""
-	var allNames []string
+	allNames := []string{}
 	for _, network := range networks {
 		allNames = append(allNames, network.Name)
 		if network.Name != networkName {

@@ -47,7 +47,7 @@ func dataAPGroupRead(ctx context.Context, d *schema.ResourceData, meta interface
 		site = c.site
 	}
 
-	groups, err := c.c.ListAPGroup(context.TODO(), site)
+	groups, err := c.c.ListAPGroup(ctx, site)
 	if err != nil {
 		return diag.FromErr(err)
 	}
