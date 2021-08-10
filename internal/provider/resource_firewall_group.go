@@ -73,7 +73,7 @@ func resourceFirewallGroupCreate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		var apiErr *unifi.APIError
 		if errors.As(err, &apiErr) && apiErr.Message == "api.err.FirewallGroupExisted" {
-			return diag.Errorf("firewall groups must have unique names: %w", err)
+			return diag.Errorf("firewall groups must have unique names: %s", err)
 		}
 
 		return diag.FromErr(err)

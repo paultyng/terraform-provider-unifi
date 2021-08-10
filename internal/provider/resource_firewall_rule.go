@@ -190,7 +190,7 @@ func resourceFirewallRuleCreate(ctx context.Context, d *schema.ResourceData, met
 	if err != nil {
 		var apiErr *unifi.APIError
 		if errors.As(err, &apiErr) && apiErr.Message == "api.err.FirewallGroupTypeExists" {
-			return diag.Errorf("firewall rule groups must be of different group types (ie. a port group and address group): %w", err)
+			return diag.Errorf("firewall rule groups must be of different group types (ie. a port group and address group): %s", err)
 		}
 
 		return diag.FromErr(err)
