@@ -150,7 +150,7 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	mac = cleanMAC(mac)
 	devices, err := c.c.ListDevice(ctx, site)
 	if err != nil {
-		return diag.Errorf("unable to list devices: %w", err)
+		return diag.Errorf("unable to list devices: %s", err)
 	}
 
 	var found *unifi.Device
