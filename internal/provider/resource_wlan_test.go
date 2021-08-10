@@ -523,7 +523,7 @@ resource "unifi_wlan" "test" {
 	ap_group_ids = [data.unifi_ap_group.default.id]
 	user_group_id = data.unifi_user_group.default.id
 	security      = "wpapsk"
-	uapsd = true
+	uapsd         = true
 }
 `, vlanID)
 }
