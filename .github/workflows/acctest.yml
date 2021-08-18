@@ -43,7 +43,9 @@ jobs:
       matrix:
         version:
           - stable-5
-          - v6.1
+          - '6.0.45'
+          - '6.1.71'
+          - '6.2.23'
           - v6
         terraform:
           - '0.15.5'
