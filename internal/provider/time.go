@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var timeOfDayRegexp = regexp.MustCompile("^\\d{1,2}:\\d{2}$")
+var timeOfDayRegexp = regexp.MustCompile(`^\d{1,2}:\d{2}$`)
 
 func timeOfDayDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 	return timeFromConfig(old) == timeFromConfig(new)
