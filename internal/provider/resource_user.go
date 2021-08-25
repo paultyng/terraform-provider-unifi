@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -76,6 +77,11 @@ func resourceUser() *schema.Resource {
 			"blocked": {
 				Description: "Specifies whether this user should be blocked from the network.",
 				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"dev_id_override": {
+				Description: "Override the device fingerprint.",
+				Type:        schema.TypeInt,
 				Optional:    true,
 			},
 
@@ -155,6 +161,18 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
+	if d.HasChange("dev_id_override") {
+		mac := d.Get("mac").(string)
+		device := d.Get("dev_id_override").(int)
+
+		err := c.c.OverrideUserFingerprint(context.TODO(), site, mac, device)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		resp.DevIdOverride = device
+	}
+
 	return resourceUserSetResourceData(resp, d, site)
 }
 
@@ -170,7 +188,8 @@ func resourceUserGetResourceData(d *schema.ResourceData) (*unifi.User, error) {
 		UseFixedIP:  fixedIP != "",
 		NetworkID:   d.Get("network_id").(string),
 		// not sure if this matters/works
-		Blocked: d.Get("blocked").(bool),
+		Blocked:       d.Get("blocked").(bool),
+		DevIdOverride: d.Get("dev_id_override").(int),
 	}, nil
 }
 
@@ -224,6 +243,8 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
+	// TODO: should this read the override fingerprint?
+
 	resp.IP = macResp.IP
 
 	return resourceUserSetResourceData(resp, d, site)
@@ -249,6 +270,20 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			if err != nil {
 				return diag.FromErr(err)
 			}
+		}
+	}
+
+	if d.HasChange("dev_id_override") {
+		mac := d.Get("mac").(string)
+		device := d.Get("dev_id_override").(int)
+
+		err := c.c.OverrideUserFingerprint(context.TODO(), site, mac, device)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if !d.HasChangesExcept("dev_id_override") {
+			return nil
 		}
 	}
 

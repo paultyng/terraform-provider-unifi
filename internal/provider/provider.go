@@ -3,8 +3,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -173,6 +174,7 @@ type unifiClient interface {
 	CreateUser(ctx context.Context, site string, d *unifi.User) (*unifi.User, error)
 	BlockUserByMAC(ctx context.Context, site, mac string) error
 	UnblockUserByMAC(ctx context.Context, site, mac string) error
+	OverrideUserFingerprint(ctx context.Context, site, mac string, devIdOveride int) error
 	UpdateUser(ctx context.Context, site string, d *unifi.User) (*unifi.User, error)
 	DeleteUserByMAC(ctx context.Context, site, mac string) error
 
