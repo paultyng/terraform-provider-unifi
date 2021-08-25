@@ -245,6 +245,12 @@ func (c *lazyClient) UnblockUserByMAC(ctx context.Context, site, mac string) err
 	}
 	return c.inner.UnblockUserByMAC(ctx, site, mac)
 }
+func (c *lazyClient) OverrideUserFingerprint(ctx context.Context, site, mac string, devIdOveride int) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.OverrideUserFingerprint(ctx, site, mac, devIdOveride)
+}
 func (c *lazyClient) ListFirewallGroup(ctx context.Context, site string) ([]unifi.FirewallGroup, error) {
 	if err := c.init(ctx); err != nil {
 		return nil, err
