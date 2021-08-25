@@ -194,7 +194,7 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccUserConfig_existing(mac, "tfacc", "tfacc note", false, false),
-				ExpectError: regexp.MustCompile("api\\.err\\.MacUsed"),
+				ExpectError: regexp.MustCompile(`api\.err\.MacUsed`),
 			},
 		},
 	})
