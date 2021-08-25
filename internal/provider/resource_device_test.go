@@ -74,10 +74,10 @@ func TestAccDevice_switch_basic(t *testing.T) {
 }
 
 func testAccDeviceConfigEmpty() string {
-	return fmt.Sprintf(`
+	return `
 resource "unifi_device" "test" {
 }
-`)
+`
 }
 
 func testAccDeviceConfig(mac string) string {

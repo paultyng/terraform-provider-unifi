@@ -89,11 +89,6 @@ func resourceDevice() *schema.Resource {
 	}
 }
 
-func resourceDevicePortOverrideSet(v interface{}) int {
-	m := v.(map[string]interface{})
-	return m["number"].(int)
-}
-
 func resourceDeviceImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	c := meta.(*client)
 	id := d.Id()
