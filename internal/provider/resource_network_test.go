@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccNetwork_basic(t *testing.T) {
-	name    := acctest.RandomWithPrefix("tfacc")
+	name := acctest.RandomWithPrefix("tfacc")
 	vlanID1 := getTestVLAN(t)
 	vlanID2 := getTestVLAN(t)
 
@@ -50,7 +50,7 @@ func TestAccNetwork_basic(t *testing.T) {
 }
 
 func TestAccNetwork_weird_cidr(t *testing.T) {
-	name   := acctest.RandomWithPrefix("tfacc")
+	name := acctest.RandomWithPrefix("tfacc")
 	vlanID := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -70,7 +70,7 @@ func TestAccNetwork_weird_cidr(t *testing.T) {
 }
 
 func TestAccNetwork_dhcp_dns(t *testing.T) {
-	name   := acctest.RandomWithPrefix("tfacc")
+	name := acctest.RandomWithPrefix("tfacc")
 	vlanID := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -110,7 +110,7 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 }
 
 func TestAccNetwork_dhcp_boot(t *testing.T) {
-	name   := acctest.RandomWithPrefix("tfacc")
+	name := acctest.RandomWithPrefix("tfacc")
 	vlanID := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -130,7 +130,7 @@ func TestAccNetwork_dhcp_boot(t *testing.T) {
 }
 
 func TestAccNetwork_v6(t *testing.T) {
-	name    := acctest.RandomWithPrefix("tfacc")
+	name := acctest.RandomWithPrefix("tfacc")
 	vlanID1 := getTestVLAN(t)
 	vlanID2 := getTestVLAN(t)
 
@@ -161,7 +161,7 @@ func TestAccNetwork_v6(t *testing.T) {
 }
 
 func TestAccNetwork_wan(t *testing.T) {
-  name := acctest.RandomWithPrefix("tfacc")
+	name := acctest.RandomWithPrefix("tfacc")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -203,7 +203,7 @@ func TestAccNetwork_wan(t *testing.T) {
 }
 
 func TestAccNetwork_differentSite(t *testing.T) {
-	name    := acctest.RandomWithPrefix("tfacc")
+	name := acctest.RandomWithPrefix("tfacc")
 	vlanID1 := getTestVLAN(t)
 	vlanID2 := getTestVLAN(t)
 
@@ -241,7 +241,7 @@ func TestAccNetwork_differentSite(t *testing.T) {
 }
 
 func TestAccNetwork_importByName(t *testing.T) {
-	name    := acctest.RandomWithPrefix("tfacc")
+	name := acctest.RandomWithPrefix("tfacc")
 	vlanID1 := getTestVLAN(t)
 	vlanID2 := getTestVLAN(t)
 	vlanID3 := getTestVLAN(t)
