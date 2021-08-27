@@ -207,7 +207,7 @@ func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData, site 
 	d.Set("fixed_ip", fixedIP)
 	d.Set("network_id", resp.NetworkID)
 	d.Set("blocked", resp.Blocked)
-
+	d.Set("dev_id_override", resp.DevIdOverride)
 	d.Set("hostname", resp.Hostname)
 	d.Set("ip", resp.IP)
 
