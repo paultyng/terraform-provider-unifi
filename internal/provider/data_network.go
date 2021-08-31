@@ -15,21 +15,20 @@ func dataNetwork() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"id": {
-				Description: "The ID of this AP group.",
+				Description: "The ID of this network.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"site": {
-				Description: "The name of the site the user group is associated with.",
+				Description: "The name of the site the network is associated with.",
 				Type:        schema.TypeString,
 				Computed:    true,
 				Optional:    true,
 			},
 			"name": {
-				Description: "The name of the user group to look up.",
+				Description: "The name of the network to look up.",
 				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "Default",
+				Required:    true,
 			},
 		},
 	}
