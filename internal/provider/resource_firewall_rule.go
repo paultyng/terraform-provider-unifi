@@ -169,6 +169,51 @@ func resourceFirewallRule() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"match-ipsec", "match-none"}, false),
 			},
+			"weekdays": {
+				Description: "Days of the week the rule is enforced.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"weekdays_negate": {
+				Description: "Negate (inverse) the days of the week the rule is enforced.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"monthdays": {
+				Description: "Days of the month the rule is enforced.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"monthdays_negate": {
+				Description: "Negate (inverse) the days of the month the rule is enforced.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"startdate": {
+				Description: "Date that the rule starts being enforced.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"starttime": {
+				Description: "Time that the rule starts being enforced.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"stopdate": {
+				Description: "Date that the rule stops being enforced.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"stoptime": {
+				Description: "Time that the rule stops being enforced.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"utc": {
+				Description: "Controls whether time calculations for firewall rule is based on UTC time.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -238,6 +283,16 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 		DstPort:             d.Get("dst_port").(string),
 		DstNetworkID:        d.Get("dst_network_id").(string),
 		DstFirewallGroupIDs: dstFirewallGroupIDs,
+
+		Weekdays:        d.Get("weekdays").(string),
+		WeekdaysNegate:  d.Get("weekdays_negate").(bool),
+		MonthDays:       d.Get("monthdays").(string),
+		MonthDaysNegate: d.Get("monthdays_negate").(bool),
+		StartDate:       d.Get("startdate").(string),
+		StartTime:       d.Get("starttime").(string),
+		StopDate:        d.Get("stopdate").(string),
+		StopTime:        d.Get("stoptime").(string),
+		UTC:             d.Get("utc").(bool),
 	}, nil
 }
 
@@ -269,6 +324,16 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	d.Set("dst_address", resp.DstAddress)
 	d.Set("dst_network_id", resp.DstNetworkID)
 	d.Set("dst_port", resp.DstPort)
+
+	d.Set("weekdays", resp.Weekdays)
+	d.Set("weekdays_negate", resp.WeekdaysNegate)
+	d.Set("monthdays", resp.MonthDays)
+	d.Set("monthdays_negate", resp.MonthDaysNegate)
+	d.Set("startdate", resp.StartDate)
+	d.Set("starttime", resp.StartTime)
+	d.Set("stopdate", resp.StopDate)
+	d.Set("stoptime", resp.StopTime)
+	d.Set("utc", resp.UTC)
 
 	return nil
 }
