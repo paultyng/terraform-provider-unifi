@@ -80,6 +80,7 @@ func New(version string) func() *schema.Provider {
 				"unifi_network":        dataNetwork(),
 				"unifi_port_profile":   dataPortProfile(),
 				"unifi_radius_profile": dataRADIUSProfile(),
+				"unifi_user":           dataUser(),
 				"unifi_user_group":     dataUserGroup(),
 				"unifi_wlan_group":     dataWLANGroup(),
 			},

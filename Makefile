@@ -15,7 +15,6 @@ install: build
 test:
 	./controller.sh update
 	./controller.sh start
-	./controller.sh test
+	./controller.sh test || echo "Failed"
 	./controller.sh stop
-	./controller.sh reset
 	
