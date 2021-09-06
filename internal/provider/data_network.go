@@ -2,33 +2,181 @@ package provider
 
 import (
 	"context"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataNetwork() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_network` data source can be used to retrieve the ID for a network by name.",
+		Description: "`unifi_network` data source can be used to retrieve settings for a network by name.",
 
 		ReadContext: dataNetworkRead,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
-				Description: "The ID of this network.",
+				Description: "The ID of the network.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"site": {
-				Description: "The name of the site the network is associated with.",
+				Description: "The name of the site to associate the network with.",
 				Type:        schema.TypeString,
 				Computed:    true,
 				Optional:    true,
 			},
 			"name": {
-				Description: "The name of the network to look up.",
+				Description: "The name of the network.",
 				Type:        schema.TypeString,
 				Required:    true,
+			},
+			"purpose": {
+				Description: "The purpose of the network. One of `corporate`, `guest`, `wan`, or `vlan-only`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"vlan_id": {
+				Description: "The VLAN ID of the network.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+			"subnet": {
+				Description: "The subnet of the network. Must be a valid CIDR address.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"network_group": {
+				Description: "The group of the network.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"dhcp_start": {
+				Description: "The IPv4 address where the DHCP range of addresses starts.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"dhcp_stop": {
+				Description: "The IPv4 address where the DHCP range of addresses stops.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"dhcp_enabled": {
+				Description: "Specifies whether DHCP is enabled or not on this network.",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"dhcp_lease": {
+				Description: "Specifies the lease time for DHCP addresses.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+
+			"dhcp_dns": {
+				Description: "Specifies the IPv4 addresses for the DNS server to be returned from the DHCP " +
+					"server. Leave blank to disable this feature.",
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+
+			"dhcpd_boot_enabled": {
+				Description: "Toggles on the DHCP boot options. Should be set to true when you want to have dhcpd_boot_filename, and dhcpd_boot_server to take effect.",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"dhcpd_boot_server": {
+				Description: "Specifies the IPv4 address of a TFTP server to network boot from.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"dhcpd_boot_filename": {
+				Description: "Specifies the file to PXE boot from on the dhcpd_boot_server.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"domain_name": {
+				Description: "The domain name of this network.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"igmp_snooping": {
+				Description: "Specifies whether IGMP snooping is enabled or not.",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"ipv6_interface_type": {
+				Description: "Specifies which type of IPv6 connection to use.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"ipv6_static_subnet": {
+				Description: "Specifies the static IPv6 subnet when ipv6_interface_type is 'static'.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"ipv6_pd_interface": {
+				Description: "Specifies which WAN interface to use for IPv6 PD.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"ipv6_pd_prefixid": {
+				Description: "Specifies the IPv6 Prefix ID.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"ipv6_ra_enable": {
+				Description: "Specifies whether to enable router advertisements or not.",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"wan_ip": {
+				Description: "The IPv4 address of the WAN.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_netmask": {
+				Description: "The IPv4 netmask of the WAN.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_gateway": {
+				Description: "The IPv4 gateway of the WAN.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_dns": {
+				Description: "DNS servers IPs of the WAN.",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"wan_type": {
+				Description: "Specifies the IPV4 WAN connection type. One of either `disabled`, `static`, `dhcp`, or `pppoe`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_networkgroup": {
+				Description: "Specifies the WAN network group. One of either `WAN`, `WAN2` or `WAN_LTE_FAILOVER`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_egress_qos": {
+				Description: "Specifies the WAN egress quality of service.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+			"wan_username": {
+				Description: "Specifies the IPV4 WAN username.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"x_wan_password": {
+				Description: "Specifies the IPV4 WAN password.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 		},
 	}
@@ -49,9 +197,62 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 	}
 	for _, n := range networks {
 		if n.Name == name {
-			d.SetId(n.ID)
+			dhcpDNS := []string{}
+			for _, dns := range []string{
+				n.DHCPDDNS1,
+				n.DHCPDDNS2,
+				n.DHCPDDNS3,
+				n.DHCPDDNS4,
+			} {
+				if dns == "" {
+					continue
+				}
+				dhcpDNS = append(dhcpDNS, dns)
+			}
+			wanDNS := []string{}
+			for _, dns := range []string{
+				n.WANDNS1,
+				n.WANDNS2,
+				n.WANDNS3,
+				n.WANDNS4,
+			} {
+				if dns == "" {
+					continue
+				}
+				wanDNS = append(wanDNS, dns)
+			}
 
+			d.SetId(n.ID)
 			d.Set("site", site)
+			d.Set("name", n.Name)
+			d.Set("purpose", n.Purpose)
+			d.Set("vlan_id", n.VLAN)
+			d.Set("subnet", cidrZeroBased(n.IPSubnet))
+			d.Set("network_group", n.NetworkGroup)
+			d.Set("dhcp_start", n.DHCPDStart)
+			d.Set("dhcp_stop", n.DHCPDStop)
+			d.Set("dhcp_enabled", n.DHCPDEnabled)
+			d.Set("dhcp_lease", n.DHCPDLeaseTime)
+			d.Set("dhcpd_boot_enabled", n.DHCPDBootEnabled)
+			d.Set("dhcpd_boot_server", n.DHCPDBootServer)
+			d.Set("dhcpd_boot_filename", n.DHCPDBootFilename)
+			d.Set("domain_name", n.DomainName)
+			d.Set("igmp_snooping", n.IGMPSnooping)
+			d.Set("dhcp_dns", dhcpDNS)
+			d.Set("ipv6_interface_type", n.IPV6InterfaceType)
+			d.Set("ipv6_static_subnet", n.IPV6Subnet)
+			d.Set("ipv6_pd_interface", n.IPV6PDInterface)
+			d.Set("ipv6_pd_prefixid", n.IPV6PDPrefixid)
+			d.Set("ipv6_ra_enable", n.IPV6RaEnabled)
+			d.Set("wan_ip", n.WANIP)
+			d.Set("wan_netmask", n.WANNetmask)
+			d.Set("wan_gateway", n.WANGateway)
+			d.Set("wan_type", n.WANType)
+			d.Set("wan_dns", wanDNS)
+			d.Set("wan_networkgroup", n.WANNetworkGroup)
+			d.Set("wan_egress_qos", n.WANEgressQOS)
+			d.Set("wan_username", n.WANUsername)
+			d.Set("x_wan_password", n.XWANPassword)
 
 			return nil
 		}
