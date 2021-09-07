@@ -8,15 +8,16 @@ import (
 
 func dataNetwork() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_network` data source can be used to retrieve settings for a network by name.",
+		Description: "`unifi_network` data source can be used to retrieve settings for a network by name or id.",
 
 		ReadContext: dataNetworkRead,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
-				Description: "The ID of the network.",
+				Description: "The ID of the network. One of `id` OR `name` is required.",
 				Type:        schema.TypeString,
 				Computed:    true,
+				Optional:    true,
 			},
 			"site": {
 				Description: "The name of the site to associate the network with.",
@@ -25,9 +26,9 @@ func dataNetwork() *schema.Resource {
 				Optional:    true,
 			},
 			"name": {
-				Description: "The name of the network.",
+				Description: "The name of the network. One of `id` OR `name` is required.",
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 			},
 			"purpose": {
 				Description: "The purpose of the network. One of `corporate`, `guest`, `wan`, or `vlan-only`.",
@@ -40,7 +41,7 @@ func dataNetwork() *schema.Resource {
 				Computed:    true,
 			},
 			"subnet": {
-				Description: "The subnet of the network. Must be a valid CIDR address.",
+				Description: "The subnet of the network (CIDR address).",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
@@ -60,19 +61,19 @@ func dataNetwork() *schema.Resource {
 				Computed:    true,
 			},
 			"dhcp_enabled": {
-				Description: "Specifies whether DHCP is enabled or not on this network.",
+				Description: "whether DHCP is enabled or not on this network.",
 				Type:        schema.TypeBool,
 				Computed:    true,
 			},
 			"dhcp_lease": {
-				Description: "Specifies the lease time for DHCP addresses.",
+				Description: "lease time for DHCP addresses.",
 				Type:        schema.TypeInt,
 				Computed:    true,
 			},
 
 			"dhcp_dns": {
-				Description: "Specifies the IPv4 addresses for the DNS server to be returned from the DHCP " +
-					"server. Leave blank to disable this feature.",
+				Description: "IPv4 addresses for the DNS server to be returned from the DHCP " +
+					"server.",
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
@@ -81,17 +82,17 @@ func dataNetwork() *schema.Resource {
 			},
 
 			"dhcpd_boot_enabled": {
-				Description: "Toggles on the DHCP boot options. Should be set to true when you want to have dhcpd_boot_filename, and dhcpd_boot_server to take effect.",
+				Description: "Toggles on the DHCP boot options. will be set to true if you have dhcpd_boot_filename, and dhcpd_boot_server set.",
 				Type:        schema.TypeBool,
 				Computed:    true,
 			},
 			"dhcpd_boot_server": {
-				Description: "Specifies the IPv4 address of a TFTP server to network boot from.",
+				Description: "IPv4 address of a TFTP server to network boot from.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"dhcpd_boot_filename": {
-				Description: "Specifies the file to PXE boot from on the dhcpd_boot_server.",
+				Description: "the file to PXE boot from on the dhcpd_boot_server.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
@@ -111,12 +112,12 @@ func dataNetwork() *schema.Resource {
 				Computed:    true,
 			},
 			"ipv6_static_subnet": {
-				Description: "Specifies the static IPv6 subnet when ipv6_interface_type is 'static'.",
+				Description: "Specifies the static IPv6 subnet (when ipv6_interface_type is 'static').",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"ipv6_pd_interface": {
-				Description: "Specifies which WAN interface to use for IPv6 PD.",
+				Description: "Specifies which WAN interface is used for IPv6 Prefix Delegation.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
@@ -187,8 +188,12 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 
 	name := d.Get("name").(string)
 	site := d.Get("site").(string)
+	id := d.Get("id").(string)
 	if site == "" {
 		site = c.site
+	}
+	if (name == "" && id == "") || (name != "" && id != "") {
+		return diag.Errorf("One of 'name' OR 'id' is required")
 	}
 
 	networks, err := c.c.ListNetwork(ctx, site)
@@ -196,7 +201,7 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 		return diag.FromErr(err)
 	}
 	for _, n := range networks {
-		if n.Name == name {
+		if (n.Name == name) || (n.ID == id) {
 			dhcpDNS := []string{}
 			for _, dns := range []string{
 				n.DHCPDDNS1,
