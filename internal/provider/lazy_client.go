@@ -65,7 +65,11 @@ func (c *lazyClient) init(ctx context.Context) error {
 		}
 
 		initErr = c.inner.Login(ctx, c.user, c.pass)
+		if initErr != nil {
+			return
+		}
 
+		initErr = checkMinimumControllerVersion(c.inner.Version())
 		log.Printf("[TRACE] Unifi controller version: %q", c.inner.Version())
 	})
 	return initErr

@@ -183,9 +183,6 @@ func resourceWLAN() *schema.Resource {
 				// TODO: this validation is from the UI, if other values work, perhaps remove this is set it to a range instead?
 				ValidateFunc: validation.IntInSlice(append([]int{0}, wlanValidMinimumDataRate5g...)),
 			},
-
-			// controller v6 fields
-			// TODO: this could be defaulted to "both" once v5 controller support is dropped
 			"wlan_band": {
 				Description:  "Radio band your WiFi network will use.",
 				Type:         schema.TypeString,
@@ -193,35 +190,17 @@ func resourceWLAN() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"2g", "5g", "both"}, false),
 			},
 			"network_id": {
-				Description:   "ID of the network for this SSID",
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"vlan_id"},
+				Description: "ID of the network for this SSID",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"ap_group_ids": {
-				Description:   "IDs of the AP groups to use for this network.",
-				Type:          schema.TypeSet,
-				Optional:      true,
-				ConflictsWith: []string{"wlan_group_id"},
+				Description: "IDs of the AP groups to use for this network.",
+				Type:        schema.TypeSet,
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-			},
-
-			// controller v5 fields
-			"vlan_id": {
-				Description:   "VLAN ID for the network.",
-				Type:          schema.TypeInt,
-				Optional:      true,
-				ConflictsWith: []string{"network_id"},
-				Deprecated:    "Set network_id instead of vlan_id for controller version >= 6.",
-			},
-			"wlan_group_id": {
-				Description:   "ID of the WLAN group to use for this network.",
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"ap_group_ids"},
-				Deprecated:    "Set ap_group_ids instead of wlan_group_id for controller version >= 6.",
 			},
 		},
 	}
@@ -264,34 +243,11 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 
 	// version specific fields and validation
 	networkID := d.Get("network_id").(string)
-	vlan := d.Get("vlan_id").(int)
 	apGroupIDs, err := setToStringSlice(d.Get("ap_group_ids").(*schema.Set))
 	if err != nil {
 		return nil, err
 	}
-	wlanGroupID := d.Get("wlan_group_id").(string)
 	wlanBand := d.Get("wlan_band").(string)
-	switch v := c.ControllerVersion(); {
-	case v.GreaterThanOrEqual(controllerV6):
-		if wlanGroupID != "" {
-			return nil, fmt.Errorf("wlan_group_id is not supported on controller version %q", v)
-		}
-		if vlan != 0 {
-			return nil, fmt.Errorf("vlan_id %d is not supported on controller version %q", vlan, v)
-		}
-	case v.GreaterThanOrEqual(controllerV5):
-		if networkID != "" {
-			return nil, fmt.Errorf("network_id is not supported on controller version %q", v)
-		}
-		if len(apGroupIDs) > 0 {
-			return nil, fmt.Errorf("ap_group_ids is not supported on controller version %q", v)
-		}
-		if wlanBand != "" {
-			return nil, fmt.Errorf("wlan_band is not supported on controller version %q", v)
-		}
-	default:
-		return nil, fmt.Errorf("controller version %q not supported", v)
-	}
 
 	schedule, err := listToScheduleStrings(d.Get("schedule").([]interface{}))
 	if err != nil {
@@ -318,11 +274,6 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		Schedule:                schedule,
 		ScheduleEnabled:         len(schedule) > 0,
 		WLANBand:                wlanBand,
-
-		// v5
-		VLAN:        vlan,
-		WLANGroupID: wlanGroupID,
-		VLANEnabled: vlan != 0 && vlan != 1,
 
 		// TODO: add to schema
 		WPAEnc:             "ccmp",
@@ -371,12 +322,6 @@ func resourceWLANCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}, site string) diag.Diagnostics {
 	// c := meta.(*client)
-
-	vlan := 0
-	if resp.VLANEnabled {
-		vlan = resp.VLAN
-	}
-
 	security := resp.Security
 	passphrase := resp.XPassphrase
 	wpa3 := false
@@ -424,6 +369,9 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("no2ghz_oui", resp.No2GhzOui)
 	d.Set("l2_isolation", resp.L2Isolation)
 	d.Set("uapsd", resp.UapsdEnabled)
+	d.Set("ap_group_ids", apGroupIDs)
+	d.Set("network_id", resp.NetworkID)
+
 	if resp.MinrateNgEnabled {
 		d.Set("minimum_data_rate_2g_kbps", resp.MinrateNgDataRateKbps)
 	} else {
@@ -434,15 +382,6 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	} else {
 		d.Set("minimum_data_rate_5g_kbps", 0)
 	}
-
-	// switch v := c.ControllerVersion(); {
-	// case v.GreaterThanOrEqual(controllerV6):
-	d.Set("ap_group_ids", apGroupIDs)
-	d.Set("network_id", resp.NetworkID)
-	// case v.GreaterThanOrEqual(controllerV5):
-	d.Set("vlan_id", vlan)
-	d.Set("wlan_group_id", resp.WLANGroupID)
-	// }
 
 	return nil
 }
