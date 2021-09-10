@@ -3,10 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
@@ -52,6 +52,16 @@ func resourceWLAN() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"wpapsk", "wpaeap", "open"}, false),
+			},
+			"wpa3_support": {
+				Description: "Enable WPA 3 support (security must be `wpapsk`).",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"wpa3_transition": {
+				Description: "Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"passphrase": {
 				Description: "The passphrase for the network, this is only required if `security` is not set to `open`.",
@@ -204,6 +214,22 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		passphrase = ""
 	}
 
+	wpa3 := d.Get("wpa3_support").(bool)
+	wpa3Transition := d.Get("wpa3_transition").(bool)
+	switch security {
+	case "wpapsk":
+		// nothing
+	default:
+		if wpa3 || wpa3Transition {
+			return nil, fmt.Errorf("wpa3_support and wpa3_transition are only valid for security type wpapsk")
+		}
+	}
+	if v := c.ControllerVersion(); v.LessThanOrEqual(controllerVersionWPA3) {
+		if wpa3 || wpa3Transition {
+			return nil, fmt.Errorf("WPA 3 support is not available on controller version %q, you must be on %q or higher", v, controllerVersionWPA3)
+		}
+	}
+
 	macFilterEnabled := d.Get("mac_filter_enabled").(bool)
 	macFilterList, err := setToStringSlice(d.Get("mac_filter_list").(*schema.Set))
 	if err != nil {
@@ -259,6 +285,8 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		ApGroupIDs:              apGroupIDs,
 		UserGroupID:             d.Get("user_group_id").(string),
 		Security:                security,
+		WPA3Support:             wpa3,
+		WPA3Transition:          wpa3Transition,
 		MulticastEnhanceEnabled: d.Get("multicast_enhance").(bool),
 		MACFilterEnabled:        macFilterEnabled,
 		MACFilterList:           macFilterList,
@@ -321,9 +349,14 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 
 	security := resp.Security
 	passphrase := resp.XPassphrase
+	wpa3 := false
+	wpa3Transition := false
 	switch security {
 	case "open":
 		passphrase = ""
+	case "wpapsk":
+		wpa3 = resp.WPA3Support
+		wpa3Transition = resp.WPA3Transition
 	}
 
 	macFilterEnabled := resp.MACFilterEnabled
@@ -349,6 +382,8 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("hide_ssid", resp.HideSSID)
 	d.Set("is_guest", resp.IsGuest)
 	d.Set("security", security)
+	d.Set("wpa3_support", wpa3)
+	d.Set("wpa3_transition", wpa3Transition)
 	d.Set("multicast_enhance", resp.MulticastEnhanceEnabled)
 	d.Set("mac_filter_enabled", macFilterEnabled)
 	d.Set("mac_filter_list", macFilterList)
