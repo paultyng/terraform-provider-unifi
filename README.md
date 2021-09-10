@@ -12,20 +12,12 @@ You can browse documentation on the [Terraform provider registry](https://regist
 
 ## Supported Unifi Controller Versions
 
-Currently this provider is tested against [Docker versions of the v5 and v6 controller](https://github.com/paultyng/terraform-provider-unifi/blob/main/.github/workflows/acctest.yml#L45-L46). The UDM and UDM-Pro versions are slightly different (the API is proxied a little differently) but for the most part should also be supported. Individual patch versions of the controller are not tested, just the latest stable versions.
+As of version [v0.34](https://github.com/paultyng/terraform-provider-unifi/releases/tag/v0.34.0), this provider only supports version 6 of the Unifi controller software. If you need v5 support, you can pin an older version of the provider.
 
-There are some differences to be aware of between v5 and v6 controller usages (AP groups vs WLAN groups as an example), but in many cases, the provider should warn or error if used incorrectly. Examples will mostly show v6 usage, and a future major version of the provider will probably remove v5 support.
-
-When reporting issues, please include your controller version and the method you use to run it.
+The docker, UDM, and UDM-Pro versions are slightly different (the API is proxied a little differently) but for the most part should all be supported. Individual patch versions of the controller are generally not tested for compatibility, just the latest stable versions.
 
 ## Using the Provider
 
-### Terraform 0.13 and above
+### Terraform 1.0 and above
 
 You can use the provider via the [Terraform provider registry](https://registry.terraform.io/providers/paultyng/unifi).
-
-### Terraform 0.12 or manual installation
-
-You can download a pre-built binary from the [releases](https://github.com/paultyng/terraform-provider-unifi/releases) page, these are built using [goreleaser](https://goreleaser.com/) (the [configuration](.goreleaser.yml) is in the repo). You can verify the signature and my [key ownership via Keybase](https://keybase.io/paultyng).
-
-If you want to build from source, you can simply use `go build` in the root of the repository.

@@ -42,7 +42,6 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
@@ -69,7 +68,6 @@ func TestAccWLAN_open(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
@@ -110,7 +108,6 @@ func TestAccWLAN_change_security(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
@@ -150,7 +147,6 @@ func TestAccWLAN_schedule(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
@@ -182,7 +178,6 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
@@ -209,7 +204,6 @@ func TestAccWLAN_wlan_band(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
@@ -236,7 +230,6 @@ func TestAccWLAN_no2ghz_oui(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
@@ -263,7 +256,6 @@ func TestAccWLAN_uapsd(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
@@ -290,7 +282,6 @@ func TestAccWLAN_wpa3(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			preCheckMinVersion(t, controllerVersionWPA3)
 			wlanPreCheck(t)
 		},
@@ -332,7 +323,6 @@ func TestAccWLAN_minimum_data_rate(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,

@@ -294,7 +294,6 @@ func TestAccNetwork_dhcpRelay(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckV6Only(t)
 		},
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,

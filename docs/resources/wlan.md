@@ -77,9 +77,7 @@ resource "unifi_wlan" "wifi" {
 - **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
 - **site** (String) The name of the site to associate the wlan with.
 - **uapsd** (Boolean) Enable Unscheduled Automatic Power Save Delivery Defaults to `false`.
-- **vlan_id** (Number, Deprecated) VLAN ID for the network. Set network_id instead of vlan_id for controller version >= 6.
 - **wlan_band** (String) Radio band your WiFi network will use.
-- **wlan_group_id** (String, Deprecated) ID of the WLAN group to use for this network. Set ap_group_ids instead of wlan_group_id for controller version >= 6.
 - **wpa3_support** (Boolean) Enable WPA 3 support (security must be `wpapsk`).
 - **wpa3_transition** (Boolean) Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).
 

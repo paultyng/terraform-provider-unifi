@@ -2,8 +2,8 @@ package provider
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -36,10 +36,6 @@ func dataAPGroup() *schema.Resource {
 
 func dataAPGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
-
-	if v := c.ControllerVersion(); !v.GreaterThanOrEqual(controllerV6) {
-		return diag.Errorf("AP groups are not supported on controller version %q", v)
-	}
 
 	name := d.Get("name").(string)
 	site := d.Get("site").(string)
