@@ -39,6 +39,10 @@ resource "unifi_wlan" "wifi" {
   passphrase = "12345678"
   security   = "wpapsk"
 
+  # enable WPA2/WPA3 support
+  wpa3_support    = true
+  wpa3_transition = true
+
   network_id    = unifi_network.vlan.id
   ap_group_ids  = [data.unifi_ap_group.default.id]
   user_group_id = data.unifi_user_group.default.id
@@ -74,6 +78,8 @@ resource "unifi_wlan" "wifi" {
 - **vlan_id** (Number, Deprecated) VLAN ID for the network. Set network_id instead of vlan_id for controller version >= 6.
 - **wlan_band** (String) Radio band your WiFi network will use.
 - **wlan_group_id** (String, Deprecated) ID of the WLAN group to use for this network. Set ap_group_ids instead of wlan_group_id for controller version >= 6.
+- **wpa3_support** (Boolean) Enable WPA 3 support (security must be `wpapsk`).
+- **wpa3_transition** (Boolean) Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).
 
 ### Read-Only
 

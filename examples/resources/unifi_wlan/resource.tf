@@ -24,6 +24,10 @@ resource "unifi_wlan" "wifi" {
   passphrase = "12345678"
   security   = "wpapsk"
 
+  # enable WPA2/WPA3 support
+  wpa3_support    = true
+  wpa3_transition = true
+
   network_id    = unifi_network.vlan.id
   ap_group_ids  = [data.unifi_ap_group.default.id]
   user_group_id = data.unifi_user_group.default.id

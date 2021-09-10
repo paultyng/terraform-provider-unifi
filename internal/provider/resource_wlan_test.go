@@ -285,6 +285,48 @@ func TestAccWLAN_uapsd(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_wpa3(t *testing.T) {
+	vlanID := getTestVLAN(t)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			preCheckV6Only(t)
+			preCheckMinVersion(t, controllerVersionWPA3)
+			wlanPreCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_wpa3(vlanID, false),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_wpa3(vlanID, true),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_wpa3(vlanID, false),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
 func testAccWLANConfig_wpapsk(vlanID int) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {
@@ -526,4 +568,34 @@ resource "unifi_wlan" "test" {
 	uapsd         = true
 }
 `, vlanID)
+}
+
+func testAccWLANConfig_wpa3(vlanID int, wpa3Transition bool) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {
+}
+
+data "unifi_user_group" "default" {
+}
+
+resource "unifi_network" "test" {
+	name    = "tfacc"
+	purpose = "corporate"
+
+	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
+	vlan_id       = %[1]d
+}
+
+resource "unifi_wlan" "test" {
+	name          = "tfacc-wpapsk"
+	network_id    = unifi_network.test.id
+	passphrase    = "12345678"
+	ap_group_ids  = [data.unifi_ap_group.default.id]
+	user_group_id = data.unifi_user_group.default.id
+	security      = "wpapsk"
+
+	wpa3_support    = true
+	wpa3_transition = %[2]t
+}
+`, vlanID, wpa3Transition)
 }
