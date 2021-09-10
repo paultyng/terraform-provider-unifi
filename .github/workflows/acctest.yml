@@ -34,7 +34,6 @@ jobs:
       fail-fast: false
       matrix:
         unifi_version:
-          - "stable-5"
           - "6.0"
           - "6.1"
           - "6.2"
