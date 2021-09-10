@@ -424,8 +424,16 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("no2ghz_oui", resp.No2GhzOui)
 	d.Set("l2_isolation", resp.L2Isolation)
 	d.Set("uapsd", resp.UapsdEnabled)
-	d.Set("minimum_data_rate_2g_kbps", resp.MinrateNgDataRateKbps)
-	d.Set("minimum_data_rate_5g_kbps", resp.MinrateNaDataRateKbps)
+	if resp.MinrateNgEnabled {
+		d.Set("minimum_data_rate_2g_kbps", resp.MinrateNgDataRateKbps)
+	} else {
+		d.Set("minimum_data_rate_2g_kbps", 0)
+	}
+	if resp.MinrateNaEnabled {
+		d.Set("minimum_data_rate_5g_kbps", resp.MinrateNaDataRateKbps)
+	} else {
+		d.Set("minimum_data_rate_5g_kbps", 0)
+	}
 
 	// switch v := c.ControllerVersion(); {
 	// case v.GreaterThanOrEqual(controllerV6):
