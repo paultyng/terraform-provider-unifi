@@ -344,7 +344,28 @@ func TestAccWLAN_minimum_data_rate(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_minimum_data_rate(vlanID),
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 5500, 18000),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 0, 18000),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 6000, 0),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 18000, 6000),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
@@ -627,7 +648,7 @@ resource "unifi_wlan" "test" {
 `, vlanID, wpa3Transition)
 }
 
-func testAccWLANConfig_minimum_data_rate(vlanID int) string {
+func testAccWLANConfig_minimum_data_rate(vlanID int, min2g int, min5g int) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {
 }
@@ -639,21 +660,22 @@ resource "unifi_network" "test" {
 	name    = "tfacc"
 	purpose = "corporate"
 
-	subnet        = cidrsubnet("10.0.0.0/8", 6, %[1]d)
-	vlan_id       = %[1]d
+	subnet  = cidrsubnet("10.0.0.0/8", 6, %[1]d)
+	vlan_id = %[1]d
 }
 
 resource "unifi_wlan" "test" {
 	name          = "tfacc-wpapsk"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
-	ap_group_ids = [data.unifi_ap_group.default.id]
+	ap_group_ids  = [data.unifi_ap_group.default.id]
 	user_group_id = data.unifi_user_group.default.id
 	security      = "wpapsk"
+
 	multicast_enhance = true
 
-	minimum_data_rate_2g = "5.5Mbps"
-	minimum_data_rate_5g = "18Mbps"
+	minimum_data_rate_2g_kbps = %[2]d
+	minimum_data_rate_5g_kbps = %[3]d
 }
-`, vlanID)
+`, vlanID, min2g, min5g)
 }
