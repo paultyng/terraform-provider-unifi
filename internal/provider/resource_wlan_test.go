@@ -327,6 +327,54 @@ func TestAccWLAN_wpa3(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_minimum_data_rate(t *testing.T) {
+	vlanID := getTestVLAN(t)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			preCheckV6Only(t)
+			wlanPreCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 5500, 18000),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 0, 18000),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 6000, 0),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 18000, 6000),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
 func testAccWLANConfig_wpapsk(vlanID int) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {
@@ -598,4 +646,36 @@ resource "unifi_wlan" "test" {
 	wpa3_transition = %[2]t
 }
 `, vlanID, wpa3Transition)
+}
+
+func testAccWLANConfig_minimum_data_rate(vlanID int, min2g int, min5g int) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {
+}
+
+data "unifi_user_group" "default" {
+}
+
+resource "unifi_network" "test" {
+	name    = "tfacc"
+	purpose = "corporate"
+
+	subnet  = cidrsubnet("10.0.0.0/8", 6, %[1]d)
+	vlan_id = %[1]d
+}
+
+resource "unifi_wlan" "test" {
+	name          = "tfacc-wpapsk"
+	network_id    = unifi_network.test.id
+	passphrase    = "12345678"
+	ap_group_ids  = [data.unifi_ap_group.default.id]
+	user_group_id = data.unifi_user_group.default.id
+	security      = "wpapsk"
+
+	multicast_enhance = true
+
+	minimum_data_rate_2g_kbps = %[2]d
+	minimum_data_rate_5g_kbps = %[3]d
+}
+`, vlanID, min2g, min5g)
 }

@@ -12,6 +12,11 @@ import (
 	"github.com/paultyng/go-unifi/unifi"
 )
 
+var (
+	wlanValidMinimumDataRate2g = []int{1000, 2000, 5500, 6000, 9000, 11000, 12000, 18000, 24000, 36000, 48000, 54000}
+	wlanValidMinimumDataRate5g = []int{6000, 9000, 12000, 18000, 24000, 36000, 48000, 54000}
+)
+
 func resourceWLAN() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_wlan` manages a WiFi network / SSID.",
@@ -160,6 +165,24 @@ func resourceWLAN() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 			},
+			"minimum_data_rate_2g_kbps": {
+				Description: "Set minimum data rate control for 2G devices, in Kbps. " +
+					"Use `0` to disable minimum data rates. " +
+					"Valid values are: " + markdownValueListInt(wlanValidMinimumDataRate2g) + ".",
+				Type:     schema.TypeInt,
+				Optional: true,
+				// TODO: this validation is from the UI, if other values work, perhaps remove this is set it to a range instead?
+				ValidateFunc: validation.IntInSlice(append([]int{0}, wlanValidMinimumDataRate2g...)),
+			},
+			"minimum_data_rate_5g_kbps": {
+				Description: "Set minimum data rate control for 5G devices, in Kbps. " +
+					"Use `0` to disable minimum data rates. " +
+					"Valid values are: " + markdownValueListInt(wlanValidMinimumDataRate5g) + ".",
+				Type:     schema.TypeInt,
+				Optional: true,
+				// TODO: this validation is from the UI, if other values work, perhaps remove this is set it to a range instead?
+				ValidateFunc: validation.IntInSlice(append([]int{0}, wlanValidMinimumDataRate5g...)),
+			},
 
 			// controller v6 fields
 			// TODO: this could be defaulted to "both" once v5 controller support is dropped
@@ -307,11 +330,18 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		Enabled:            true,
 		NameCombineEnabled: true,
 
-		GroupRekey:               3600,
-		DTIMMode:                 "default",
-		No2GhzOui:                d.Get("no2ghz_oui").(bool),
-		L2Isolation:              d.Get("l2_isolation").(bool),
-		UapsdEnabled:             d.Get("uapsd").(bool),
+		GroupRekey:   3600,
+		DTIMMode:     "default",
+		No2GhzOui:    d.Get("no2ghz_oui").(bool),
+		L2Isolation:  d.Get("l2_isolation").(bool),
+		UapsdEnabled: d.Get("uapsd").(bool),
+
+		MinrateNgEnabled:      d.Get("minimum_data_rate_2g_kbps").(int) != 0,
+		MinrateNgDataRateKbps: d.Get("minimum_data_rate_2g_kbps").(int),
+
+		MinrateNaEnabled:      d.Get("minimum_data_rate_5g_kbps").(int) != 0,
+		MinrateNaDataRateKbps: d.Get("minimum_data_rate_5g_kbps").(int),
+
 		MinrateNgCckRatesEnabled: true,
 	}, nil
 }
@@ -394,6 +424,16 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("no2ghz_oui", resp.No2GhzOui)
 	d.Set("l2_isolation", resp.L2Isolation)
 	d.Set("uapsd", resp.UapsdEnabled)
+	if resp.MinrateNgEnabled {
+		d.Set("minimum_data_rate_2g_kbps", resp.MinrateNgDataRateKbps)
+	} else {
+		d.Set("minimum_data_rate_2g_kbps", 0)
+	}
+	if resp.MinrateNaEnabled {
+		d.Set("minimum_data_rate_5g_kbps", resp.MinrateNaDataRateKbps)
+	} else {
+		d.Set("minimum_data_rate_5g_kbps", 0)
+	}
 
 	// switch v := c.ControllerVersion(); {
 	// case v.GreaterThanOrEqual(controllerV6):
