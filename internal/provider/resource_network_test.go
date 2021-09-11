@@ -287,6 +287,36 @@ func TestAccNetwork_importByName(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_dhcpRelay(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	vlanID := getTestVLAN(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			preCheckV6Only(t)
+		},
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkConfigDHCPRelay(name, vlanID, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_relay_enabled", "true"),
+				),
+			},
+			importStep("unifi_network.test"),
+			{
+				Config: testAccNetworkConfigDHCPRelay(name, vlanID, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_relay_enabled", "false"),
+				),
+			},
+			importStep("unifi_network.test"),
+		},
+	})
+}
+
 // TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
@@ -450,4 +480,24 @@ resource "unifi_network" "test2" {
 	vlan_id = local.vlan_id2
 }
 `, vlan1, vlan2, networkName)
+}
+
+func testAccNetworkConfigDHCPRelay(name string, vlan int, dhcpRelay bool) string {
+	return fmt.Sprintf(`
+locals {
+	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
+	vlan_id = %[2]d
+}
+
+resource "unifi_network" "test" {
+	name    = "%[1]s"
+	purpose = "corporate"
+
+	subnet      = local.subnet
+	vlan_id     = local.vlan_id
+	domain_name = "foo.local"
+	
+	dhcp_relay_enabled = %[3]t
+}
+`, name, vlan, dhcpRelay)
 }

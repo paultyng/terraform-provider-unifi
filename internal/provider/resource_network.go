@@ -3,10 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
@@ -135,6 +135,11 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"dhcp_relay_enabled": {
+				Description: "Specifies whether DHCP relay is enabled or not on this network.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
 			"domain_name": {
 				Description: "The domain name of this network.",
 				Type:        schema.TypeString,
@@ -236,7 +241,7 @@ func resourceNetwork() *schema.Resource {
 func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
-	req, err := resourceNetworkGetResourceData(d)
+	req, err := resourceNetworkGetResourceData(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -256,7 +261,9 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceNetworkSetResourceData(resp, d, site)
 }
 
-func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, error) {
+func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*unifi.Network, error) {
+	// c := meta.(*client)
+
 	vlan := d.Get("vlan_id").(int)
 	dhcpDNS, err := listToStringSlice(d.Get("dhcp_dns").([]interface{}))
 	if err != nil {
@@ -280,6 +287,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData) (*unifi.Network, err
 		DHCPDBootEnabled:  d.Get("dhcpd_boot_enabled").(bool),
 		DHCPDBootServer:   d.Get("dhcpd_boot_server").(string),
 		DHCPDBootFilename: d.Get("dhcpd_boot_filename").(string),
+		DHCPRelayEnabled:  d.Get("dhcp_relay_enabled").(bool),
 		DomainName:        d.Get("domain_name").(string),
 		IGMPSnooping:      d.Get("igmp_snooping").(bool),
 
@@ -386,6 +394,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("dhcpd_boot_enabled", resp.DHCPDBootEnabled)
 	d.Set("dhcpd_boot_server", resp.DHCPDBootServer)
 	d.Set("dhcpd_boot_filename", resp.DHCPDBootFilename)
+	d.Set("dhcp_relay_enabled", resp.DHCPRelayEnabled)
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
 	d.Set("dhcp_dns", dhcpDNS)
@@ -432,7 +441,7 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, meta inter
 func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
-	req, err := resourceNetworkGetResourceData(d)
+	req, err := resourceNetworkGetResourceData(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
