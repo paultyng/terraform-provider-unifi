@@ -54,6 +54,7 @@ resource "unifi_network" "wan" {
 - **dhcp_dns** (List of String) Specifies the IPv4 addresses for the DNS server to be returned from the DHCP server. Leave blank to disable this feature.
 - **dhcp_enabled** (Boolean) Specifies whether DHCP is enabled or not on this network.
 - **dhcp_lease** (Number) Specifies the lease time for DHCP addresses. Defaults to `86400`.
+- **dhcp_relay_enabled** (Boolean) Specifies whether DHCP relay is enabled or not on this network.
 - **dhcp_start** (String) The IPv4 address where the DHCP range of addresses starts.
 - **dhcp_stop** (String) The IPv4 address where the DHCP range of addresses stops.
 - **dhcpd_boot_enabled** (Boolean) Toggles on the DHCP boot options. Should be set to true when you want to have dhcpd_boot_filename, and dhcpd_boot_server to take effect.
