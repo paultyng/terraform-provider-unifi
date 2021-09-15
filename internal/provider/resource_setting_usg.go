@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -10,13 +11,23 @@ import (
 	"github.com/paultyng/go-unifi/unifi"
 )
 
+var resourceSettingUsgLock = sync.Mutex{}
+
+func resourceSettingUsgLocker(f func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics) func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics {
+	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+		resourceSettingUsgLock.Lock()
+		defer resourceSettingUsgLock.Unlock()
+		return f(ctx, d, meta)
+	}
+}
+
 func resourceSettingUsg() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_setting_usg` manages settings for a Unifi Security Gateway.",
 
-		CreateContext: resourceSettingUsgUpsert,
-		ReadContext:   resourceSettingUsgRead,
-		UpdateContext: resourceSettingUsgUpsert,
+		CreateContext: resourceSettingUsgLocker(resourceSettingUsgUpsert),
+		ReadContext:   resourceSettingUsgLocker(resourceSettingUsgRead),
+		UpdateContext: resourceSettingUsgLocker(resourceSettingUsgUpsert),
 		DeleteContext: schema.NoopContext,
 		Importer: &schema.ResourceImporter{
 			StateContext: importSiteAndID,

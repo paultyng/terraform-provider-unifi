@@ -2,13 +2,24 @@ package provider
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+// using an additional lock to the one around the resource to avoid deadlocking accidentally
+var settingUsgLock = sync.Mutex{}
+
 func TestAccSettingUsg_mdns(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			settingUsgLock.Lock()
+			t.Cleanup(func() {
+				settingUsgLock.Unlock()
+			})
+		},
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
@@ -32,6 +43,13 @@ func TestAccSettingUsg_mdns(t *testing.T) {
 
 func TestAccSettingUsg_dhcpRelay(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			settingUsgLock.Lock()
+			t.Cleanup(func() {
+				settingUsgLock.Unlock()
+			})
+		},
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
@@ -45,6 +63,13 @@ func TestAccSettingUsg_dhcpRelay(t *testing.T) {
 
 func TestAccSettingUsg_site(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			settingUsgLock.Lock()
+			t.Cleanup(func() {
+				settingUsgLock.Unlock()
+			})
+		},
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
