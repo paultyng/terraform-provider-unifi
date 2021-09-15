@@ -512,3 +512,15 @@ func (c *lazyClient) UpdateSettingMgmt(ctx context.Context, site string, d *unif
 	}
 	return c.inner.UpdateSettingMgmt(ctx, site, d)
 }
+func (c *lazyClient) GetSettingUsg(ctx context.Context, site string) (*unifi.SettingUsg, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetSettingUsg(ctx, site)
+}
+func (c *lazyClient) UpdateSettingUsg(ctx context.Context, site string, d *unifi.SettingUsg) (*unifi.SettingUsg, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateSettingUsg(ctx, site, d)
+}
