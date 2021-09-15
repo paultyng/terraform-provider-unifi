@@ -9,6 +9,9 @@ import (
 	"github.com/paultyng/go-unifi/unifi"
 )
 
+// TODO: probably need to update this to be more like setting_usg,
+// using locking, and upsert, more computed, etc.
+
 func resourceSettingMgmt() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_setting_mgmt` manages settings for a unifi site.",
