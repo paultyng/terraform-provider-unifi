@@ -8,6 +8,8 @@ services:
     ports:
       - '${UNIFI_HTTP_PORT:-8080}:8080/tcp'
       - '${UNIFI_HTTPS_PORT:-8443}:8443/tcp'
+    volumes:
+      - './scripts/init.d:/usr/local/unifi/init.d:ro'
 
   bootstrap:
     image: 'alpine/httpie'
