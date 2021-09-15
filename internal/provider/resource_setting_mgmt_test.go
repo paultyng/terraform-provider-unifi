@@ -1,13 +1,23 @@
 package provider
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var settingMgmtLock = sync.Mutex{}
+
 func TestAccSettingMgmt_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			settingMgmtLock.Lock()
+			t.Cleanup(func() {
+				settingMgmtLock.Unlock()
+			})
+		},
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
@@ -21,6 +31,13 @@ func TestAccSettingMgmt_basic(t *testing.T) {
 
 func TestAccSettingMgmt_site(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			settingMgmtLock.Lock()
+			t.Cleanup(func() {
+				settingMgmtLock.Unlock()
+			})
+		},
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
@@ -39,6 +56,13 @@ func TestAccSettingMgmt_site(t *testing.T) {
 
 func TestAccSettingMgmt_sshKeys(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			settingMgmtLock.Lock()
+			t.Cleanup(func() {
+				settingMgmtLock.Unlock()
+			})
+		},
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
