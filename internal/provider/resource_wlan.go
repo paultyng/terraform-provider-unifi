@@ -59,7 +59,7 @@ func resourceWLAN() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"wpapsk", "wpaeap", "open"}, false),
 			},
 			"wpa3_support": {
-				Description: "Enable WPA 3 support (security must be `wpapsk`).",
+				Description: "Enable WPA 3 support (security must be `wpapsk` and PMF must be turned on).",
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
@@ -67,6 +67,13 @@ func resourceWLAN() *schema.Resource {
 				Description: "Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).",
 				Type:        schema.TypeBool,
 				Optional:    true,
+			},
+			"pmf_mode": {
+				Description:  "Enable Protected Management Frames. This cannot be disabled if using WPA 3. Valid values are `required`, `optional` and `disabled`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"required", "optional", "disabled"}, false),
+				Default:      "disabled",
 			},
 			"passphrase": {
 				Description: "The passphrase for the network, this is only required if `security` is not set to `open`.",
@@ -216,6 +223,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		passphrase = ""
 	}
 
+	pmf := d.Get("pmf_mode").(string)
 	wpa3 := d.Get("wpa3_support").(bool)
 	wpa3Transition := d.Get("wpa3_transition").(bool)
 	switch security {
@@ -230,6 +238,12 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		if wpa3 || wpa3Transition {
 			return nil, fmt.Errorf("WPA 3 support is not available on controller version %q, you must be on %q or higher", v, controllerVersionWPA3)
 		}
+	}
+
+	if wpa3Transition && pmf == "disabled" {
+		return nil, fmt.Errorf("WPA 3 transition mode requires pmf_mode to be turned on.")
+	} else if wpa3 && !wpa3Transition && pmf != "required" {
+		return nil, fmt.Errorf("For WPA 3 you must set pmf_mode to required.")
 	}
 
 	macFilterEnabled := d.Get("mac_filter_enabled").(bool)
@@ -274,6 +288,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		Schedule:                schedule,
 		ScheduleEnabled:         len(schedule) > 0,
 		WLANBand:                wlanBand,
+		PMFMode:                 pmf,
 
 		// TODO: add to schema
 		WPAEnc:             "ccmp",
@@ -371,7 +386,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("uapsd", resp.UapsdEnabled)
 	d.Set("ap_group_ids", apGroupIDs)
 	d.Set("network_id", resp.NetworkID)
-
+	d.Set("pmf_mode", resp.PMFMode)
 	if resp.MinrateNgEnabled {
 		d.Set("minimum_data_rate_2g_kbps", resp.MinrateNgDataRateKbps)
 	} else {
