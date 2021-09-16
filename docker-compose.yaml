@@ -1,24 +1,24 @@
 ---
 services:
   unifi:
-    image: 'jacobalberty/unifi:${UNIFI_VERSION:?}'
+    image: "jacobalberty/unifi:${UNIFI_VERSION:?}"
     init: true
-    restart: 'always'
-    user: 'unifi'
+    restart: "always"
+    user: "unifi"
     ports:
-      - '${UNIFI_HTTP_PORT:-8080}:8080/tcp'
-      - '${UNIFI_HTTPS_PORT:-8443}:8443/tcp'
+      - "${UNIFI_HTTP_PORT:-8080}:8080/tcp"
+      - "${UNIFI_HTTPS_PORT:-8443}:8443/tcp"
     volumes:
-      - './scripts/init.d:/usr/local/unifi/init.d:ro'
+      - "./scripts/init.d:/usr/local/unifi/init.d:ro"
 
   bootstrap:
-    image: 'alpine/httpie'
+    image: "alpine/httpie"
     depends_on:
       unifi:
-        condition: 'service_healthy'
-    entrypoint: '/bin/sh'
+        condition: "service_healthy"
+    entrypoint: "/bin/sh"
     command:
-      - '-c'
+      - "-c"
       - |
         alias http='http --quiet --check-status --verify=no --ignore-stdin'
 
