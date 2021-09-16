@@ -42,6 +42,7 @@ resource "unifi_wlan" "wifi" {
   # enable WPA2/WPA3 support
   wpa3_support    = true
   wpa3_transition = true
+  pmf_mode        = "optional"
 
   network_id    = unifi_network.vlan.id
   ap_group_ids  = [data.unifi_ap_group.default.id]
@@ -73,12 +74,13 @@ resource "unifi_wlan" "wifi" {
 - **network_id** (String) ID of the network for this SSID
 - **no2ghz_oui** (Boolean) Connect high performance clients to 5 GHz only Defaults to `true`.
 - **passphrase** (String, Sensitive) The passphrase for the network, this is only required if `security` is not set to `open`.
+- **pmf_mode** (String) Enable Protected Management Frames. This cannot be disabled if using WPA 3. Valid values are `required`, `optional` and `disabled`. Defaults to `disabled`.
 - **radius_profile_id** (String) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
 - **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
 - **site** (String) The name of the site to associate the wlan with.
 - **uapsd** (Boolean) Enable Unscheduled Automatic Power Save Delivery Defaults to `false`.
 - **wlan_band** (String) Radio band your WiFi network will use.
-- **wpa3_support** (Boolean) Enable WPA 3 support (security must be `wpapsk`).
+- **wpa3_support** (Boolean) Enable WPA 3 support (security must be `wpapsk` and PMF must be turned on).
 - **wpa3_transition** (Boolean) Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).
 
 ### Read-Only

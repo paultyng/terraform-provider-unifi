@@ -53,7 +53,7 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_wpapsk(vlanID),
+				Config: testAccWLANConfig_wpapsk(vlanID, "disabled"),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
@@ -103,7 +103,7 @@ func TestAccWLAN_open(t *testing.T) {
 	})
 }
 
-func TestAccWLAN_change_security(t *testing.T) {
+func TestAccWLAN_change_security_and_pmf(t *testing.T) {
 	vlanID := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -119,7 +119,7 @@ func TestAccWLAN_change_security(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_wpapsk(vlanID),
+				Config: testAccWLANConfig_wpapsk(vlanID, "disabled"),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
@@ -133,11 +133,26 @@ func TestAccWLAN_change_security(t *testing.T) {
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_wpapsk(vlanID),
+				Config: testAccWLANConfig_wpapsk(vlanID, "optional"),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_wpapsk(vlanID, "required"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_wpapsk(vlanID, "disabled"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
 		},
 	})
 }
@@ -294,21 +309,21 @@ func TestAccWLAN_wpa3(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_wpa3(vlanID, false),
+				Config: testAccWLANConfig_wpa3(vlanID, false, "required"),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_wpa3(vlanID, true),
+				Config: testAccWLANConfig_wpa3(vlanID, true, "optional"),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_wpa3(vlanID, false),
+				Config: testAccWLANConfig_wpa3(vlanID, false, "required"),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
@@ -365,7 +380,7 @@ func TestAccWLAN_minimum_data_rate(t *testing.T) {
 	})
 }
 
-func testAccWLANConfig_wpapsk(vlanID int) string {
+func testAccWLANConfig_wpapsk(vlanID int, pmf string) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {
 }
@@ -390,8 +405,10 @@ resource "unifi_wlan" "test" {
 	security      = "wpapsk"
 	
 	multicast_enhance = true
+
+	pmf_mode = %[2]q
 }
-`, vlanID)
+`, vlanID, pmf)
 }
 
 func testAccWLANConfig_wpaeap(vlanID int) string {
@@ -608,7 +625,7 @@ resource "unifi_wlan" "test" {
 `, vlanID)
 }
 
-func testAccWLANConfig_wpa3(vlanID int, wpa3Transition bool) string {
+func testAccWLANConfig_wpa3(vlanID int, wpa3Transition bool, pmf string) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {
 }
@@ -634,8 +651,9 @@ resource "unifi_wlan" "test" {
 
 	wpa3_support    = true
 	wpa3_transition = %[2]t
+	pmf_mode        = %[3]q
 }
-`, vlanID, wpa3Transition)
+`, vlanID, wpa3Transition, pmf)
 }
 
 func testAccWLANConfig_minimum_data_rate(vlanID int, min2g int, min5g int) string {
