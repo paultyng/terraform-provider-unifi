@@ -27,6 +27,7 @@ resource "unifi_wlan" "wifi" {
   # enable WPA2/WPA3 support
   wpa3_support    = true
   wpa3_transition = true
+  pmf_mode        = "optional"
 
   network_id    = unifi_network.vlan.id
   ap_group_ids  = [data.unifi_ap_group.default.id]
