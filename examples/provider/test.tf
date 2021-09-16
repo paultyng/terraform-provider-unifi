@@ -1,2 +1,2 @@
-data "unifi_wlan_group" "default" {
+data "unifi_ap_group" "default" {
 }
