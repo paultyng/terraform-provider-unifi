@@ -310,8 +310,8 @@ github.com/nsf/jsondiff v0.0.0-20200515183724-f29ed568f4ce/go.mod h1:uFMI8w+ref4
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/run v1.1.0 h1:GEenZ1cK0+q0+wsJew9qUg/DyD8k3JzYsZAi5gYi2mA=
 github.com/oklog/run v1.1.0/go.mod h1:sVPdnTZT1zYwAJeCMu2Th4T21pA3FPOQRfWjQlk7DVU=
-github.com/paultyng/go-unifi v1.22.0 h1:HyY9VtXyisNomAkZH3nWYPtLN3RZp1Fwd/nseVEB3hw=
-github.com/paultyng/go-unifi v1.22.0/go.mod h1:elZdIVuBF3b/htOilTXIErNwEGpnFOM+k5713Am1Egw=
+github.com/paultyng/go-unifi v1.23.0 h1:2O+Cv7RKiS6hAfcazJ1qZ9m6Px34ywLw8aa2ueHB5Ck=
+github.com/paultyng/go-unifi v1.23.0/go.mod h1:elZdIVuBF3b/htOilTXIErNwEGpnFOM+k5713Am1Egw=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
