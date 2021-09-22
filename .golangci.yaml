@@ -1,0 +1,16 @@
+---
+linters:
+  disable-all: true
+  enable:
+    - "gofmt"
+    - "gosimple"
+    - "govet"
+    - "ineffassign"
+    - "makezero"
+    - "misspell"
+    - "nakedret"
+    - "nilerr"
+    - "staticcheck"
+    - "structcheck"
+    - "unconvert"
+    - "unused"
