@@ -307,8 +307,6 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 
 		MinrateNaEnabled:      d.Get("minimum_data_rate_5g_kbps").(int) != 0,
 		MinrateNaDataRateKbps: d.Get("minimum_data_rate_5g_kbps").(int),
-
-		MinrateNgCckRatesEnabled: true,
 	}, nil
 }
 
