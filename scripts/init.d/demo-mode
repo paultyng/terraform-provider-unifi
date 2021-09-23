@@ -6,3 +6,8 @@ write_config() {
 
 write_config demo.skip_wizard false
 write_config is_simulation true
+
+# Increase the number of demo devices to allow more concurrent tests to be executed simultaneously.
+write_config demo.num_uap 20
+write_config demo.num_ugw 20
+write_config demo.num_usw 20
