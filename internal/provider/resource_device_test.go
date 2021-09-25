@@ -3,13 +3,52 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net"
 	"regexp"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/paultyng/go-unifi/unifi"
 )
+
+var (
+	deviceLock       sync.Mutex
+	devicesAvailable []string
+)
+
+func allocateDevice(t *testing.T) (device string) {
+	deviceLock.Lock()
+	defer deviceLock.Unlock()
+
+	if len(devicesAvailable) == 0 {
+		t.Fatal("Unable to allocate test device")
+	}
+
+	device, devicesAvailable = devicesAvailable[0], devicesAvailable[1:]
+	return
+}
+
+func unallocateDevice(t *testing.T, device string) {
+	deviceLock.Lock()
+	defer deviceLock.Unlock()
+
+	devicesAvailable = append(devicesAvailable, device)
+}
+
+func init() {
+	deviceLock.Lock()
+	defer deviceLock.Unlock()
+
+	devicesAvailable = []string{}
+	deviceCount := 20
+
+	for i := 0; i < deviceCount; i++ {
+		mac := net.HardwareAddr{0x00, 0x27, 0x22, 0x00, 0x00, byte(0x01 + i)}
+		devicesAvailable = append(devicesAvailable, mac.String())
+	}
+}
 
 func preCheckDeviceExists(t *testing.T, site, mac string) {
 	_, err := testClient.GetDeviceByMAC(context.Background(), site, mac)
@@ -36,7 +75,9 @@ func TestAccDevice_empty(t *testing.T) {
 func TestAccDevice_switch_basic(t *testing.T) {
 	resourceName := "unifi_device.test"
 	site := "default"
-	switchMAC := "00:27:22:00:00:01"
+
+	switchMAC := allocateDevice(t)
+	defer unallocateDevice(t, switchMAC)
 
 	importStateVerifyIgnore := []string{"allow_adoption", "forget_on_destroy"}
 
@@ -89,7 +130,9 @@ func TestAccDevice_switch_basic(t *testing.T) {
 func TestAccDevice_switch_portOverrides(t *testing.T) {
 	resourceName := "unifi_device.test"
 	site := "default"
-	switchMAC := "00:27:22:00:00:02"
+
+	switchMAC := allocateDevice(t)
+	defer unallocateDevice(t, switchMAC)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
