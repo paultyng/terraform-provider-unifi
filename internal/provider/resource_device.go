@@ -367,9 +367,26 @@ func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interf
 		Refresh: func() (interface{}, string, error) {
 			device, err := c.c.GetDeviceByMAC(ctx, site, mac)
 
+			if _, ok := err.(*unifi.NotFoundError); ok {
+				err = nil
+			}
+
+			// When a device is forgotten, it will disappear from the UI for a few seconds before reappearing.
+			// During this time, `device.GetDeviceByMAC` will return a 400.
+			//
+			// TODO: Improve handling of this situation in `go-unifi`.
+			if err != nil && strings.Contains(err.Error(), "api.err.UnknownDevice") {
+				err = nil
+			}
+
 			var state string
 			if device != nil {
 				state = device.State.String()
+			}
+
+			// TODO: Why is this needed???
+			if device == nil {
+				return nil, state, err
 			}
 
 			return device, state, err
