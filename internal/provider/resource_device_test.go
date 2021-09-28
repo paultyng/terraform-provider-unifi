@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net"
 	"regexp"
+	"strings"
 	"sync"
 	"testing"
 
@@ -14,13 +14,31 @@ import (
 )
 
 var (
-	deviceLock       sync.Mutex
-	devicesAvailable []string
+	deviceLock         sync.Mutex
+	devicesAvailable   []string
+	devicesInitialized bool = false
 )
 
 func allocateDevice(t *testing.T) (device string) {
 	deviceLock.Lock()
 	defer deviceLock.Unlock()
+
+	if !devicesInitialized {
+		devicesAvailable = []string{}
+		devicesInitialized = true
+		
+		devices, err := testClient.ListDevice(context.Background(), "default")
+		if err != nil {
+			t.Fatalf("Error listing devices: %s", err)
+		}
+
+		for _, device := range devices {
+			// TODO: Check device type instead of MAC address.
+			if strings.HasPrefix(device.MAC, "00:27:22:") {
+				devicesAvailable = append(devicesAvailable, device.MAC)
+			}
+		}
+	}
 
 	if len(devicesAvailable) == 0 {
 		t.Fatal("Unable to allocate test device")
@@ -35,19 +53,6 @@ func unallocateDevice(t *testing.T, device string) {
 	defer deviceLock.Unlock()
 
 	devicesAvailable = append(devicesAvailable, device)
-}
-
-func init() {
-	deviceLock.Lock()
-	defer deviceLock.Unlock()
-
-	devicesAvailable = []string{}
-	deviceCount := 20
-
-	for i := 0; i < deviceCount; i++ {
-		mac := net.HardwareAddr{0x00, 0x27, 0x22, 0x00, 0x00, byte(0x01 + i)}
-		devicesAvailable = append(devicesAvailable, mac.String())
-	}
 }
 
 func preCheckDeviceExists(t *testing.T, site, mac string) {
