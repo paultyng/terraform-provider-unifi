@@ -316,6 +316,32 @@ func TestAccNetwork_dhcpRelay(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_vlanOnly(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkVlanOnly(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "101"),
+				),
+			},
+			{
+				ResourceName:      "unifi_network.test",
+				ImportState:       true,
+				ImportStateIdFunc: siteAndIDImportStateIDFunc("unifi_network.test"),
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 // TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
@@ -499,4 +525,19 @@ resource "unifi_network" "test" {
 	dhcp_relay_enabled = %[3]t
 }
 `, name, vlan, dhcpRelay)
+}
+
+func testAccNetworkVlanOnly(name string) string {
+	return fmt.Sprintf(`
+resource "unifi_site" "test" {
+  description = "%[1]s"
+}
+
+resource "unifi_network" "test" {
+  site    = unifi_site.test.name
+  name    = "test"
+  purpose = "vlan-only"
+  vlan_id = 101
+}
+`, name)
 }
