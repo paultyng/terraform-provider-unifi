@@ -14,7 +14,7 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v2"
+      - uses: "actions/checkout@v2.3.5"
       - uses: "actions/cache@v2"
         with:
           path: "~/go/pkg/mod"
@@ -30,5 +30,5 @@ jobs:
   lint:
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v2"
+      - uses: "actions/checkout@v2.3.5"
       - uses: "golangci/golangci-lint-action@v2"
