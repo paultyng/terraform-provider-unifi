@@ -12,7 +12,7 @@ import (
 
 func resourceRadiusProfile() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_setting_radius` manages settings for the built-in RADIUS server.",
+		Description: "`unifi_radius_profile` manages radius profiles.",
 
 		CreateContext: resourceRadiusProfileCreate,
 		ReadContext:   resourceRadiusProfileRead,

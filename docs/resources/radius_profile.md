@@ -3,12 +3,12 @@
 page_title: "unifi_radius_profile Resource - terraform-provider-unifi"
 subcategory: ""
 description: |-
-  unifi_setting_radius manages settings for the built-in RADIUS server.
+  unifi_radius_profile manages radius profiles.
 ---
 
 # unifi_radius_profile (Resource)
 
-`unifi_setting_radius` manages settings for the built-in RADIUS server.
+`unifi_radius_profile` manages radius profiles.
 
 
 
