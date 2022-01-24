@@ -90,6 +90,7 @@ func New(version string) func() *schema.Provider {
 				"unifi_user_group":     resourceUserGroup(),
 				"unifi_user":           resourceUser(),
 				"unifi_wlan":           resourceWLAN(),
+				"unifi_radiusprofile":  resourceRadiusProfile(),
 
 				"unifi_setting_mgmt":   resourceSettingMgmt(),
 				"unifi_setting_usg":    resourceSettingUsg(),
