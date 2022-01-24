@@ -184,10 +184,6 @@ func TestAccWLAN_schedule(t *testing.T) {
 }
 
 func TestAccWLAN_wpaeap(t *testing.T) {
-	if os.Getenv("UNIFI_TEST_RADIUS") == "" {
-		t.Skip("UNIFI_TEST_RADIUS not set, skipping RADIUS test")
-	}
-
 	vlanID := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -427,6 +423,11 @@ data "unifi_user_group" "default" {
 }
 
 data "unifi_radius_profile" "default" {
+}
+
+resource "unifi_setting_radius" "this" {
+	enabled = true
+	secret = "securepw"
 }
 
 resource "unifi_network" "test" {
