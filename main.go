@@ -1,9 +1,7 @@
 package main // import "github.com/paultyng/terraform-provider-unifi"
 
 import (
-	"context"
 	"flag"
-	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 
@@ -31,12 +29,8 @@ func main() {
 	opts := &plugin.ServeOpts{ProviderFunc: provider.New(version)}
 
 	if debugMode {
-		// TODO: update this string with the full name of your provider as used in your configs
-		err := plugin.Debug(context.Background(), "registry.terraform.io/paultyng/unifi", opts)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		return
+		opts.Debug = true
+		opts.ProviderAddr = "registry.terraform.io/paultyng/unifi"
 	}
 
 	plugin.Serve(opts)
