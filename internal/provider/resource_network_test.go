@@ -96,7 +96,7 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 			{
 				Config: testAccNetworkConfig(name, vlanID, true, nil),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckNoResourceAttr("unifi_network.test", "dhcp_dns"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.#", "0"),
 				),
 			},
 			{
