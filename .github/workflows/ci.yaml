@@ -34,4 +34,4 @@ jobs:
       - uses: "actions/setup-go@v3"
         with:
           go-version: "${{ env.GO_VERSION }}"
-      - uses: "golangci/golangci-lint-action@v3.1.0"
+      - uses: "golangci/golangci-lint-action@v3.2.0"
