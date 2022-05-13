@@ -273,6 +273,17 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert wan_dns to string slice: %w", err)
 	}
+	purpose := d.Get("purpose").(string)
+
+	wanType := d.Get("wan_type").(string)
+	wanIP := d.Get("wan_ip").(string)
+	wanNetmask := d.Get("wan_netmask").(string)
+	wanGateway := d.Get("wan_gateway").(string)
+	if purpose != "wan" {
+		if wanNetmask != "" || wanGateway != "" || wanIP != "" || wanType != "" || len(wanDNS) > 0 {
+			return nil, fmt.Errorf(`wan_dns, wan_type, wan_ip, wan_netmask, and wan_gateway can only be used when the purpose is "wan"`)
+		}
+	}
 
 	return &unifi.Network{
 		Name:              d.Get("name").(string),
@@ -308,10 +319,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
 		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
 
-		WANIP:           d.Get("wan_ip").(string),
-		WANType:         d.Get("wan_type").(string),
-		WANNetmask:      d.Get("wan_netmask").(string),
-		WANGateway:      d.Get("wan_gateway").(string),
+		WANIP:           wanIP,
+		WANType:         wanType,
+		WANNetmask:      wanNetmask,
+		WANGateway:      wanGateway,
 		WANNetworkGroup: d.Get("wan_networkgroup").(string),
 		WANEgressQOS:    d.Get("wan_egress_qos").(int),
 		WANUsername:     d.Get("wan_username").(string),
@@ -332,7 +343,8 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	wanNetmask := ""
 	wanGateway := ""
 
-	if resp.Purpose == "wan" {
+	switch resp.Purpose {
+	case "wan":
 		wanType = resp.WANType
 
 		for _, dns := range []string{

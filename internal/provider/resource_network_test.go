@@ -342,6 +342,36 @@ func TestAccNetwork_vlanOnly(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_wanGateway(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkWanGateway(name, "null"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "wan_gateway", ""),
+				),
+			},
+			{
+				ResourceName:      "unifi_network.test",
+				ImportState:       true,
+				ImportStateIdFunc: siteAndIDImportStateIDFunc("unifi_network.test"),
+				ImportStateVerify: true,
+			},
+			{
+				Config:      testAccNetworkWanGateway(name, `""`),
+				ExpectError: regexp.MustCompile("expected wan_gateway to contain a valid IPv4 address"),
+			},
+		},
+	})
+}
+
 // TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
@@ -540,4 +570,20 @@ resource "unifi_network" "test" {
   vlan_id = 101
 }
 `, name)
+}
+
+func testAccNetworkWanGateway(site string, wanGatewayHCL string) string {
+	return fmt.Sprintf(`
+resource "unifi_site" "test" {
+  description = "%[1]s"
+}
+
+resource "unifi_network" "test" {
+  site    = unifi_site.test.name
+  name       = "test"
+  purpose = "vlan-only"
+  vlan_id    = 107
+  wan_gateway = %[2]s
+}
+`, site, wanGatewayHCL)
 }
