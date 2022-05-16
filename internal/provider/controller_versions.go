@@ -8,6 +8,7 @@ import (
 
 var (
 	controllerV6 = version.Must(version.NewVersion("6.0.0"))
+	controllerV7 = version.Must(version.NewVersion("7.0.0"))
 
 	// https://community.ui.com/releases/UniFi-Network-Controller-6-1-61/62f1ad38-1ac5-430c-94b0-becbb8f71d7d
 	controllerVersionWPA3 = version.Must(version.NewVersion("6.1.61"))

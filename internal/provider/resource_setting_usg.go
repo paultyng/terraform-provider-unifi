@@ -90,7 +90,15 @@ func resourceSettingUsg() *schema.Resource {
 }
 
 func resourceSettingUsgUpdateResourceData(d *schema.ResourceData, meta interface{}, setting *unifi.SettingUsg) error {
-	setting.MdnsEnabled = d.Get("multicast_dns_enabled").(bool)
+	c := meta.(*client)
+
+	if mdns, hasMdns := d.GetOkExists("multicast_dns_enabled"); hasMdns {
+		if v := c.ControllerVersion(); v.GreaterThanOrEqual(controllerV7) {
+			return fmt.Errorf("multicast_dns_enabled is not supported on controller version %v", c.ControllerVersion())
+		}
+
+		setting.MdnsEnabled = mdns.(bool)
+	}
 
 	setting.FirewallGuestDefaultLog = d.Get("firewall_guest_default_log").(bool)
 	setting.FirewallLanDefaultLog = d.Get("firewall_lan_default_log").(bool)
