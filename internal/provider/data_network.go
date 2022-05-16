@@ -185,6 +185,31 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"wan_type_v6": {
+				Description: "Specifies the IPV6 WAN connection type. Must be one of either `disabled`, `static`, or `dhcpv6`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_dhcpv6_pd_size": {
+				Description: "Specifies the IPv6 prefix size to request from ISP. Must be a number between 48 and 64.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+			"wan_ipv6": {
+				Description: "The IPv6 address of the WAN.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_gateway_v6": {
+				Description: "The IPv6 gateway of the WAN.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_prefixlen": {
+				Description: "The IPv6 prefix length of the WAN. Must be between 1 and 128.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
 		},
 	}
 }
@@ -264,6 +289,11 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 			d.Set("wan_egress_qos", n.WANEgressQOS)
 			d.Set("wan_username", n.WANUsername)
 			d.Set("x_wan_password", n.XWANPassword)
+			d.Set("wan_type_v6", n.WANTypeV6)
+			d.Set("wan_dhcpv6_pd_size", n.WANDHCPv6PDSize)
+			d.Set("wan_ipv6", n.WANIPV6)
+			d.Set("wan_gateway_v6", n.WANGatewayV6)
+			d.Set("wan_prefixlen", n.WANPrefixlen)
 
 			return nil
 		}

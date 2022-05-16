@@ -19,6 +19,9 @@ var (
 	wanTypeRegexp   = regexp.MustCompile("disabled|dhcp|static|pppoe")
 	validateWANType = validation.StringMatch(wanTypeRegexp, "invalid WAN connection type")
 
+	wanTypeV6Regexp   = regexp.MustCompile("disabled|dhcpv6|static")
+	validateWANTypeV6 = validation.StringMatch(wanTypeV6Regexp, "invalid WANv6 connection type")
+
 	wanPasswordRegexp   = regexp.MustCompile("[^\"' ]+")
 	validateWANPassword = validation.StringMatch(wanPasswordRegexp, "invalid WAN password")
 
@@ -246,6 +249,36 @@ func resourceNetwork() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateWANPassword,
 			},
+			"wan_type_v6": {
+				Description:  "Specifies the IPV6 WAN connection type. Must be one of either `disabled`, `static`, or `dhcpv6`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANTypeV6,
+			},
+			"wan_dhcpv6_pd_size": {
+				Description:  "Specifies the IPv6 prefix size to request from ISP. Must be between 48 and 64.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(48, 64),
+			},
+			"wan_ipv6": {
+				Description:  "The IPv6 address of the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
+			"wan_gateway_v6": {
+				Description:  "The IPv6 gateway of the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
+			"wan_prefixlen": {
+				Description:  "The IPv6 prefix length of the WAN. Must be between 1 and 128.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(1, 128),
+			},
 		},
 	}
 }
@@ -331,6 +364,12 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		WANEgressQOS:    d.Get("wan_egress_qos").(int),
 		WANUsername:     d.Get("wan_username").(string),
 		XWANPassword:    d.Get("x_wan_password").(string),
+
+		WANTypeV6:       d.Get("wan_type_v6").(string),
+		WANDHCPv6PDSize: d.Get("wan_dhcpv6_pd_size").(int),
+		WANIPV6:         d.Get("wan_ipv6").(string),
+		WANGatewayV6:    d.Get("wan_gateway_v6").(string),
+		WANPrefixlen:    d.Get("wan_prefixlen").(int),
 
 		// this is kinda hacky but ¯\_(ツ)_/¯
 		WANDNS1: append(wanDNS, "")[0],
@@ -429,6 +468,11 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("wan_egress_qos", resp.WANEgressQOS)
 	d.Set("wan_username", resp.WANUsername)
 	d.Set("x_wan_password", resp.XWANPassword)
+	d.Set("wan_type_v6", resp.WANTypeV6)
+	d.Set("wan_dhcpv6_pd_size", resp.WANDHCPv6PDSize)
+	d.Set("wan_ipv6", resp.WANIPV6)
+	d.Set("wan_gateway_v6", resp.WANGatewayV6)
+	d.Set("wan_prefixlen", resp.WANPrefixlen)
 
 	return nil
 }

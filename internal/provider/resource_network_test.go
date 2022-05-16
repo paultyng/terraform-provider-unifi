@@ -198,6 +198,21 @@ func TestAccNetwork_wan(t *testing.T) {
 				),
 			},
 			importStep("unifi_network.wan_test"),
+			{
+				Config:      testWanV6NetworkConfig(name, "dhcpv6", 47),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta("expected wan_dhcpv6_pd_size to be in the range (48 - 64)")),
+			},
+			{
+				Config:      testWanV6NetworkConfig(name, "invalid", 48),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta("invalid value for wan_type_v6")),
+			},
+			{
+				Config: testWanV6NetworkConfig(name, "dhcpv6", 48),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type_v6", "dhcpv6"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dhcpv6_pd_size", "48"),
+				),
+			},
 		},
 	})
 }
@@ -451,6 +466,26 @@ output "wan_dns2" {
 	value = unifi_network.wan_test.wan_dns[1]
 }
 `, name, networkGroup, wanType, wanIP, wanEgressQOS, wanUsername, wanPassword, wanDNS1, wanDNS2)
+}
+
+func testWanV6NetworkConfig(name string, wanTypeV6 string, wanDhcpV6PdSize int) string {
+	return fmt.Sprintf(`
+resource "unifi_network" "wan_test" {
+	name             = "%s"
+	purpose          = "wan"
+	wan_networkgroup = "WAN"
+	wan_type         = "pppoe"
+	wan_ip           = "192.168.1.1"
+	wan_egress_qos   = 1
+	wan_username     = "username"
+	x_wan_password   = "password"
+
+	wan_dns = ["8.8.8.8", "4.4.4.4"]
+
+	wan_type_v6 = "%s"
+	wan_dhcpv6_pd_size = %d
+}
+`, name, wanTypeV6, wanDhcpV6PdSize)
 }
 
 func testAccNetworkWithSiteConfig(name string, vlan int) string {
