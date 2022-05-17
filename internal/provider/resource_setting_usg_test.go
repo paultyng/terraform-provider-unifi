@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -11,10 +12,11 @@ import (
 // using an additional lock to the one around the resource to avoid deadlocking accidentally
 var settingUsgLock = sync.Mutex{}
 
-func TestAccSettingUsg_mdns(t *testing.T) {
+func TestAccSettingUsg_mdns_v6(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
+			preCheckVersionConstraint(t, "< 7")
 			settingUsgLock.Lock()
 			t.Cleanup(func() {
 				settingUsgLock.Unlock()
@@ -37,6 +39,26 @@ func TestAccSettingUsg_mdns(t *testing.T) {
 				Check:  resource.ComposeTestCheckFunc(),
 			},
 			importStep("unifi_setting_usg.test"),
+		},
+	})
+}
+
+func TestAccSettingUsg_mdns_v7(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			preCheckVersionConstraint(t, ">= 7")
+			settingUsgLock.Lock()
+			t.Cleanup(func() {
+				settingUsgLock.Unlock()
+			})
+		},
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccSettingUsgConfig_mdns(true),
+				ExpectError: regexp.MustCompile("multicast_dns_enabled is not supported"),
+			},
 		},
 	})
 }
@@ -113,8 +135,6 @@ resource "unifi_site" "test" {
 
 resource "unifi_setting_usg" "test" {
 	site = unifi_site.test.name
-
-	multicast_dns_enabled = true
 }
 `
 }
