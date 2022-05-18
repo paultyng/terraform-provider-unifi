@@ -52,7 +52,7 @@ data "unifi_network" "my_network" {
 - `ipv6_pd_interface` (String) Specifies which WAN interface is used for IPv6 Prefix Delegation.
 - `ipv6_pd_prefixid` (String) Specifies the IPv6 Prefix ID.
 - `ipv6_ra_enable` (Boolean) Specifies whether to enable router advertisements or not.
-- `ipv6_static_subnet` (String) Specifies the static IPv6 subnet (when ipv6_interface_type is 'static').
+- `ipv6_subnet` (String) Specifies the static IPv6 subnet (when ipv6_interface_type is 'static').
 - `network_group` (String) The group of the network.
 - `purpose` (String) The purpose of the network. One of `corporate`, `guest`, `wan`, or `vlan-only`.
 - `subnet` (String) The subnet of the network (CIDR address).

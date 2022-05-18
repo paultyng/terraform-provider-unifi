@@ -117,7 +117,7 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
-			"ipv6_static_subnet": {
+			"ipv6_subnet": {
 				Description: "Specifies the static IPv6 subnet (when ipv6_interface_type is 'static').",
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -276,7 +276,7 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 			d.Set("igmp_snooping", n.IGMPSnooping)
 			d.Set("dhcp_dns", dhcpDNS)
 			d.Set("ipv6_interface_type", n.IPV6InterfaceType)
-			d.Set("ipv6_static_subnet", n.IPV6Subnet)
+			d.Set("ipv6_subnet", n.IPV6Subnet)
 			d.Set("ipv6_pd_interface", n.IPV6PDInterface)
 			d.Set("ipv6_pd_prefixid", n.IPV6PDPrefixid)
 			d.Set("ipv6_ra_enable", n.IPV6RaEnabled)

@@ -144,7 +144,7 @@ func TestAccNetwork_v6(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID1)),
-					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e362::1/64"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_subnet", "fd6a:37be:e362::1/64"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -152,7 +152,7 @@ func TestAccNetwork_v6(t *testing.T) {
 				Config: testAccNetworkConfigV6(name, vlanID2, "static", "fd6a:37be:e363::1/64"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID2)),
-					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e363::1/64"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_subnet", "fd6a:37be:e363::1/64"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -437,7 +437,7 @@ resource "unifi_network" "test" {
 	domain_name   = "foo.local"
 
 	ipv6_interface_type = "%[3]s"
-	ipv6_static_subnet  = "%[4]s"
+	ipv6_subnet  = "%[4]s"
 	ipv6_ra_enable      = true
 }
 `, name, vlan, ipv6Type, ipv6Subnet)

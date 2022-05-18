@@ -68,7 +68,7 @@ resource "unifi_network" "wan" {
 - `ipv6_pd_interface` (String) Specifies which WAN interface to use for IPv6 PD.
 - `ipv6_pd_prefixid` (String) Specifies the IPv6 Prefix ID.
 - `ipv6_ra_enable` (Boolean) Specifies whether to enable router advertisements or not.
-- `ipv6_static_subnet` (String) Specifies the static IPv6 subnet when ipv6_interface_type is 'static'.
+- `ipv6_subnet` (String) Specifies the static IPv6 subnet when `ipv6_interface_type` is 'static'.
 - `network_group` (String) The group of the network. Defaults to `LAN`.
 - `site` (String) The name of the site to associate the network with.
 - `subnet` (String) The subnet of the network. Must be a valid CIDR address.
