@@ -27,6 +27,12 @@ var (
 
 	wanNetworkGroupRegexp   = regexp.MustCompile("WAN[2]?|WAN_LTE_FAILOVER")
 	validateWANNetworkGroup = validation.StringMatch(wanNetworkGroupRegexp, "invalid WAN network group")
+
+	wanV6NetworkGroupRegexp   = regexp.MustCompile("wan[2]?")
+	validateWANV6NetworkGroup = validation.StringMatch(wanV6NetworkGroupRegexp, "invalid WANv6 network group")
+
+	ipV6InterfaceTypeRegexp   = regexp.MustCompile("none|pd|static")
+	validateIpV6InterfaceType = validation.StringMatch(ipV6InterfaceTypeRegexp, "invalid IPv6 interface type")
 )
 
 func resourceNetwork() *schema.Resource {
@@ -154,10 +160,11 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 			},
 			"ipv6_interface_type": {
-				Description: "Specifies which type of IPv6 connection to use.",
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "none",
+				Description:  "Specifies which type of IPv6 connection to use. Must be one of either `static`, `pd`, or `none`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "none",
+				ValidateFunc: validateIpV6InterfaceType,
 			},
 			"ipv6_subnet": {
 				Description: "Specifies the static IPv6 subnet when `ipv6_interface_type` is 'static'.",
@@ -165,9 +172,10 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 			},
 			"ipv6_pd_interface": {
-				Description: "Specifies which WAN interface to use for IPv6 PD.",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description:  "Specifies which WAN interface to use for IPv6 PD. Must be one of either `wan` or `wan2`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANV6NetworkGroup,
 			},
 			"ipv6_pd_prefixid": {
 				Description: "Specifies the IPv6 Prefix ID.",

@@ -113,7 +113,7 @@ func dataNetwork() *schema.Resource {
 				Computed:    true,
 			},
 			"ipv6_interface_type": {
-				Description: "Specifies which type of IPv6 connection to use.",
+				Description: "Specifies which type of IPv6 connection to use. Must be one of either `static`, `pd`, or `none`.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
@@ -123,7 +123,7 @@ func dataNetwork() *schema.Resource {
 				Computed:    true,
 			},
 			"ipv6_pd_interface": {
-				Description: "Specifies which WAN interface is used for IPv6 Prefix Delegation.",
+				Description: "Specifies which WAN interface to use for IPv6 PD. Must be one of either `wan` or `wan2`.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
