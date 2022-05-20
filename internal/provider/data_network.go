@@ -102,6 +102,40 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"dhcpdv6_dns": {
+				Description: "Specifies the IPv6 addresses for the DNS server to be returned from the DHCP " +
+					"server. Used if `dhcpdv6_dns_auto` is set to `false`.",
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"dhcpdv6_dns_auto": {
+				Description: "Specifies DNS source to propagate. If set `false` the entries in `dhcpdv6_dns` are used, the upstream entries otherwise",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"dhcpdv6_enabled": {
+				Description: "Enable stateful DHCPv6 for static configuration.",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"dhcpdv6_leasetime": {
+				Description: "Specifies the lease time for DHCPv6 addresses.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+			"dhcpdv6_start": {
+				Description: "Start address of the DHCPv6 range. Used in static DHCPv6 configuration.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"dhcpdv6_stop": {
+				Description: "End address of the DHCPv6 range. Used in static DHCPv6 configuration.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"domain_name": {
 				Description: "The domain name of this network.",
 				Type:        schema.TypeString,
@@ -132,9 +166,34 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"ipv6_pd_start": {
+				Description: "Start address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"ipv6_pd_stop": {
+				Description: "End address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"ipv6_ra_enable": {
 				Description: "Specifies whether to enable router advertisements or not.",
 				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"ipv6_ra_preferred_lifetime": {
+				Description: "Lifetime in which the address can be used. Address becomes deprecated afterwards. Must be lower than or equal to `ipv6_ra_valid_lifetime`",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+			"ipv6_ra_priority": {
+				Description: "IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"ipv6_ra_valid_lifetime": {
+				Description: "Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.",
+				Type:        schema.TypeInt,
 				Computed:    true,
 			},
 			"wan_ip": {

@@ -149,6 +149,46 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"dhcpdv6_dns": {
+				Description: "Specifies the IPv6 addresses for the DNS server to be returned from the DHCP " +
+					"server. Used if `dhcpdv6_dns_auto` is set to `false`.",
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 4,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.IsIPv6Address,
+				},
+			},
+			"dhcpdv6_dns_auto": {
+				Description: "Specifies DNS source to propagate. If set `false` the entries in `dhcpdv6_dns` are used, the upstream entries otherwise",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
+			"dhcpdv6_enabled": {
+				Description: "Enable stateful DHCPv6 for static configuration.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"dhcpdv6_leasetime": {
+				Description: "Specifies the lease time for DHCPv6 addresses.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     86400,
+			},
+			"dhcpdv6_start": {
+				Description:  "Start address of the DHCPv6 range. Used in static DHCPv6 configuration.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
+			"dhcpdv6_stop": {
+				Description:  "End address of the DHCPv6 range. Used in static DHCPv6 configuration.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
 			"domain_name": {
 				Description: "The domain name of this network.",
 				Type:        schema.TypeString,
@@ -182,6 +222,18 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"ipv6_pd_start": {
+				Description:  "Start address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
+			"ipv6_pd_stop": {
+				Description:  "End address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
 			"ipv6_ra_enable": {
 				Description: "Specifies whether to enable router advertisements or not.",
 				Type:        schema.TypeBool,
@@ -198,6 +250,23 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
+			"ipv6_ra_preferred_lifetime": {
+				Description: "Lifetime in which the address can be used. Address becomes deprecated afterwards. Must be lower than or equal to `ipv6_ra_valid_lifetime`",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     14400,
+			},
+			"ipv6_ra_priority": {
+				Description:  "IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			"ipv6_ra_valid_lifetime": {
+				Description: "Total lifetime in which the adress can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     86400,
 			},
 			"wan_ip": {
 				Description:  "The IPv4 address of the WAN.",
@@ -322,6 +391,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert dhcp_dns to string slice: %w", err)
 	}
+	dhcpV6DNS, err := listToStringSlice(d.Get("dhcpdv6_dns").([]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert dhcpdv6_dns to string slice: %w", err)
+	}
 	wanDNS, err := listToStringSlice(d.Get("wan_dns").([]interface{}))
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert wan_dns to string slice: %w", err)
@@ -355,11 +428,28 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 
 		Enabled: true,
 
-		IPV6InterfaceType: d.Get("ipv6_interface_type").(string),
-		IPV6Subnet:        d.Get("ipv6_subnet").(string),
-		IPV6PDInterface:   d.Get("ipv6_pd_interface").(string),
-		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
-		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
+		// Same hackish code as for DHCPv4 ¯\_(ツ)_/¯
+		DHCPDV6DNS1: append(dhcpV6DNS, "")[0],
+		DHCPDV6DNS2: append(dhcpV6DNS, "", "")[1],
+		DHCPDV6DNS3: append(dhcpV6DNS, "", "", "")[2],
+		DHCPDV6DNS4: append(dhcpV6DNS, "", "", "", "")[3],
+
+		DHCPDV6DNSAuto:   d.Get("dhcpdv6_dns_auto").(bool),
+		DHCPDV6Enabled:   d.Get("dhcpdv6_enabled").(bool),
+		DHCPDV6LeaseTime: d.Get("dhcpdv6_leasetime").(int),
+		DHCPDV6Start:     d.Get("dhcpdv6_start").(string),
+		DHCPDV6Stop:      d.Get("dhcpdv6_stop").(string),
+
+		IPV6InterfaceType:       d.Get("ipv6_interface_type").(string),
+		IPV6Subnet:              d.Get("ipv6_subnet").(string),
+		IPV6PDInterface:         d.Get("ipv6_pd_interface").(string),
+		IPV6PDPrefixid:          d.Get("ipv6_pd_prefixid").(string),
+		IPV6PDStart:             d.Get("ipv6_pd_start").(string),
+		IPV6PDStop:              d.Get("ipv6_pd_stop").(string),
+		IPV6RaEnabled:           d.Get("ipv6_ra_enable").(bool),
+		IPV6RaPreferredLifetime: d.Get("ipv6_ra_preferred_lifetime").(int),
+		IPV6RaPriority:          d.Get("ipv6_ra_priority").(string),
+		IPV6RaValidLifetime:     d.Get("ipv6_ra_valid_lifetime").(int),
 
 		InternetAccessEnabled:     d.Get("internet_access_enabled").(bool),
 		IntraNetworkAccessEnabled: d.Get("intra_network_access_enabled").(bool),
@@ -443,6 +533,19 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 		}
 	}
 
+	dhcpV6DNS := []string{}
+	for _, dns := range []string{
+		resp.DHCPDV6DNS1,
+		resp.DHCPDV6DNS2,
+		resp.DHCPDV6DNS3,
+		resp.DHCPDV6DNS4,
+	} {
+		if dns == "" {
+			continue
+		}
+		dhcpV6DNS = append(dhcpV6DNS, dns)
+	}
+
 	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("purpose", resp.Purpose)
@@ -457,6 +560,12 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("dhcpd_boot_server", resp.DHCPDBootServer)
 	d.Set("dhcpd_boot_filename", resp.DHCPDBootFilename)
 	d.Set("dhcp_relay_enabled", resp.DHCPRelayEnabled)
+	d.Set("dhcpdv6_dns", dhcpV6DNS)
+	d.Set("dhcpdv6_dns_auto", resp.DHCPDV6DNSAuto)
+	d.Set("dhcpdv6_enabled", resp.DHCPDV6Enabled)
+	d.Set("dhcpdv6_leasetime", resp.DHCPDV6LeaseTime)
+	d.Set("dhcpdv6_start", resp.DHCPDV6Start)
+	d.Set("dhcpdv6_stop", resp.DHCPDV6Stop)
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
 	d.Set("dhcp_dns", dhcpDNS)
@@ -464,9 +573,17 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("ipv6_subnet", resp.IPV6Subnet)
 	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
+	d.Set("ipv6_pd_start", resp.IPV6PDStart)
+	d.Set("ipv6_pd_stop", resp.IPV6PDStop)
 	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
+<<<<<<< HEAD
 	d.Set("internet_access_enabled", resp.InternetAccessEnabled)
 	d.Set("intra_network_access_enabled", resp.IntraNetworkAccessEnabled)
+=======
+	d.Set("ipv6_ra_preferred_lifetime", resp.IPV6RaPreferredLifetime)
+	d.Set("ipv6_ra_priority", resp.IPV6RaPriority)
+	d.Set("ipv6_ra_valid_lifetime", resp.IPV6RaValidLifetime)
+>>>>>>> e847077 (Add missing IPv6 props to network)
 	d.Set("wan_ip", wanIP)
 	d.Set("wan_netmask", wanNetmask)
 	d.Set("wan_gateway", wanGateway)

@@ -133,6 +133,7 @@ func TestAccNetwork_v6(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
 	vlanID1 := getTestVLAN(t)
 	vlanID2 := getTestVLAN(t)
+	vlanID3 := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -156,6 +157,30 @@ func TestAccNetwork_v6(t *testing.T) {
 				),
 			},
 			importStep("unifi_network.test"),
+			{
+				Config: testAccNetworkConfigDhcpV6(
+					name,
+					vlanID3,
+					"fd6a:37be:e364::1/64",
+					"fd6a:37be:e364::2",
+					"fd6a:37be:e364::7d1",
+					[]string{"2001:4860:4860::8888", "2001:4860:4860::8844"}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID3)),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcpdv6_start", "fd6a:37be:e364::2"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcpdv6_stop", "fd6a:37be:e364::7d1"),
+				),
+			},
+			{
+				Config: testAccNetworkConfigDhcpV6(
+					name,
+					vlanID3,
+					"fd6a:37be:e365::1/64",
+					"fd6a:37be:e364::2",
+					"fd6a:37be:e364::7d1",
+					[]string{"2001:4860:4860::8888", "2001:4860:4860::8844"}),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta("api.err.InvalidDHCPv6Range")),
+			},
 		},
 	})
 }
@@ -575,4 +600,29 @@ resource "unifi_network" "test" {
   vlan_id = 101
 }
 `, name)
+}
+
+func testAccNetworkConfigDhcpV6(name string, vlan int, gatewayIP string, dhcpdV6Start string, dhcpdV6Stop string, dhcpV6DNS []string) string {
+	return fmt.Sprintf(`
+locals {
+	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
+	vlan_id = %[2]d
+}
+
+resource "unifi_network" "test" {
+	name    = "%[1]s"
+	purpose = "corporate"
+
+	subnet        = local.subnet
+	vlan_id       = local.vlan_id
+
+	ipv6_subnet  = "%[3]s"
+
+	dhcpdv6_dns_auto = false
+	dhcpdv6_dns = [%[6]s]
+	dhcpdv6_enabled = true
+	dhcpdv6_start = "%[4]s"
+	dhcpdv6_stop = "%[5]s"
+}
+`, name, vlan, gatewayIP, dhcpdV6Start, dhcpdV6Stop, strings.Join(quoteStrings(dhcpV6DNS), ","))
 }
