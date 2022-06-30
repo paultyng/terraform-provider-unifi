@@ -9,8 +9,8 @@ go 1.16
 require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/go-test/deep v1.0.4 // indirect
-	github.com/hashicorp/go-version v1.5.0
-	github.com/hashicorp/terraform-plugin-docs v0.10.1
+	github.com/hashicorp/go-version v1.6.0
+	github.com/hashicorp/terraform-plugin-docs v0.12.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0
 	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
