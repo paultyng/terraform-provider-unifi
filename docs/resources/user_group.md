@@ -26,17 +26,17 @@ resource "unifi_user_group" "wifi" {
 
 ### Required
 
-- **name** (String) The name of the user group.
+- `name` (String) The name of the user group.
 
 ### Optional
 
-- **qos_rate_max_down** (Number) The QOS maximum download rate. Defaults to `-1`.
-- **qos_rate_max_up** (Number) The QOS maximum upload rate. Defaults to `-1`.
-- **site** (String) The name of the site to associate the user group with.
+- `qos_rate_max_down` (Number) The QOS maximum download rate. Defaults to `-1`.
+- `qos_rate_max_up` (Number) The QOS maximum upload rate. Defaults to `-1`.
+- `site` (String) The name of the site to associate the user group with.
 
 ### Read-Only
 
-- **id** (String) The ID of the user group.
+- `id` (String) The ID of the user group.
 
 ## Import
 

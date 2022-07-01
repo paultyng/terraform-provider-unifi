@@ -41,44 +41,44 @@ resource "unifi_port_profile" "poe_disabled" {
 
 ### Optional
 
-- **autoneg** (Boolean) Enable link auto negotiation for the port profile. When set to `true` this overrides `speed`. Defaults to `true`.
-- **dot1x_ctrl** (String) The type of 802.1X control to use. Can be `auto`, `force_authorized`, `force_unauthorized`, `mac_based` or `multi_host`. Defaults to `force_authorized`.
-- **dot1x_idle_timeout** (Number) The timeout, in seconds, to use when using the MAC Based 802.1X control. Can be between 0 and 65535 Defaults to `300`.
-- **egress_rate_limit_kbps** (Number) The egress rate limit, in kpbs, for the port profile. Can be between `64` and `9999999`.
-- **egress_rate_limit_kbps_enabled** (Boolean) Enable egress rate limiting for the port profile. Defaults to `false`.
-- **forward** (String) The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`. Defaults to `native`.
-- **full_duplex** (Boolean) Enable full duplex for the port profile. Defaults to `false`.
-- **isolation** (Boolean) Enable port isolation for the port profile. Defaults to `false`.
-- **lldpmed_enabled** (Boolean) Enable LLDP-MED for the port profile. Defaults to `true`.
-- **lldpmed_notify_enabled** (Boolean) Enable LLDP-MED topology change notifications for the port profile.
-- **name** (String) The name of the port profile.
-- **native_networkconf_id** (String) The ID of network to use as the main network on the port profile.
-- **op_mode** (String) The operation mode for the port profile. Can only be `switch` Defaults to `switch`.
-- **poe_mode** (String) The POE mode for the port profile. Can be one of `auto`, `passv24`, `passthrough` or `off`.
-- **port_security_enabled** (Boolean) Enable port security for the port profile. Defaults to `false`.
-- **port_security_mac_address** (Set of String) The MAC addresses associated with the port security for the port profile.
-- **priority_queue1_level** (Number) The priority queue 1 level for the port profile. Can be between 0 and 100.
-- **priority_queue2_level** (Number) The priority queue 2 level for the port profile. Can be between 0 and 100.
-- **priority_queue3_level** (Number) The priority queue 3 level for the port profile. Can be between 0 and 100.
-- **priority_queue4_level** (Number) The priority queue 4 level for the port profile. Can be between 0 and 100.
-- **site** (String) The name of the site to associate the port profile with.
-- **speed** (Number) The link speed to set for the port profile. Can be one of `10`, `100`, `1000`, `2500`, `5000`, `10000`, `20000`, `25000`, `40000`, `50000` or `100000`
-- **stormctrl_bcast_enabled** (Boolean) Enable broadcast Storm Control for the port profile. Defaults to `false`.
-- **stormctrl_bcast_level** (Number) The broadcast Storm Control level for the port profile. Can be between 0 and 100.
-- **stormctrl_bcast_rate** (Number) The broadcast Storm Control rate for the port profile. Can be between 0 and 14880000.
-- **stormctrl_mcast_enabled** (Boolean) Enable multicast Storm Control for the port profile. Defaults to `false`.
-- **stormctrl_mcast_level** (Number) The multicast Storm Control level for the port profile. Can be between 0 and 100.
-- **stormctrl_mcast_rate** (Number) The multicast Storm Control rate for the port profile. Can be between 0 and 14880000.
-- **stormctrl_type** (String) The type of Storm Control to use for the port profile. Can be one of `level` or `rate`.
-- **stormctrl_ucast_enabled** (Boolean) Enable unknown unicast Storm Control for the port profile. Defaults to `false`.
-- **stormctrl_ucast_level** (Number) The unknown unicast Storm Control level for the port profile. Can be between 0 and 100.
-- **stormctrl_ucast_rate** (Number) The unknown unicast Storm Control rate for the port profile. Can be between 0 and 14880000.
-- **stp_port_mode** (Boolean) Enable spanning tree protocol on the port profile. Defaults to `true`.
-- **tagged_networkconf_ids** (Set of String) The IDs of networks to tag traffic with for the port profile.
-- **voice_networkconf_id** (String) The ID of network to use as the voice network on the port profile.
+- `autoneg` (Boolean) Enable link auto negotiation for the port profile. When set to `true` this overrides `speed`. Defaults to `true`.
+- `dot1x_ctrl` (String) The type of 802.1X control to use. Can be `auto`, `force_authorized`, `force_unauthorized`, `mac_based` or `multi_host`. Defaults to `force_authorized`.
+- `dot1x_idle_timeout` (Number) The timeout, in seconds, to use when using the MAC Based 802.1X control. Can be between 0 and 65535 Defaults to `300`.
+- `egress_rate_limit_kbps` (Number) The egress rate limit, in kpbs, for the port profile. Can be between `64` and `9999999`.
+- `egress_rate_limit_kbps_enabled` (Boolean) Enable egress rate limiting for the port profile. Defaults to `false`.
+- `forward` (String) The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`. Defaults to `native`.
+- `full_duplex` (Boolean) Enable full duplex for the port profile. Defaults to `false`.
+- `isolation` (Boolean) Enable port isolation for the port profile. Defaults to `false`.
+- `lldpmed_enabled` (Boolean) Enable LLDP-MED for the port profile. Defaults to `true`.
+- `lldpmed_notify_enabled` (Boolean) Enable LLDP-MED topology change notifications for the port profile.
+- `name` (String) The name of the port profile.
+- `native_networkconf_id` (String) The ID of network to use as the main network on the port profile.
+- `op_mode` (String) The operation mode for the port profile. Can only be `switch` Defaults to `switch`.
+- `poe_mode` (String) The POE mode for the port profile. Can be one of `auto`, `passv24`, `passthrough` or `off`.
+- `port_security_enabled` (Boolean) Enable port security for the port profile. Defaults to `false`.
+- `port_security_mac_address` (Set of String) The MAC addresses associated with the port security for the port profile.
+- `priority_queue1_level` (Number) The priority queue 1 level for the port profile. Can be between 0 and 100.
+- `priority_queue2_level` (Number) The priority queue 2 level for the port profile. Can be between 0 and 100.
+- `priority_queue3_level` (Number) The priority queue 3 level for the port profile. Can be between 0 and 100.
+- `priority_queue4_level` (Number) The priority queue 4 level for the port profile. Can be between 0 and 100.
+- `site` (String) The name of the site to associate the port profile with.
+- `speed` (Number) The link speed to set for the port profile. Can be one of `10`, `100`, `1000`, `2500`, `5000`, `10000`, `20000`, `25000`, `40000`, `50000` or `100000`
+- `stormctrl_bcast_enabled` (Boolean) Enable broadcast Storm Control for the port profile. Defaults to `false`.
+- `stormctrl_bcast_level` (Number) The broadcast Storm Control level for the port profile. Can be between 0 and 100.
+- `stormctrl_bcast_rate` (Number) The broadcast Storm Control rate for the port profile. Can be between 0 and 14880000.
+- `stormctrl_mcast_enabled` (Boolean) Enable multicast Storm Control for the port profile. Defaults to `false`.
+- `stormctrl_mcast_level` (Number) The multicast Storm Control level for the port profile. Can be between 0 and 100.
+- `stormctrl_mcast_rate` (Number) The multicast Storm Control rate for the port profile. Can be between 0 and 14880000.
+- `stormctrl_type` (String) The type of Storm Control to use for the port profile. Can be one of `level` or `rate`.
+- `stormctrl_ucast_enabled` (Boolean) Enable unknown unicast Storm Control for the port profile. Defaults to `false`.
+- `stormctrl_ucast_level` (Number) The unknown unicast Storm Control level for the port profile. Can be between 0 and 100.
+- `stormctrl_ucast_rate` (Number) The unknown unicast Storm Control rate for the port profile. Can be between 0 and 14880000.
+- `stp_port_mode` (Boolean) Enable spanning tree protocol on the port profile. Defaults to `true`.
+- `tagged_networkconf_ids` (Set of String) The IDs of networks to tag traffic with for the port profile.
+- `voice_networkconf_id` (String) The ID of network to use as the voice network on the port profile.
 
 ### Read-Only
 
-- **id** (String) The ID of the port profile.
+- `id` (String) The ID of the port profile.
 
 

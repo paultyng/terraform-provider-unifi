@@ -1,6 +1,6 @@
 #retrieve network data by unifi network name
 data "unifi_network" "lan_network" {
-  name = "LAN"
+  name = "Default"
 }
 
 #retrieve network data from user record

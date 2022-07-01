@@ -17,15 +17,15 @@ description: |-
 
 ### Optional
 
-- **dhcp_relay_servers** (List of String) The DHCP relay servers.
-- **firewall_guest_default_log** (Boolean) Whether the guest firewall log is enabled.
-- **firewall_lan_default_log** (Boolean) Whether the LAN firewall log is enabled.
-- **firewall_wan_default_log** (Boolean) Whether the WAN firewall log is enabled.
-- **multicast_dns_enabled** (Boolean) Whether multicast DNS is enabled.
-- **site** (String) The name of the site to associate the settings with.
+- `dhcp_relay_servers` (List of String) The DHCP relay servers.
+- `firewall_guest_default_log` (Boolean) Whether the guest firewall log is enabled.
+- `firewall_lan_default_log` (Boolean) Whether the LAN firewall log is enabled.
+- `firewall_wan_default_log` (Boolean) Whether the WAN firewall log is enabled.
+- `multicast_dns_enabled` (Boolean) Whether multicast DNS is enabled.
+- `site` (String) The name of the site to associate the settings with.
 
 ### Read-Only
 
-- **id** (String) The ID of the settings.
+- `id` (String) The ID of the settings.
 
 

@@ -22,11 +22,11 @@ data "unifi_port_profile" "all" {
 
 ### Optional
 
-- **name** (String) The name of the port profile to look up. Defaults to `All`.
-- **site** (String) The name of the site the port profile is associated with.
+- `name` (String) The name of the port profile to look up. Defaults to `All`.
+- `site` (String) The name of the site the port profile is associated with.
 
 ### Read-Only
 
-- **id** (String) The ID of this port profile.
+- `id` (String) The ID of this port profile.
 
 
