@@ -42,19 +42,19 @@ resource "unifi_static_route" "interface" {
 
 ### Required
 
-- **distance** (Number) The distance of the static route.
-- **name** (String) The name of the static route.
-- **network** (String) The network subnet address.
-- **type** (String) The type of static route. Can be `interface-route`, `nexthop-route`, or `blackhole`.
+- `distance` (Number) The distance of the static route.
+- `name` (String) The name of the static route.
+- `network` (String) The network subnet address.
+- `type` (String) The type of static route. Can be `interface-route`, `nexthop-route`, or `blackhole`.
 
 ### Optional
 
-- **interface** (String) The interface of the static route (only valid for `interface-route` type). This can be `WAN1`, `WAN2`, or a network ID.
-- **next_hop** (String) The next hop of the static route (only valid for `nexthop-route` type).
-- **site** (String) The name of the site to associate the static route with.
+- `interface` (String) The interface of the static route (only valid for `interface-route` type). This can be `WAN1`, `WAN2`, or a network ID.
+- `next_hop` (String) The next hop of the static route (only valid for `nexthop-route` type).
+- `site` (String) The name of the site to associate the static route with.
 
 ### Read-Only
 
-- **id** (String) The ID of the static route.
+- `id` (String) The ID of the static route.
 
 

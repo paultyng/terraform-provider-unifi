@@ -31,25 +31,25 @@ resource "unifi_user" "test" {
 
 ### Required
 
-- **mac** (String) The MAC address of the user.
-- **name** (String) The name of the user.
+- `mac` (String) The MAC address of the user.
+- `name` (String) The name of the user.
 
 ### Optional
 
-- **allow_existing** (Boolean) Specifies whether this resource should just take over control of an existing user. Defaults to `true`.
-- **blocked** (Boolean) Specifies whether this user should be blocked from the network.
-- **dev_id_override** (Number) Override the device fingerprint.
-- **fixed_ip** (String) A fixed IPv4 address for this user.
-- **network_id** (String) The network ID for this user.
-- **note** (String) A note with additional information for the user.
-- **site** (String) The name of the site to associate the user with.
-- **skip_forget_on_destroy** (Boolean) Specifies whether this resource should tell the controller to "forget" the user on destroy. Defaults to `false`.
-- **user_group_id** (String) The user group ID for the user.
+- `allow_existing` (Boolean) Specifies whether this resource should just take over control of an existing user. Defaults to `true`.
+- `blocked` (Boolean) Specifies whether this user should be blocked from the network.
+- `dev_id_override` (Number) Override the device fingerprint.
+- `fixed_ip` (String) A fixed IPv4 address for this user.
+- `network_id` (String) The network ID for this user.
+- `note` (String) A note with additional information for the user.
+- `site` (String) The name of the site to associate the user with.
+- `skip_forget_on_destroy` (Boolean) Specifies whether this resource should tell the controller to "forget" the user on destroy. Defaults to `false`.
+- `user_group_id` (String) The user group ID for the user.
 
 ### Read-Only
 
-- **hostname** (String) The hostname of the user.
-- **id** (String) The ID of the user.
-- **ip** (String) The IP address of the user.
+- `hostname` (String) The hostname of the user.
+- `id` (String) The ID of the user.
+- `ip` (String) The IP address of the user.
 
 
