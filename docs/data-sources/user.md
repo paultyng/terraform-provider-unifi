@@ -23,23 +23,23 @@ data "unifi_user" "client" {
 
 ### Required
 
-- **mac** (String) The MAC address of the user.
+- `mac` (String) The MAC address of the user.
 
 ### Optional
 
-- **site** (String) The name of the site the user is associated with.
+- `site` (String) The name of the site the user is associated with.
 
 ### Read-Only
 
-- **blocked** (Boolean) Specifies whether this user should be blocked from the network.
-- **dev_id_override** (Number) Override the device fingerprint.
-- **fixed_ip** (String) fixed IPv4 address set for this user.
-- **hostname** (String) The hostname of the user.
-- **id** (String) The ID of the user.
-- **ip** (String) The IP address of the user.
-- **name** (String) The name of the user.
-- **network_id** (String) The network ID for this user.
-- **note** (String) A note with additional information for the user.
-- **user_group_id** (String) The user group ID for the user.
+- `blocked` (Boolean) Specifies whether this user should be blocked from the network.
+- `dev_id_override` (Number) Override the device fingerprint.
+- `fixed_ip` (String) fixed IPv4 address set for this user.
+- `hostname` (String) The hostname of the user.
+- `id` (String) The ID of the user.
+- `ip` (String) The IP address of the user.
+- `name` (String) The name of the user.
+- `network_id` (String) The network ID for this user.
+- `note` (String) A note with additional information for the user.
+- `user_group_id` (String) The user group ID for the user.
 
 

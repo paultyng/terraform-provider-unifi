@@ -30,16 +30,16 @@ resource "unifi_firewall_group" "can_print" {
 
 ### Required
 
-- **members** (Set of String) The members of the firewall group.
-- **name** (String) The name of the firewall group.
-- **type** (String) The type of the firewall group. Must be one of: `address-group`, `port-group`, or `ipv6-address-group`.
+- `members` (Set of String) The members of the firewall group.
+- `name` (String) The name of the firewall group.
+- `type` (String) The type of the firewall group. Must be one of: `address-group`, `port-group`, or `ipv6-address-group`.
 
 ### Optional
 
-- **site** (String) The name of the site to associate the firewall group with.
+- `site` (String) The name of the site to associate the firewall group with.
 
 ### Read-Only
 
-- **id** (String) The ID of the firewall group.
+- `id` (String) The ID of the firewall group.
 
 

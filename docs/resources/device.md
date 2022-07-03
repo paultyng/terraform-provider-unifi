@@ -59,26 +59,26 @@ resource "unifi_device" "us_24_poe" {
 
 ### Optional
 
-- **mac** (String) The MAC address of the device. This can be specified so that the provider can take control of a device (since devices are created through adoption).
-- **name** (String) The name of the device.
-- **port_override** (Block Set) Settings overrides for specific switch ports. (see [below for nested schema](#nestedblock--port_override))
-- **site** (String) The name of the site to associate the device with.
+- `mac` (String) The MAC address of the device. This can be specified so that the provider can take control of a device (since devices are created through adoption).
+- `name` (String) The name of the device.
+- `port_override` (Block Set) Settings overrides for specific switch ports. (see [below for nested schema](#nestedblock--port_override))
+- `site` (String) The name of the site to associate the device with.
 
 ### Read-Only
 
-- **disabled** (Boolean) Specifies whether this device should be disabled.
-- **id** (String) The ID of the device.
+- `disabled` (Boolean) Specifies whether this device should be disabled.
+- `id` (String) The ID of the device.
 
 <a id="nestedblock--port_override"></a>
 ### Nested Schema for `port_override`
 
 Required:
 
-- **number** (Number) Switch port number.
+- `number` (Number) Switch port number.
 
 Optional:
 
-- **name** (String) Human-readable name of the port.
-- **port_profile_id** (String) ID of the Port Profile used on this port.
+- `name` (String) Human-readable name of the port.
+- `port_profile_id` (String) ID of the Port Profile used on this port.
 
 

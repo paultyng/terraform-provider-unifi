@@ -55,46 +55,46 @@ resource "unifi_wlan" "wifi" {
 
 ### Required
 
-- **name** (String) The SSID of the network.
-- **security** (String) The type of WiFi security for this network. Valid values are: `wpapsk`, `wpaeap`, and `open`.
-- **user_group_id** (String) ID of the user group to use for this network.
+- `name` (String) The SSID of the network.
+- `security` (String) The type of WiFi security for this network. Valid values are: `wpapsk`, `wpaeap`, and `open`.
+- `user_group_id` (String) ID of the user group to use for this network.
 
 ### Optional
 
-- **ap_group_ids** (Set of String) IDs of the AP groups to use for this network.
-- **hide_ssid** (Boolean) Indicates whether or not to hide the SSID from broadcast.
-- **is_guest** (Boolean) Indicates that this is a guest WLAN and should use guest behaviors.
-- **l2_isolation** (Boolean) Isolates stations on layer 2 (ethernet) level Defaults to `false`.
-- **mac_filter_enabled** (Boolean) Indicates whether or not the MAC filter is turned of for the network.
-- **mac_filter_list** (Set of String) List of MAC addresses to filter (only valid if `mac_filter_enabled` is `true`).
-- **mac_filter_policy** (String) MAC address filter policy (only valid if `mac_filter_enabled` is `true`). Defaults to `deny`.
-- **minimum_data_rate_2g_kbps** (Number) Set minimum data rate control for 2G devices, in Kbps. Use `0` to disable minimum data rates. Valid values are: `1000`, `2000`, `5500`, `6000`, `9000`, `11000`, `12000`, `18000`, `24000`, `36000`, `48000`,  and `54000`.
-- **minimum_data_rate_5g_kbps** (Number) Set minimum data rate control for 5G devices, in Kbps. Use `0` to disable minimum data rates. Valid values are: `6000`, `9000`, `12000`, `18000`, `24000`, `36000`, `48000`,  and `54000`.
-- **multicast_enhance** (Boolean) Indicates whether or not Multicast Enhance is turned of for the network.
-- **network_id** (String) ID of the network for this SSID
-- **no2ghz_oui** (Boolean) Connect high performance clients to 5 GHz only Defaults to `true`.
-- **passphrase** (String, Sensitive) The passphrase for the network, this is only required if `security` is not set to `open`.
-- **pmf_mode** (String) Enable Protected Management Frames. This cannot be disabled if using WPA 3. Valid values are `required`, `optional` and `disabled`. Defaults to `disabled`.
-- **radius_profile_id** (String) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
-- **schedule** (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
-- **site** (String) The name of the site to associate the wlan with.
-- **uapsd** (Boolean) Enable Unscheduled Automatic Power Save Delivery Defaults to `false`.
-- **wlan_band** (String) Radio band your WiFi network will use.
-- **wpa3_support** (Boolean) Enable WPA 3 support (security must be `wpapsk` and PMF must be turned on).
-- **wpa3_transition** (Boolean) Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).
+- `ap_group_ids` (Set of String) IDs of the AP groups to use for this network.
+- `hide_ssid` (Boolean) Indicates whether or not to hide the SSID from broadcast.
+- `is_guest` (Boolean) Indicates that this is a guest WLAN and should use guest behaviors.
+- `l2_isolation` (Boolean) Isolates stations on layer 2 (ethernet) level Defaults to `false`.
+- `mac_filter_enabled` (Boolean) Indicates whether or not the MAC filter is turned of for the network.
+- `mac_filter_list` (Set of String) List of MAC addresses to filter (only valid if `mac_filter_enabled` is `true`).
+- `mac_filter_policy` (String) MAC address filter policy (only valid if `mac_filter_enabled` is `true`). Defaults to `deny`.
+- `minimum_data_rate_2g_kbps` (Number) Set minimum data rate control for 2G devices, in Kbps. Use `0` to disable minimum data rates. Valid values are: `1000`, `2000`, `5500`, `6000`, `9000`, `11000`, `12000`, `18000`, `24000`, `36000`, `48000`,  and `54000`.
+- `minimum_data_rate_5g_kbps` (Number) Set minimum data rate control for 5G devices, in Kbps. Use `0` to disable minimum data rates. Valid values are: `6000`, `9000`, `12000`, `18000`, `24000`, `36000`, `48000`,  and `54000`.
+- `multicast_enhance` (Boolean) Indicates whether or not Multicast Enhance is turned of for the network.
+- `network_id` (String) ID of the network for this SSID
+- `no2ghz_oui` (Boolean) Connect high performance clients to 5 GHz only Defaults to `true`.
+- `passphrase` (String, Sensitive) The passphrase for the network, this is only required if `security` is not set to `open`.
+- `pmf_mode` (String) Enable Protected Management Frames. This cannot be disabled if using WPA 3. Valid values are `required`, `optional` and `disabled`. Defaults to `disabled`.
+- `radius_profile_id` (String) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
+- `schedule` (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
+- `site` (String) The name of the site to associate the wlan with.
+- `uapsd` (Boolean) Enable Unscheduled Automatic Power Save Delivery Defaults to `false`.
+- `wlan_band` (String) Radio band your WiFi network will use.
+- `wpa3_support` (Boolean) Enable WPA 3 support (security must be `wpapsk` and PMF must be turned on).
+- `wpa3_transition` (Boolean) Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).
 
 ### Read-Only
 
-- **id** (String) The ID of the network.
+- `id` (String) The ID of the network.
 
 <a id="nestedblock--schedule"></a>
 ### Nested Schema for `schedule`
 
 Required:
 
-- **block_end** (String) Time of day to end the block.
-- **block_start** (String) Time of day to start the block.
-- **day_of_week** (String) Day of week for the block. Valid values are `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`.
+- `block_end` (String) Time of day to end the block.
+- `block_start` (String) Time of day to start the block.
+- `day_of_week` (String) Day of week for the block. Valid values are `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`.
 
 ## Import
 

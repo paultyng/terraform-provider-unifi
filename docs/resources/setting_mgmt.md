@@ -28,26 +28,26 @@ resource "unifi_setting_mgmt" "example" {
 
 ### Optional
 
-- **auto_upgrade** (Boolean) Automatically upgrade device firmware.
-- **site** (String) The name of the site to associate the settings with.
-- **ssh_enabled** (Boolean) Enable SSH authentication.
-- **ssh_key** (Block Set) SSH key. (see [below for nested schema](#nestedblock--ssh_key))
+- `auto_upgrade` (Boolean) Automatically upgrade device firmware.
+- `site` (String) The name of the site to associate the settings with.
+- `ssh_enabled` (Boolean) Enable SSH authentication.
+- `ssh_key` (Block Set) SSH key. (see [below for nested schema](#nestedblock--ssh_key))
 
 ### Read-Only
 
-- **id** (String) The ID of the settings.
+- `id` (String) The ID of the settings.
 
 <a id="nestedblock--ssh_key"></a>
 ### Nested Schema for `ssh_key`
 
 Required:
 
-- **name** (String) Name of SSH key.
-- **type** (String) Type of SSH key, e.g. ssh-rsa.
+- `name` (String) Name of SSH key.
+- `type` (String) Type of SSH key, e.g. ssh-rsa.
 
 Optional:
 
-- **comment** (String) Comment.
-- **key** (String) Public SSH key.
+- `comment` (String) Comment.
+- `key` (String) Public SSH key.
 
 

@@ -29,19 +29,19 @@ resource "unifi_dynamic_dns" "test" {
 
 ### Required
 
-- **host_name** (String) The host name to update in the dynamic DNS service.
-- **service** (String) The Dynamic DNS service provider, various values are supported (for example `dyndns`, etc.).
+- `host_name` (String) The host name to update in the dynamic DNS service.
+- `service` (String) The Dynamic DNS service provider, various values are supported (for example `dyndns`, etc.).
 
 ### Optional
 
-- **interface** (String) The interface for the dynamic DNS. Can be `wan` or `wan2`. Defaults to `wan`.
-- **login** (String) The server for the dynamic DNS service.
-- **password** (String, Sensitive) The server for the dynamic DNS service.
-- **server** (String) The server for the dynamic DNS service.
-- **site** (String) The name of the site to associate the dynamic DNS with.
+- `interface` (String) The interface for the dynamic DNS. Can be `wan` or `wan2`. Defaults to `wan`.
+- `login` (String) The server for the dynamic DNS service.
+- `password` (String, Sensitive) The server for the dynamic DNS service.
+- `server` (String) The server for the dynamic DNS service.
+- `site` (String) The name of the site to associate the dynamic DNS with.
 
 ### Read-Only
 
-- **id** (String) The ID of the dynamic DNS.
+- `id` (String) The ID of the dynamic DNS.
 
 
