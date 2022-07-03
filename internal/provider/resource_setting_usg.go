@@ -92,7 +92,7 @@ func resourceSettingUsg() *schema.Resource {
 func resourceSettingUsgUpdateResourceData(d *schema.ResourceData, meta interface{}, setting *unifi.SettingUsg) error {
 	c := meta.(*client)
 
-	// lint:ignore SA1019
+	//nolint // GetOkExists is deprecated, but using here:
 	if mdns, hasMdns := d.GetOkExists("multicast_dns_enabled"); hasMdns {
 		if v := c.ControllerVersion(); v.GreaterThanOrEqual(controllerV7) {
 			return fmt.Errorf("multicast_dns_enabled is not supported on controller version %v", c.ControllerVersion())
