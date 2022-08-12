@@ -130,6 +130,32 @@ func TestAccNetwork_dhcp_boot(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_dhcp_guard(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	subnet, vlan := getTestVLAN(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkConfigDHCPGuard(name, subnet, vlan, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_guard.#", "0"),
+				),
+			},
+			{
+				Config: testAccNetworkConfigDHCPGuard(name, subnet, vlan, []string{"192.168.1.1"}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_guard.0", "192.168.1.1"),
+				),
+			},
+			importStep("unifi_network.test"),
+		},
+	})
+}
+
 func TestAccNetwork_v6(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
 	subnet1, vlan1 := getTestVLAN(t)
@@ -690,4 +716,17 @@ resource "unifi_network" "test" {
 	multicast_dns = %[4]t
 }
 `, name, subnet, vlan, mdns)
+}
+
+func testAccNetworkConfigDHCPGuard(name string, subnet *net.IPNet, vlan int, dhcpGuard []string) string {
+	return fmt.Sprintf(`
+resource "unifi_network" "test" {
+	name    = "%[1]s"
+	purpose = "corporate"
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
+
+	dhcp_guard = [%[4]s]
+}
+`, name, subnet, vlan, strings.Join(quoteStrings(dhcpGuard), ","))
 }

@@ -135,6 +135,20 @@ func resourceNetwork() *schema.Resource {
 					),
 				},
 			},
+			"dhcp_guard": {
+				Description: "Specifies the IPv4 addresses of trusted DHCP servers. Leave blank to disable this feature.",
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    3,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					ValidateFunc: validation.All(
+						validation.IsIPv4Address,
+						// this doesn't let blank through
+						validation.StringLenBetween(1, 50),
+					),
+				},
+			},
 			"dhcpd_boot_enabled": {
 				Description: "Toggles on the DHCP boot options. Should be set to true when you want to have dhcpd_boot_filename, and dhcpd_boot_server to take effect.",
 				Type:        schema.TypeBool,
@@ -409,6 +423,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert dhcp_v6_dns to string slice: %w", err)
 	}
+	dhcpGuard, err := listToStringSlice(d.Get("dhcp_guard").([]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert dhcp_guard to string slice: %w", err)
+	}
 	wanDNS, err := listToStringSlice(d.Get("wan_dns").([]interface{}))
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert wan_dns to string slice: %w", err)
@@ -438,6 +456,12 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		DHCPDDNS2: append(dhcpDNS, "", "")[1],
 		DHCPDDNS3: append(dhcpDNS, "", "", "")[2],
 		DHCPDDNS4: append(dhcpDNS, "", "", "", "")[3],
+
+		DHCPguardEnabled: len(dhcpGuard) > 0,
+		// this is kinda hacky but ¯\_(ツ)_/¯
+		DHCPDIP1: append(dhcpGuard, "")[0],
+		DHCPDIP2: append(dhcpGuard, "", "")[1],
+		DHCPDIP3: append(dhcpGuard, "", "", "")[2],
 
 		VLANEnabled: vlan != 0 && vlan != 1,
 
@@ -561,6 +585,20 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 		dhcpV6DNS = append(dhcpV6DNS, dns)
 	}
 
+	dhcpGuard := []string{}
+	if resp.DHCPguardEnabled {
+		for _, server := range []string{
+			resp.DHCPDIP1,
+			resp.DHCPDIP2,
+			resp.DHCPDIP3,
+		} {
+			if server == "" {
+				continue
+			}
+			dhcpGuard = append(dhcpGuard, server)
+		}
+	}
+
 	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("purpose", resp.Purpose)
@@ -570,6 +608,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 
 	d.Set("dhcp_dns", dhcpDNS)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
+	d.Set("dhcp_guard", dhcpGuard)
 	d.Set("dhcp_lease", dhcpLease)
 	d.Set("dhcp_relay_enabled", resp.DHCPRelayEnabled)
 	d.Set("dhcp_start", resp.DHCPDStart)
