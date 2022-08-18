@@ -119,6 +119,12 @@ func resourceFirewallRule() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"src_port": {
+				Description:  "The source port of the firewall rule.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validatePortRange,
+			},
 			"src_mac": {
 				Description: "The source MAC address of the firewall rule.",
 				Type:        schema.TypeString,
@@ -257,6 +263,7 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 		SrcMACAddress:       d.Get("src_mac").(string),
 		SrcAddress:          d.Get("src_address").(string),
 		SrcAddressIPV6:      d.Get("src_address_ipv6").(string),
+		SrcPort:             d.Get("src_port").(string),
 		SrcNetworkID:        d.Get("src_network_id").(string),
 		SrcFirewallGroupIDs: srcFirewallGroupIDs,
 
@@ -292,6 +299,7 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	d.Set("src_address", resp.SrcAddress)
 	d.Set("src_address_ipv6", resp.SrcAddressIPV6)
 	d.Set("src_network_id", resp.SrcNetworkID)
+	d.Set("src_port", resp.SrcPort)
 
 	d.Set("dst_network_type", resp.DstNetworkType)
 	d.Set("dst_firewall_group_ids", stringSliceToSet(resp.DstFirewallGroupIDs))
