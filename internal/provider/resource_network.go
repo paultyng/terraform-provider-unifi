@@ -176,6 +176,18 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"internet_access_enabled": {
+				Description: "Specifies whether this network should be allowed to access the internet or not.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
+			"intra_network_access_enabled": {
+				Description: "Specifies whether this network should be allowed to access other local networks or not.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
 			"wan_ip": {
 				Description:  "The IPv4 address of the WAN.",
 				Type:         schema.TypeString,
@@ -308,6 +320,9 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
 		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
 
+		InternetAccessEnabled:     d.Get("internet_access_enabled").(bool),
+		IntraNetworkAccessEnabled: d.Get("intra_network_access_enabled").(bool),
+
 		WANIP:           d.Get("wan_ip").(string),
 		WANType:         d.Get("wan_type").(string),
 		WANNetmask:      d.Get("wan_netmask").(string),
@@ -403,6 +418,8 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
 	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
+	d.Set("internet_access_enabled", resp.InternetAccessEnabled)
+	d.Set("intra_network_access_enabled", resp.IntraNetworkAccessEnabled)
 	d.Set("wan_ip", wanIP)
 	d.Set("wan_netmask", wanNetmask)
 	d.Set("wan_gateway", wanGateway)
