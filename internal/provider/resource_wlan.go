@@ -267,7 +267,15 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 	if err != nil {
 		return nil, fmt.Errorf("unable to process schedule block: %w", err)
 	}
-	log.Printf("[TRACE] TF Schedule: %#v", schedule)
+
+	minrateSettingPreference := "auto"
+	if d.Get("minimum_data_rate_2g_kbps").(int) != 0 || d.Get("minimum_data_rate_5g_kbps").(int) != 0 {
+		if d.Get("minimum_data_rate_2g_kbps").(int) == 0 || d.Get("minimum_data_rate_5g_kbps").(int) == 0 {
+			// this is really only true I think in >= 7.2, but easier to just apply this in general
+			return nil, fmt.Errorf("you must set minimum data rates on both 2g and 5g if setting either")
+		}
+		minrateSettingPreference = "manual"
+	}
 
 	return &unifi.WLAN{
 		Name:                    d.Get("name").(string),
@@ -301,6 +309,8 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		No2GhzOui:    d.Get("no2ghz_oui").(bool),
 		L2Isolation:  d.Get("l2_isolation").(bool),
 		UapsdEnabled: d.Get("uapsd").(bool),
+
+		MinrateSettingPreference: minrateSettingPreference,
 
 		MinrateNgEnabled:      d.Get("minimum_data_rate_2g_kbps").(int) != 0,
 		MinrateNgDataRateKbps: d.Get("minimum_data_rate_2g_kbps").(int),
@@ -385,12 +395,12 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("ap_group_ids", apGroupIDs)
 	d.Set("network_id", resp.NetworkID)
 	d.Set("pmf_mode", resp.PMFMode)
-	if resp.MinrateNgEnabled {
+	if resp.MinrateSettingPreference == "manual" && resp.MinrateNgEnabled {
 		d.Set("minimum_data_rate_2g_kbps", resp.MinrateNgDataRateKbps)
 	} else {
 		d.Set("minimum_data_rate_2g_kbps", 0)
 	}
-	if resp.MinrateNaEnabled {
+	if resp.MinrateSettingPreference == "manual" && resp.MinrateNaEnabled {
 		d.Set("minimum_data_rate_5g_kbps", resp.MinrateNaDataRateKbps)
 	} else {
 		d.Set("minimum_data_rate_5g_kbps", 0)

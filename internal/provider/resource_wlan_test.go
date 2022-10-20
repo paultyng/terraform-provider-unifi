@@ -356,14 +356,21 @@ func TestAccWLAN_minimum_data_rate(t *testing.T) {
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_minimum_data_rate(vlanID, 0, 18000),
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 1000, 18000),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_minimum_data_rate(vlanID, 6000, 0),
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 0, 0),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+			{
+				Config: testAccWLANConfig_minimum_data_rate(vlanID, 6000, 9000),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
