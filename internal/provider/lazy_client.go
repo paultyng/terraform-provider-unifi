@@ -44,7 +44,7 @@ func setHTTPClient(c *unifi.Client, insecure bool) {
 		},
 	}
 
-	httpClient.Transport = logging.NewTransport("Unifi", httpClient.Transport)
+	httpClient.Transport = logging.NewSubsystemLoggingHTTPTransport("Unifi", httpClient.Transport)
 
 	jar, _ := cookiejar.New(nil)
 	httpClient.Jar = jar
