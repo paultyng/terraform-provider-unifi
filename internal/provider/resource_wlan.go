@@ -395,12 +395,12 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("ap_group_ids", apGroupIDs)
 	d.Set("network_id", resp.NetworkID)
 	d.Set("pmf_mode", resp.PMFMode)
-	if resp.MinrateSettingPreference == "manual" && resp.MinrateNgEnabled {
+	if resp.MinrateSettingPreference != "auto" && resp.MinrateNgEnabled {
 		d.Set("minimum_data_rate_2g_kbps", resp.MinrateNgDataRateKbps)
 	} else {
 		d.Set("minimum_data_rate_2g_kbps", 0)
 	}
-	if resp.MinrateSettingPreference == "manual" && resp.MinrateNaEnabled {
+	if resp.MinrateSettingPreference != "auto" && resp.MinrateNaEnabled {
 		d.Set("minimum_data_rate_5g_kbps", resp.MinrateNaDataRateKbps)
 	} else {
 		d.Set("minimum_data_rate_5g_kbps", 0)
