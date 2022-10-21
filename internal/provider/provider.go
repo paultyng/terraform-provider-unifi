@@ -91,8 +91,9 @@ func New(version string) func() *schema.Provider {
 				"unifi_user":           resourceUser(),
 				"unifi_wlan":           resourceWLAN(),
 
-				"unifi_setting_mgmt": resourceSettingMgmt(),
-				"unifi_setting_usg":  resourceSettingUsg(),
+				"unifi_setting_mgmt":   resourceSettingMgmt(),
+				"unifi_setting_usg":    resourceSettingUsg(),
+				"unifi_setting_radius": resourceSettingRadius(),
 			},
 		}
 
@@ -213,6 +214,9 @@ type unifiClient interface {
 	GetSettingUsg(ctx context.Context, id string) (*unifi.SettingUsg, error)
 	UpdateSettingMgmt(ctx context.Context, site string, d *unifi.SettingMgmt) (*unifi.SettingMgmt, error)
 	UpdateSettingUsg(ctx context.Context, site string, d *unifi.SettingUsg) (*unifi.SettingUsg, error)
+
+	GetSettingRadius(ctx context.Context, id string) (*unifi.SettingRadius, error)
+	UpdateSettingRadius(ctx context.Context, site string, d *unifi.SettingRadius) (*unifi.SettingRadius, error)
 }
 
 type client struct {

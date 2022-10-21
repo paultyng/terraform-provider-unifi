@@ -528,3 +528,15 @@ func (c *lazyClient) UpdateSettingUsg(ctx context.Context, site string, d *unifi
 	}
 	return c.inner.UpdateSettingUsg(ctx, site, d)
 }
+func (c *lazyClient) GetSettingRadius(ctx context.Context, site string) (*unifi.SettingRadius, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetSettingRadius(ctx, site)
+}
+func (c *lazyClient) UpdateSettingRadius(ctx context.Context, site string, d *unifi.SettingRadius) (*unifi.SettingRadius, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateSettingRadius(ctx, site, d)
+}
