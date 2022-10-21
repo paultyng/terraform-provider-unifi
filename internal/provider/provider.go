@@ -85,16 +85,16 @@ func New(version string) func() *schema.Provider {
 				"unifi_network":        resourceNetwork(),
 				"unifi_port_forward":   resourcePortForward(),
 				"unifi_port_profile":   resourcePortProfile(),
+				"unifi_radius_profile": resourceRadiusProfile(),
 				"unifi_site":           resourceSite(),
 				"unifi_static_route":   resourceStaticRoute(),
 				"unifi_user_group":     resourceUserGroup(),
 				"unifi_user":           resourceUser(),
 				"unifi_wlan":           resourceWLAN(),
-				"unifi_radius_profile": resourceRadiusProfile(),
 
 				"unifi_setting_mgmt":   resourceSettingMgmt(),
-				"unifi_setting_usg":    resourceSettingUsg(),
 				"unifi_setting_radius": resourceSettingRadius(),
+				"unifi_setting_usg":    resourceSettingUsg(),
 			},
 		}
 
