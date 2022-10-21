@@ -17,17 +17,17 @@ description: |-
 
 ### Optional
 
-- **accounting_enabled** (Boolean) Enable RADIUS accounting Defaults to `false`.
-- **accounting_port** (Number) The port for accounting communications. Defaults to `1813`.
-- **auth_port** (Number) The port for authentication communications. Defaults to `1812`.
-- **enabled** (Boolean) RAIDUS server enabled. Defaults to `true`.
-- **interim_update_interval** (Number) Statistics will be collected from connected clients at this interval. Defaults to `3600`.
-- **secret** (String, Sensitive) RAIDUS secret passphrase. Defaults to ``.
-- **site** (String) The name of the site to associate the settings with.
-- **tunneled_reply** (Boolean) Encrypt communication between the server and the client. Defaults to `true`.
+- `accounting_enabled` (Boolean) Enable RADIUS accounting Defaults to `false`.
+- `accounting_port` (Number) The port for accounting communications. Defaults to `1813`.
+- `auth_port` (Number) The port for authentication communications. Defaults to `1812`.
+- `enabled` (Boolean) RAIDUS server enabled. Defaults to `true`.
+- `interim_update_interval` (Number) Statistics will be collected from connected clients at this interval. Defaults to `3600`.
+- `secret` (String, Sensitive) RAIDUS secret passphrase. Defaults to ``.
+- `site` (String) The name of the site to associate the settings with.
+- `tunneled_reply` (Boolean) Encrypt communication between the server and the client. Defaults to `true`.
 
 ### Read-Only
 
-- **id** (String) The ID of the settings.
+- `id` (String) The ID of the settings.
 
 
