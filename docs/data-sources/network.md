@@ -43,15 +43,15 @@ data "unifi_network" "my_network" {
 - `dhcp_lease` (Number) lease time for DHCP addresses.
 - `dhcp_start` (String) The IPv4 address where the DHCP range of addresses starts.
 - `dhcp_stop` (String) The IPv4 address where the DHCP range of addresses stops.
+- `dhcp_v6_dns` (List of String) Specifies the IPv6 addresses for the DNS server to be returned from the DHCP server. Used if `dhcp_v6_dns_auto` is set to `false`.
+- `dhcp_v6_dns_auto` (Boolean) Specifies DNS source to propagate. If set `false` the entries in `dhcp_v6_dns` are used, the upstream entries otherwise
+- `dhcp_v6_enabled` (Boolean) Enable stateful DHCPv6 for static configuration.
+- `dhcp_v6_lease` (Number) Specifies the lease time for DHCPv6 addresses.
+- `dhcp_v6_start` (String) Start address of the DHCPv6 range. Used in static DHCPv6 configuration.
+- `dhcp_v6_stop` (String) End address of the DHCPv6 range. Used in static DHCPv6 configuration.
 - `dhcpd_boot_enabled` (Boolean) Toggles on the DHCP boot options. will be set to true if you have dhcpd_boot_filename, and dhcpd_boot_server set.
 - `dhcpd_boot_filename` (String) the file to PXE boot from on the dhcpd_boot_server.
 - `dhcpd_boot_server` (String) IPv4 address of a TFTP server to network boot from.
-- `dhcpdv6_dns` (List of String) Specifies the IPv6 addresses for the DNS server to be returned from the DHCP server. Used if `dhcpdv6_dns_auto` is set to `false`.
-- `dhcpdv6_dns_auto` (Boolean) Specifies DNS source to propagate. If set `false` the entries in `dhcpdv6_dns` are used, the upstream entries otherwise
-- `dhcpdv6_enabled` (Boolean) Enable stateful DHCPv6 for static configuration.
-- `dhcpdv6_leasetime` (Number) Specifies the lease time for DHCPv6 addresses.
-- `dhcpdv6_start` (String) Start address of the DHCPv6 range. Used in static DHCPv6 configuration.
-- `dhcpdv6_stop` (String) End address of the DHCPv6 range. Used in static DHCPv6 configuration.
 - `domain_name` (String) The domain name of this network.
 - `igmp_snooping` (Boolean) Specifies whether IGMP snooping is enabled or not.
 - `ipv6_interface_type` (String) Specifies which type of IPv6 connection to use. Must be one of either `static`, `pd`, or `none`.
@@ -63,12 +63,12 @@ data "unifi_network" "my_network" {
 - `ipv6_ra_preferred_lifetime` (Number) Lifetime in which the address can be used. Address becomes deprecated afterwards. Must be lower than or equal to `ipv6_ra_valid_lifetime`
 - `ipv6_ra_priority` (String) IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`
 - `ipv6_ra_valid_lifetime` (Number) Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.
-- `ipv6_subnet` (String) Specifies the static IPv6 subnet (when ipv6_interface_type is 'static').
+- `ipv6_static_subnet` (String) Specifies the static IPv6 subnet (when ipv6_interface_type is 'static').
 - `network_group` (String) The group of the network.
 - `purpose` (String) The purpose of the network. One of `corporate`, `guest`, `wan`, or `vlan-only`.
 - `subnet` (String) The subnet of the network (CIDR address).
 - `vlan_id` (Number) The VLAN ID of the network.
-- `wan_dhcpv6_pd_size` (Number) Specifies the IPv6 prefix size to request from ISP. Must be a number between 48 and 64.
+- `wan_dhcp_v6_pd_size` (Number) Specifies the IPv6 prefix size to request from ISP. Must be a number between 48 and 64.
 - `wan_dns` (List of String) DNS servers IPs of the WAN.
 - `wan_egress_qos` (Number) Specifies the WAN egress quality of service.
 - `wan_gateway` (String) The IPv4 gateway of the WAN.
