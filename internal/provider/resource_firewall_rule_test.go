@@ -298,7 +298,7 @@ resource "unifi_firewall_rule" "test" {
 
 	rule_index = 2510
 
-	protocol = "all"
+	protocol_v6 = "all"
 
 	src_firewall_group_ids = [unifi_firewall_group.test_a.id]
 
@@ -314,23 +314,10 @@ resource "unifi_firewall_rule" "test" {
 
 	rule_index = 2511
 
-	protocol = "tcp"
+	protocol_v6 = "tcp"
 
 	src_address_ipv6 = "fd6a:37be:e364::1/64"
 	dst_address_ipv6 = "fd6a:37be:e364::2/64"
 	dst_port    = 53
 }
 `
-
-// resource "unifi_firewall_rule" "can_print_drop" {
-// 	name    = "[tf] can-print (drop all)"
-// 	action  = "drop"
-// 	ruleset = "LAN_IN"
-
-// 	rule_index = 2011
-
-// 	protocol = "all"
-
-// 	dst_address = "192.168.1.1"
-// }
-// `
