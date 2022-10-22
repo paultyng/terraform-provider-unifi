@@ -102,36 +102,36 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
-			"dhcpdv6_dns": {
+			"dhcp_v6_dns": {
 				Description: "Specifies the IPv6 addresses for the DNS server to be returned from the DHCP " +
-					"server. Used if `dhcpdv6_dns_auto` is set to `false`.",
+					"server. Used if `dhcp_v6_dns_auto` is set to `false`.",
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"dhcpdv6_dns_auto": {
-				Description: "Specifies DNS source to propagate. If set `false` the entries in `dhcpdv6_dns` are used, the upstream entries otherwise",
+			"dhcp_v6_dns_auto": {
+				Description: "Specifies DNS source to propagate. If set `false` the entries in `dhcp_v6_dns` are used, the upstream entries otherwise",
 				Type:        schema.TypeBool,
 				Computed:    true,
 			},
-			"dhcpdv6_enabled": {
+			"dhcp_v6_enabled": {
 				Description: "Enable stateful DHCPv6 for static configuration.",
 				Type:        schema.TypeBool,
 				Computed:    true,
 			},
-			"dhcpdv6_leasetime": {
+			"dhcp_v6_lease": {
 				Description: "Specifies the lease time for DHCPv6 addresses.",
 				Type:        schema.TypeInt,
 				Computed:    true,
 			},
-			"dhcpdv6_start": {
+			"dhcp_v6_start": {
 				Description: "Start address of the DHCPv6 range. Used in static DHCPv6 configuration.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
-			"dhcpdv6_stop": {
+			"dhcp_v6_stop": {
 				Description: "End address of the DHCPv6 range. Used in static DHCPv6 configuration.",
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -151,7 +151,7 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
-			"ipv6_subnet": {
+			"ipv6_static_subnet": {
 				Description: "Specifies the static IPv6 subnet (when ipv6_interface_type is 'static').",
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -249,7 +249,7 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
-			"wan_dhcpv6_pd_size": {
+			"wan_dhcp_v6_pd_size": {
 				Description: "Specifies the IPv6 prefix size to request from ISP. Must be a number between 48 and 64.",
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -335,7 +335,7 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 			d.Set("igmp_snooping", n.IGMPSnooping)
 			d.Set("dhcp_dns", dhcpDNS)
 			d.Set("ipv6_interface_type", n.IPV6InterfaceType)
-			d.Set("ipv6_subnet", n.IPV6Subnet)
+			d.Set("ipv6_static_subnet", n.IPV6Subnet)
 			d.Set("ipv6_pd_interface", n.IPV6PDInterface)
 			d.Set("ipv6_pd_prefixid", n.IPV6PDPrefixid)
 			d.Set("ipv6_ra_enable", n.IPV6RaEnabled)
@@ -349,7 +349,7 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 			d.Set("wan_username", n.WANUsername)
 			d.Set("x_wan_password", n.XWANPassword)
 			d.Set("wan_type_v6", n.WANTypeV6)
-			d.Set("wan_dhcpv6_pd_size", n.WANDHCPv6PDSize)
+			d.Set("wan_dhcp_v6_pd_size", n.WANDHCPv6PDSize)
 			d.Set("wan_ipv6", n.WANIPV6)
 			d.Set("wan_gateway_v6", n.WANGatewayV6)
 			d.Set("wan_prefixlen", n.WANPrefixlen)

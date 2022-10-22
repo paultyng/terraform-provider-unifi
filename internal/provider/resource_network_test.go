@@ -145,7 +145,7 @@ func TestAccNetwork_v6(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID1)),
-					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_subnet", "fd6a:37be:e362::1/64"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e362::1/64"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -153,7 +153,7 @@ func TestAccNetwork_v6(t *testing.T) {
 				Config: testAccNetworkConfigV6(name, vlanID2, "static", "fd6a:37be:e363::1/64"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID2)),
-					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_subnet", "fd6a:37be:e363::1/64"),
+					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e363::1/64"),
 				),
 			},
 			importStep("unifi_network.test"),
@@ -167,8 +167,8 @@ func TestAccNetwork_v6(t *testing.T) {
 					[]string{"2001:4860:4860::8888", "2001:4860:4860::8844"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID3)),
-					resource.TestCheckResourceAttr("unifi_network.test", "dhcpdv6_start", "fd6a:37be:e364::2"),
-					resource.TestCheckResourceAttr("unifi_network.test", "dhcpdv6_stop", "fd6a:37be:e364::7d1"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_v6_start", "fd6a:37be:e364::2"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_v6_stop", "fd6a:37be:e364::7d1"),
 				),
 			},
 			{
@@ -225,7 +225,7 @@ func TestAccNetwork_wan(t *testing.T) {
 			importStep("unifi_network.wan_test"),
 			{
 				Config:      testWanV6NetworkConfig(name, "dhcpv6", 47),
-				ExpectError: regexp.MustCompile(regexp.QuoteMeta("expected wan_dhcpv6_pd_size to be in the range (48 - 64)")),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta("expected wan_dhcp_v6_pd_size to be in the range (48 - 64)")),
 			},
 			{
 				Config:      testWanV6NetworkConfig(name, "invalid", 48),
@@ -235,7 +235,7 @@ func TestAccNetwork_wan(t *testing.T) {
 				Config: testWanV6NetworkConfig(name, "dhcpv6", 48),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type_v6", "dhcpv6"),
-					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dhcpv6_pd_size", "48"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_dhcp_v6_pd_size", "48"),
 				),
 			},
 		},
@@ -462,7 +462,7 @@ resource "unifi_network" "test" {
 	domain_name   = "foo.local"
 
 	ipv6_interface_type = "%[3]s"
-	ipv6_subnet  = "%[4]s"
+	ipv6_static_subnet  = "%[4]s"
 	ipv6_ra_enable      = true
 }
 `, name, vlan, ipv6Type, ipv6Subnet)
@@ -508,7 +508,7 @@ resource "unifi_network" "wan_test" {
 	wan_dns = ["8.8.8.8", "4.4.4.4"]
 
 	wan_type_v6 = "%s"
-	wan_dhcpv6_pd_size = %d
+	wan_dhcp_v6_pd_size = %d
 }
 `, name, wanTypeV6, wanDhcpV6PdSize)
 }
@@ -616,13 +616,13 @@ resource "unifi_network" "test" {
 	subnet        = local.subnet
 	vlan_id       = local.vlan_id
 
-	ipv6_subnet  = "%[3]s"
+	ipv6_static_subnet  = "%[3]s"
 
-	dhcpdv6_dns_auto = false
-	dhcpdv6_dns = [%[6]s]
-	dhcpdv6_enabled = true
-	dhcpdv6_start = "%[4]s"
-	dhcpdv6_stop = "%[5]s"
+	dhcp_v6_dns_auto = false
+	dhcp_v6_dns = [%[6]s]
+	dhcp_v6_enabled = true
+	dhcp_v6_start = "%[4]s"
+	dhcp_v6_stop = "%[5]s"
 }
 `, name, vlan, gatewayIP, dhcpdV6Start, dhcpdV6Stop, strings.Join(quoteStrings(dhcpV6DNS), ","))
 }
