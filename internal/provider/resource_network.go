@@ -19,11 +19,23 @@ var (
 	wanTypeRegexp   = regexp.MustCompile("disabled|dhcp|static|pppoe")
 	validateWANType = validation.StringMatch(wanTypeRegexp, "invalid WAN connection type")
 
+	wanTypeV6Regexp   = regexp.MustCompile("disabled|dhcpv6|static")
+	validateWANTypeV6 = validation.StringMatch(wanTypeV6Regexp, "invalid WANv6 connection type")
+
 	wanPasswordRegexp   = regexp.MustCompile("[^\"' ]+")
 	validateWANPassword = validation.StringMatch(wanPasswordRegexp, "invalid WAN password")
 
 	wanNetworkGroupRegexp   = regexp.MustCompile("WAN[2]?|WAN_LTE_FAILOVER")
 	validateWANNetworkGroup = validation.StringMatch(wanNetworkGroupRegexp, "invalid WAN network group")
+
+	wanV6NetworkGroupRegexp   = regexp.MustCompile("wan[2]?")
+	validateWANV6NetworkGroup = validation.StringMatch(wanV6NetworkGroupRegexp, "invalid WANv6 network group")
+
+	ipV6InterfaceTypeRegexp   = regexp.MustCompile("none|pd|static")
+	validateIpV6InterfaceType = validation.StringMatch(ipV6InterfaceTypeRegexp, "invalid IPv6 interface type")
+
+	// This is a slightly larger range than the UI, it includes some reserved ones, so could be tightened up.
+	validateVLANID = validation.IntBetween(0, 4096)
 )
 
 func resourceNetwork() *schema.Resource {
@@ -64,9 +76,10 @@ func resourceNetwork() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "wan", "vlan-only"}, false),
 			},
 			"vlan_id": {
-				Description: "The VLAN ID of the network.",
-				Type:        schema.TypeInt,
-				Optional:    true,
+				Description:  "The VLAN ID of the network.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateVLANID,
 			},
 			"subnet": {
 				Description:      "The subnet of the network. Must be a valid CIDR address.",
@@ -99,7 +112,7 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 			},
 			"dhcp_lease": {
-				Description: "Specifies the lease time for DHCP addresses.",
+				Description: "Specifies the lease time for DHCP addresses in seconds.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     86400,
@@ -140,6 +153,47 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"dhcp_v6_dns": {
+				Description: "Specifies the IPv6 addresses for the DNS server to be returned from the DHCP " +
+					"server. Used if `dhcp_v6_dns_auto` is set to `false`.",
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 4,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.IsIPv6Address,
+					// TODO: should this ensure blank can't get through?
+				},
+			},
+			"dhcp_v6_dns_auto": {
+				Description: "Specifies DNS source to propagate. If set `false` the entries in `dhcp_v6_dns` are used, the upstream entries otherwise",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
+			"dhcp_v6_enabled": {
+				Description: "Enable stateful DHCPv6 for static configuration.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"dhcp_v6_lease": {
+				Description: "Specifies the lease time for DHCPv6 addresses in seconds.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     86400,
+			},
+			"dhcp_v6_start": {
+				Description:  "Start address of the DHCPv6 range. Used in static DHCPv6 configuration.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
+			"dhcp_v6_stop": {
+				Description:  "End address of the DHCPv6 range. Used in static DHCPv6 configuration.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
 			"domain_name": {
 				Description: "The domain name of this network.",
 				Type:        schema.TypeString,
@@ -151,25 +205,39 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 			},
 			"ipv6_interface_type": {
-				Description: "Specifies which type of IPv6 connection to use.",
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "none",
+				Description:  "Specifies which type of IPv6 connection to use. Must be one of either `static`, `pd`, or `none`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "none",
+				ValidateFunc: validateIpV6InterfaceType,
 			},
 			"ipv6_static_subnet": {
-				Description: "Specifies the static IPv6 subnet when ipv6_interface_type is 'static'.",
+				Description: "Specifies the static IPv6 subnet when `ipv6_interface_type` is 'static'.",
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
 			"ipv6_pd_interface": {
-				Description: "Specifies which WAN interface to use for IPv6 PD.",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description:  "Specifies which WAN interface to use for IPv6 PD. Must be one of either `wan` or `wan2`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANV6NetworkGroup,
 			},
 			"ipv6_pd_prefixid": {
 				Description: "Specifies the IPv6 Prefix ID.",
 				Type:        schema.TypeString,
 				Optional:    true,
+			},
+			"ipv6_pd_start": {
+				Description:  "Start address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
+			"ipv6_pd_stop": {
+				Description:  "End address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
 			},
 			"ipv6_ra_enable": {
 				Description: "Specifies whether to enable router advertisements or not.",
@@ -187,6 +255,24 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
+			},
+			"ipv6_ra_preferred_lifetime": {
+				Description: "Lifetime in which the address can be used. Address becomes deprecated afterwards. Must be lower than or equal to `ipv6_ra_valid_lifetime`",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     14400,
+			},
+			"ipv6_ra_priority": {
+				Description:  "IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			"ipv6_ra_valid_lifetime": {
+				Description: "Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     86400,
 			},
 			"wan_ip": {
 				Description:  "The IPv4 address of the WAN.",
@@ -246,6 +332,36 @@ func resourceNetwork() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateWANPassword,
 			},
+			"wan_type_v6": {
+				Description:  "Specifies the IPV6 WAN connection type. Must be one of either `disabled`, `static`, or `dhcpv6`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWANTypeV6,
+			},
+			"wan_dhcp_v6_pd_size": {
+				Description:  "Specifies the IPv6 prefix size to request from ISP. Must be between 48 and 64.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(48, 64),
+			},
+			"wan_ipv6": {
+				Description:  "The IPv6 address of the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
+			"wan_gateway_v6": {
+				Description:  "The IPv6 gateway of the WAN.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv6Address,
+			},
+			"wan_prefixlen": {
+				Description:  "The IPv6 prefix length of the WAN. Must be between 1 and 128.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(1, 128),
+			},
 		},
 	}
 }
@@ -281,6 +397,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert dhcp_dns to string slice: %w", err)
 	}
+	dhcpV6DNS, err := listToStringSlice(d.Get("dhcp_v6_dns").([]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert dhcp_v6_dns to string slice: %w", err)
+	}
 	wanDNS, err := listToStringSlice(d.Get("wan_dns").([]interface{}))
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert wan_dns to string slice: %w", err)
@@ -314,11 +434,28 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 
 		Enabled: true,
 
-		IPV6InterfaceType: d.Get("ipv6_interface_type").(string),
-		IPV6Subnet:        d.Get("ipv6_static_subnet").(string),
-		IPV6PDInterface:   d.Get("ipv6_pd_interface").(string),
-		IPV6PDPrefixid:    d.Get("ipv6_pd_prefixid").(string),
-		IPV6RaEnabled:     d.Get("ipv6_ra_enable").(bool),
+		// Same hackish code as for DHCPv4 ¯\_(ツ)_/¯
+		DHCPDV6DNS1: append(dhcpV6DNS, "")[0],
+		DHCPDV6DNS2: append(dhcpV6DNS, "", "")[1],
+		DHCPDV6DNS3: append(dhcpV6DNS, "", "", "")[2],
+		DHCPDV6DNS4: append(dhcpV6DNS, "", "", "", "")[3],
+
+		DHCPDV6DNSAuto:   d.Get("dhcp_v6_dns_auto").(bool),
+		DHCPDV6Enabled:   d.Get("dhcp_v6_enabled").(bool),
+		DHCPDV6LeaseTime: d.Get("dhcp_v6_lease").(int),
+		DHCPDV6Start:     d.Get("dhcp_v6_start").(string),
+		DHCPDV6Stop:      d.Get("dhcp_v6_stop").(string),
+
+		IPV6InterfaceType:       d.Get("ipv6_interface_type").(string),
+		IPV6Subnet:              d.Get("ipv6_static_subnet").(string),
+		IPV6PDInterface:         d.Get("ipv6_pd_interface").(string),
+		IPV6PDPrefixid:          d.Get("ipv6_pd_prefixid").(string),
+		IPV6PDStart:             d.Get("ipv6_pd_start").(string),
+		IPV6PDStop:              d.Get("ipv6_pd_stop").(string),
+		IPV6RaEnabled:           d.Get("ipv6_ra_enable").(bool),
+		IPV6RaPreferredLifetime: d.Get("ipv6_ra_preferred_lifetime").(int),
+		IPV6RaPriority:          d.Get("ipv6_ra_priority").(string),
+		IPV6RaValidLifetime:     d.Get("ipv6_ra_valid_lifetime").(int),
 
 		InternetAccessEnabled:     d.Get("internet_access_enabled").(bool),
 		IntraNetworkAccessEnabled: d.Get("intra_network_access_enabled").(bool),
@@ -331,6 +468,12 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		WANEgressQOS:    d.Get("wan_egress_qos").(int),
 		WANUsername:     d.Get("wan_username").(string),
 		XWANPassword:    d.Get("x_wan_password").(string),
+
+		WANTypeV6:       d.Get("wan_type_v6").(string),
+		WANDHCPv6PDSize: d.Get("wan_dhcp_v6_pd_size").(int),
+		WANIPV6:         d.Get("wan_ipv6").(string),
+		WANGatewayV6:    d.Get("wan_gateway_v6").(string),
+		WANPrefixlen:    d.Get("wan_prefixlen").(int),
 
 		// this is kinda hacky but ¯\_(ツ)_/¯
 		WANDNS1: append(wanDNS, "")[0],
@@ -396,37 +539,67 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 		}
 	}
 
+	dhcpV6DNS := []string{}
+	for _, dns := range []string{
+		resp.DHCPDV6DNS1,
+		resp.DHCPDV6DNS2,
+		resp.DHCPDV6DNS3,
+		resp.DHCPDV6DNS4,
+	} {
+		if dns == "" {
+			continue
+		}
+		dhcpV6DNS = append(dhcpV6DNS, dns)
+	}
+
 	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("purpose", resp.Purpose)
 	d.Set("vlan_id", vlan)
 	d.Set("subnet", cidrZeroBased(resp.IPSubnet))
 	d.Set("network_group", resp.NetworkGroup)
-	d.Set("dhcp_start", resp.DHCPDStart)
-	d.Set("dhcp_stop", resp.DHCPDStop)
+
+	d.Set("dhcp_dns", dhcpDNS)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
 	d.Set("dhcp_lease", dhcpLease)
-	d.Set("dhcpd_boot_enabled", resp.DHCPDBootEnabled)
-	d.Set("dhcpd_boot_server", resp.DHCPDBootServer)
-	d.Set("dhcpd_boot_filename", resp.DHCPDBootFilename)
 	d.Set("dhcp_relay_enabled", resp.DHCPRelayEnabled)
+	d.Set("dhcp_start", resp.DHCPDStart)
+	d.Set("dhcp_stop", resp.DHCPDStop)
+	d.Set("dhcp_v6_dns_auto", resp.DHCPDV6DNSAuto)
+	d.Set("dhcp_v6_dns", dhcpV6DNS)
+	d.Set("dhcp_v6_enabled", resp.DHCPDV6Enabled)
+	d.Set("dhcp_v6_lease", resp.DHCPDV6LeaseTime)
+	d.Set("dhcp_v6_start", resp.DHCPDV6Start)
+	d.Set("dhcp_v6_stop", resp.DHCPDV6Stop)
+	d.Set("dhcpd_boot_enabled", resp.DHCPDBootEnabled)
+	d.Set("dhcpd_boot_filename", resp.DHCPDBootFilename)
+	d.Set("dhcpd_boot_server", resp.DHCPDBootServer)
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
-	d.Set("dhcp_dns", dhcpDNS)
-	d.Set("ipv6_interface_type", resp.IPV6InterfaceType)
-	d.Set("ipv6_static_subnet", resp.IPV6Subnet)
-	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
-	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
-	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
 	d.Set("internet_access_enabled", resp.InternetAccessEnabled)
 	d.Set("intra_network_access_enabled", resp.IntraNetworkAccessEnabled)
-	d.Set("wan_ip", wanIP)
-	d.Set("wan_netmask", wanNetmask)
-	d.Set("wan_gateway", wanGateway)
-	d.Set("wan_type", wanType)
+	d.Set("ipv6_interface_type", resp.IPV6InterfaceType)
+	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
+	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
+	d.Set("ipv6_pd_start", resp.IPV6PDStart)
+	d.Set("ipv6_pd_stop", resp.IPV6PDStop)
+	d.Set("ipv6_ra_enable", resp.IPV6RaEnabled)
+	d.Set("ipv6_ra_preferred_lifetime", resp.IPV6RaPreferredLifetime)
+	d.Set("ipv6_ra_priority", resp.IPV6RaPriority)
+	d.Set("ipv6_ra_valid_lifetime", resp.IPV6RaValidLifetime)
+	d.Set("ipv6_static_subnet", resp.IPV6Subnet)
+	d.Set("wan_dhcp_v6_pd_size", resp.WANDHCPv6PDSize)
 	d.Set("wan_dns", wanDNS)
-	d.Set("wan_networkgroup", resp.WANNetworkGroup)
 	d.Set("wan_egress_qos", resp.WANEgressQOS)
+	d.Set("wan_gateway_v6", resp.WANGatewayV6)
+	d.Set("wan_gateway", wanGateway)
+	d.Set("wan_ip", wanIP)
+	d.Set("wan_ipv6", resp.WANIPV6)
+	d.Set("wan_netmask", wanNetmask)
+	d.Set("wan_networkgroup", resp.WANNetworkGroup)
+	d.Set("wan_prefixlen", resp.WANPrefixlen)
+	d.Set("wan_type_v6", resp.WANTypeV6)
+	d.Set("wan_type", wanType)
 	d.Set("wan_username", resp.WANUsername)
 	d.Set("x_wan_password", resp.XWANPassword)
 

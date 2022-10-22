@@ -102,6 +102,40 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"dhcp_v6_dns": {
+				Description: "Specifies the IPv6 addresses for the DNS server to be returned from the DHCP " +
+					"server. Used if `dhcp_v6_dns_auto` is set to `false`.",
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"dhcp_v6_dns_auto": {
+				Description: "Specifies DNS source to propagate. If set `false` the entries in `dhcp_v6_dns` are used, the upstream entries otherwise",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"dhcp_v6_enabled": {
+				Description: "Enable stateful DHCPv6 for static configuration.",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"dhcp_v6_lease": {
+				Description: "Specifies the lease time for DHCPv6 addresses.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+			"dhcp_v6_start": {
+				Description: "Start address of the DHCPv6 range. Used in static DHCPv6 configuration.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"dhcp_v6_stop": {
+				Description: "End address of the DHCPv6 range. Used in static DHCPv6 configuration.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"domain_name": {
 				Description: "The domain name of this network.",
 				Type:        schema.TypeString,
@@ -113,7 +147,7 @@ func dataNetwork() *schema.Resource {
 				Computed:    true,
 			},
 			"ipv6_interface_type": {
-				Description: "Specifies which type of IPv6 connection to use.",
+				Description: "Specifies which type of IPv6 connection to use. Must be one of either `static`, `pd`, or `none`.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
@@ -123,7 +157,7 @@ func dataNetwork() *schema.Resource {
 				Computed:    true,
 			},
 			"ipv6_pd_interface": {
-				Description: "Specifies which WAN interface is used for IPv6 Prefix Delegation.",
+				Description: "Specifies which WAN interface to use for IPv6 PD. Must be one of either `wan` or `wan2`.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
@@ -132,9 +166,34 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			"ipv6_pd_start": {
+				Description: "Start address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"ipv6_pd_stop": {
+				Description: "End address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"ipv6_ra_enable": {
 				Description: "Specifies whether to enable router advertisements or not.",
 				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"ipv6_ra_preferred_lifetime": {
+				Description: "Lifetime in which the address can be used. Address becomes deprecated afterwards. Must be lower than or equal to `ipv6_ra_valid_lifetime`",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+			"ipv6_ra_priority": {
+				Description: "IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"ipv6_ra_valid_lifetime": {
+				Description: "Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.",
+				Type:        schema.TypeInt,
 				Computed:    true,
 			},
 			"wan_ip": {
@@ -183,6 +242,31 @@ func dataNetwork() *schema.Resource {
 			"x_wan_password": {
 				Description: "Specifies the IPV4 WAN password.",
 				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_type_v6": {
+				Description: "Specifies the IPV6 WAN connection type. Must be one of either `disabled`, `static`, or `dhcpv6`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_dhcp_v6_pd_size": {
+				Description: "Specifies the IPv6 prefix size to request from ISP. Must be a number between 48 and 64.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+			},
+			"wan_ipv6": {
+				Description: "The IPv6 address of the WAN.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_gateway_v6": {
+				Description: "The IPv6 gateway of the WAN.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"wan_prefixlen": {
+				Description: "The IPv6 prefix length of the WAN. Must be between 1 and 128.",
+				Type:        schema.TypeInt,
 				Computed:    true,
 			},
 		},
@@ -264,6 +348,11 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 			d.Set("wan_egress_qos", n.WANEgressQOS)
 			d.Set("wan_username", n.WANUsername)
 			d.Set("x_wan_password", n.XWANPassword)
+			d.Set("wan_type_v6", n.WANTypeV6)
+			d.Set("wan_dhcp_v6_pd_size", n.WANDHCPv6PDSize)
+			d.Set("wan_ipv6", n.WANIPV6)
+			d.Set("wan_gateway_v6", n.WANGatewayV6)
+			d.Set("wan_prefixlen", n.WANPrefixlen)
 
 			return nil
 		}

@@ -3,10 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/paultyng/go-unifi/unifi"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/paultyng/go-unifi/unifi"
 )
 
 func TestAccDataUser_default(t *testing.T) {

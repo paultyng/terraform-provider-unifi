@@ -3,15 +3,17 @@ package provider
 import (
 	"context"
 	"errors"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
 var firewallRuleProtocolRegexp = regexp.MustCompile("^$|all|([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|tcp_udp|ah|ax.25|dccp|ddp|egp|eigrp|encap|esp|etherip|fc|ggp|gre|hip|hmp|icmp|idpr-cmtp|idrp|igmp|igp|ip|ipcomp|ipencap|ipip|ipv6|ipv6-frag|ipv6-icmp|ipv6-nonxt|ipv6-opts|ipv6-route|isis|iso-tp4|l2tp|manet|mobility-header|mpls-in-ip|ospf|pim|pup|rdp|rohc|rspf|rsvp|sctp|shim6|skip|st|tcp|udp|udplite|vmtp|vrrp|wesp|xns-idp|xtp")
+var firewallRuleProtocolV6Regexp = regexp.MustCompile("^$|([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])|ah|all|dccp|eigrp|esp|gre|icmpv6|ipcomp|ipv6|ipv6-frag|ipv6-icmp|ipv6-nonxt|ipv6-opts|ipv6-route|isis|l2tp|manet|mobility-header|mpls-in-ip|ospf|pim|rsvp|sctp|shim6|tcp|tcp_udp|udp|vrrp")
+var firewallRuleICMPv6TypenameRegexp = regexp.MustCompile("^$|address-unreachable|bad-header|beyond-scope|communication-prohibited|destination-unreachable|echo-reply|echo-request|failed-policy|neighbor-advertisement|neighbor-solicitation|no-route|packet-too-big|parameter-problem|port-unreachable|redirect|reject-route|router-advertisement|router-solicitation|time-exceeded|ttl-zero-during-reassembly|ttl-zero-during-transit|unknown-header-type|unknown-option")
 
 func resourceFirewallRule() *schema.Resource {
 	return &schema.Resource{
@@ -67,13 +69,25 @@ func resourceFirewallRule() *schema.Resource {
 			"protocol": {
 				Description:  "The protocol of the rule.",
 				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringMatch(firewallRuleProtocolRegexp, "must be a valid protocol"),
+				Optional:     true,
+				ValidateFunc: validation.StringMatch(firewallRuleProtocolRegexp, "must be a valid IPv4 protocol"),
+			},
+			"protocol_v6": {
+				Description:  "The IPv6 protocol of the rule.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringMatch(firewallRuleProtocolV6Regexp, "must be a valid IPv6 protocol"),
 			},
 			"icmp_typename": {
 				Description: "ICMP type name.",
 				Type:        schema.TypeString,
 				Optional:    true,
+			},
+			"icmp_v6_typename": {
+				Description:  "ICMPv6 type name.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringMatch(firewallRuleICMPv6TypenameRegexp, "must be a ICMPv6 type"),
 			},
 
 			// sources
@@ -97,6 +111,11 @@ func resourceFirewallRule() *schema.Resource {
 			},
 			"src_address": {
 				Description: "The source address for the firewall rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"src_address_ipv6": {
+				Description: "The IPv6 source address for the firewall rule.",
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
@@ -127,6 +146,11 @@ func resourceFirewallRule() *schema.Resource {
 			},
 			"dst_address": {
 				Description: "The destination address of the firewall rule.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"dst_address_ipv6": {
+				Description: "The IPv6 destination address of the firewall rule.",
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
@@ -219,7 +243,9 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 		Ruleset:          d.Get("ruleset").(string),
 		RuleIndex:        d.Get("rule_index").(int),
 		Protocol:         d.Get("protocol").(string),
+		ProtocolV6:       d.Get("protocol_v6").(string),
 		ICMPTypename:     d.Get("icmp_typename").(string),
+		ICMPv6Typename:   d.Get("icmp_v6_typename").(string),
 		Logging:          d.Get("logging").(bool),
 		IPSec:            d.Get("ip_sec").(string),
 		StateEstablished: d.Get("state_established").(bool),
@@ -230,11 +256,13 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 		SrcNetworkType:      d.Get("src_network_type").(string),
 		SrcMACAddress:       d.Get("src_mac").(string),
 		SrcAddress:          d.Get("src_address").(string),
+		SrcAddressIPV6:      d.Get("src_address_ipv6").(string),
 		SrcNetworkID:        d.Get("src_network_id").(string),
 		SrcFirewallGroupIDs: srcFirewallGroupIDs,
 
 		DstNetworkType:      d.Get("dst_network_type").(string),
 		DstAddress:          d.Get("dst_address").(string),
+		DstAddressIPV6:      d.Get("dst_address_ipv6").(string),
 		DstPort:             d.Get("dst_port").(string),
 		DstNetworkID:        d.Get("dst_network_id").(string),
 		DstFirewallGroupIDs: dstFirewallGroupIDs,
@@ -248,7 +276,9 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	d.Set("ruleset", resp.Ruleset)
 	d.Set("rule_index", resp.RuleIndex)
 	d.Set("protocol", resp.Protocol)
+	d.Set("protocol_v6", resp.ProtocolV6)
 	d.Set("icmp_typename", resp.ICMPTypename)
+	d.Set("icmp_v6_typename", resp.ICMPv6Typename)
 	d.Set("logging", resp.Logging)
 	d.Set("ip_sec", resp.IPSec)
 	d.Set("state_established", resp.StateEstablished)
@@ -256,17 +286,17 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	d.Set("state_new", resp.StateNew)
 	d.Set("state_related", resp.StateRelated)
 
-	// TODO: handle IPv6
 	d.Set("src_network_type", resp.SrcNetworkType)
 	d.Set("src_firewall_group_ids", stringSliceToSet(resp.SrcFirewallGroupIDs))
 	d.Set("src_mac", resp.SrcMACAddress)
 	d.Set("src_address", resp.SrcAddress)
+	d.Set("src_address_ipv6", resp.SrcAddressIPV6)
 	d.Set("src_network_id", resp.SrcNetworkID)
 
-	// TODO: handle IPv6
 	d.Set("dst_network_type", resp.DstNetworkType)
 	d.Set("dst_firewall_group_ids", stringSliceToSet(resp.DstFirewallGroupIDs))
 	d.Set("dst_address", resp.DstAddress)
+	d.Set("dst_address_ipv6", resp.DstAddressIPV6)
 	d.Set("dst_network_id", resp.DstNetworkID)
 	d.Set("dst_port", resp.DstPort)
 
