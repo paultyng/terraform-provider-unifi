@@ -370,7 +370,7 @@ func TestAccNetwork_vlanOnly(t *testing.T) {
 			{
 				Config: testAccNetworkVlanOnly(name, vlanID),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "101"),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID)),
 				),
 			},
 			{
