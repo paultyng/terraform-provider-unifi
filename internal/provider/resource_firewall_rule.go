@@ -83,7 +83,7 @@ func resourceFirewallRule() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
-			"icmpv6_typename": {
+			"icmp_v6_typename": {
 				Description:  "ICMPv6 type name.",
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -245,7 +245,7 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 		Protocol:         d.Get("protocol").(string),
 		ProtocolV6:       d.Get("protocol_v6").(string),
 		ICMPTypename:     d.Get("icmp_typename").(string),
-		ICMPv6Typename:   d.Get("icmpv6_typename").(string),
+		ICMPv6Typename:   d.Get("icmp_v6_typename").(string),
 		Logging:          d.Get("logging").(bool),
 		IPSec:            d.Get("ip_sec").(string),
 		StateEstablished: d.Get("state_established").(bool),
@@ -278,7 +278,7 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	d.Set("protocol", resp.Protocol)
 	d.Set("protocol_v6", resp.ProtocolV6)
 	d.Set("icmp_typename", resp.ICMPTypename)
-	d.Set("icmpv6_typename", resp.ICMPv6Typename)
+	d.Set("icmp_v6_typename", resp.ICMPv6Typename)
 	d.Set("logging", resp.Logging)
 	d.Set("ip_sec", resp.IPSec)
 	d.Set("state_established", resp.StateEstablished)
