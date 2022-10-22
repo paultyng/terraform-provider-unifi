@@ -169,6 +169,7 @@ func TestAccNetwork_v6(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID3)),
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_v6_start", "fd6a:37be:e364::2"),
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_v6_stop", "fd6a:37be:e364::7d1"),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_v6_lease", strconv.Itoa(12*60*60)),
 				),
 			},
 			{
@@ -624,6 +625,7 @@ resource "unifi_network" "test" {
 	dhcp_v6_enabled = true
 	dhcp_v6_start = "%[4]s"
 	dhcp_v6_stop = "%[5]s"
+	dhcp_v6_lease = 12 * 60 * 60
 }
 `, name, vlan, gatewayIP, dhcpdV6Start, dhcpdV6Stop, strings.Join(quoteStrings(dhcpV6DNS), ","))
 }

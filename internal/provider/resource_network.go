@@ -112,7 +112,7 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 			},
 			"dhcp_lease": {
-				Description: "Specifies the lease time for DHCP addresses.",
+				Description: "Specifies the lease time for DHCP addresses in seconds.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     86400,
@@ -177,7 +177,7 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 			},
 			"dhcp_v6_lease": {
-				Description: "Specifies the lease time for DHCPv6 addresses.",
+				Description: "Specifies the lease time for DHCPv6 addresses in seconds.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     86400,
