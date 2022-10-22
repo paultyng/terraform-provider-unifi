@@ -269,7 +269,7 @@ func resourceNetwork() *schema.Resource {
 				ValidateFunc: validation.IsIPv4Address,
 			},
 			"ipv6_ra_valid_lifetime": {
-				Description: "Total lifetime in which the adress can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.",
+				Description: "Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     86400,
