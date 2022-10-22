@@ -33,6 +33,9 @@ var (
 
 	ipV6InterfaceTypeRegexp   = regexp.MustCompile("none|pd|static")
 	validateIpV6InterfaceType = validation.StringMatch(ipV6InterfaceTypeRegexp, "invalid IPv6 interface type")
+
+	// This is a slightly larger range than the UI, it includes some reserved ones, so could be tightened up.
+	validateVLANID = validation.IntBetween(0, 4096)
 )
 
 func resourceNetwork() *schema.Resource {
@@ -73,9 +76,10 @@ func resourceNetwork() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "wan", "vlan-only"}, false),
 			},
 			"vlan_id": {
-				Description: "The VLAN ID of the network.",
-				Type:        schema.TypeInt,
-				Optional:    true,
+				Description:  "The VLAN ID of the network.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateVLANID,
 			},
 			"subnet": {
 				Description:      "The subnet of the network. Must be a valid CIDR address.",
@@ -158,6 +162,7 @@ func resourceNetwork() *schema.Resource {
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validation.IsIPv6Address,
+					// TODO: should this ensure blank can't get through?
 				},
 			},
 			"dhcp_v6_dns_auto": {
