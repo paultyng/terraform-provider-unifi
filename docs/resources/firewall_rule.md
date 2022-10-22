@@ -37,22 +37,26 @@ resource "unifi_firewall_rule" "drop_all" {
 
 - `action` (String) The action of the firewall rule. Must be one of `drop`, `accept`, or `reject`.
 - `name` (String) The name of the firewall rule.
-- `protocol` (String) The protocol of the rule.
 - `rule_index` (Number) The index of the rule. Must be >= 2000 < 3000 or >= 4000 < 5000.
 - `ruleset` (String) The ruleset for the rule. This is from the perspective of the security gateway. Must be one of `WAN_IN`, `WAN_OUT`, `WAN_LOCAL`, `LAN_IN`, `LAN_OUT`, `LAN_LOCAL`, `GUEST_IN`, `GUEST_OUT`, `GUEST_LOCAL`, `WANv6_IN`, `WANv6_OUT`, `WANv6_LOCAL`, `LANv6_IN`, `LANv6_OUT`, `LANv6_LOCAL`, `GUESTv6_IN`, `GUESTv6_OUT`, or `GUESTv6_LOCAL`.
 
 ### Optional
 
 - `dst_address` (String) The destination address of the firewall rule.
+- `dst_address_ipv6` (String) The IPv6 destination address of the firewall rule.
 - `dst_firewall_group_ids` (Set of String) The destination firewall group IDs of the firewall rule.
 - `dst_network_id` (String) The destination network ID of the firewall rule.
 - `dst_network_type` (String) The destination network type of the firewall rule. Can be one of `ADDRv4` or `NETv4`. Defaults to `NETv4`.
 - `dst_port` (String) The destination port of the firewall rule.
 - `icmp_typename` (String) ICMP type name.
+- `icmp_v6_typename` (String) ICMPv6 type name.
 - `ip_sec` (String) Specify whether the rule matches on IPsec packets. Can be one of `match-ipset` or `match-none`.
 - `logging` (Boolean) Enable logging for the firewall rule.
+- `protocol` (String) The protocol of the rule.
+- `protocol_v6` (String) The IPv6 protocol of the rule.
 - `site` (String) The name of the site to associate the firewall rule with.
 - `src_address` (String) The source address for the firewall rule.
+- `src_address_ipv6` (String) The IPv6 source address for the firewall rule.
 - `src_firewall_group_ids` (Set of String) The source firewall group IDs for the firewall rule.
 - `src_mac` (String) The source MAC address of the firewall rule.
 - `src_network_id` (String) The source network ID for the firewall rule.

@@ -95,6 +95,33 @@ func TestAccFirewallRule_address_and_port_group(t *testing.T) {
 	})
 }
 
+func TestAccFirewallRule_IPv6_basic(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFirewallRuleConfigIPv6,
+			},
+			importStep("unifi_firewall_rule.test"),
+		},
+	})
+}
+
+func TestAccFirewallRule_IPv6_dst_port(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFirewallRuleConfigIPv6WithPort,
+			},
+			importStep("unifi_firewall_rule.test"),
+		},
+	})
+}
+
 // func TestAccFirewallRule_firewall_group(t *testing.T) {
 // func TestAccFirewallRule_network(t *testing.T) {
 
@@ -249,15 +276,48 @@ resource "unifi_firewall_rule" "test" {
 }
 `
 
-// resource "unifi_firewall_rule" "can_print_drop" {
-// 	name    = "[tf] can-print (drop all)"
-// 	action  = "drop"
-// 	ruleset = "LAN_IN"
+const testAccFirewallRuleConfigIPv6 = `
+resource "unifi_firewall_group" "test_a" {
+	name = "tf acc rule IPv6 group a"
+	type = "ipv6-address-group"
 
-// 	rule_index = 2011
+	members = ["fd6a:37be:e364::/64", "fd6a:37be:e365::/64",]
+}
 
-// 	protocol = "all"
+resource "unifi_firewall_group" "test_b" {
+	name = "tf acc rule IPv6 group b"
+	type = "ipv6-address-group"
 
-// 	dst_address = "192.168.1.1"
-// }
-// `
+	members = ["2001:4860:4860::8888", "2001:4860:4860::8844"]
+}
+
+resource "unifi_firewall_rule" "test" {
+	name    = "tf acc"
+	action  = "drop"
+	ruleset = "LANv6_IN"
+
+	rule_index = 2510
+
+	protocol_v6 = "all"
+
+	src_firewall_group_ids = [unifi_firewall_group.test_a.id]
+
+	dst_firewall_group_ids = [unifi_firewall_group.test_b.id]
+}
+`
+
+const testAccFirewallRuleConfigIPv6WithPort = `
+resource "unifi_firewall_rule" "test" {
+	name    = "tf acc"
+	action  = "accept"
+	ruleset = "LANv6_IN"
+
+	rule_index = 2511
+
+	protocol = "tcp"
+
+	src_address_ipv6 = "fd6a:37be:e364::1/64"
+	dst_address_ipv6 = "fd6a:37be:e364::2/64"
+	dst_port    = 53
+}
+`
