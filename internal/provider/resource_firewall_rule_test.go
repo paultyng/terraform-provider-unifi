@@ -314,7 +314,7 @@ resource "unifi_firewall_rule" "test" {
 
 	rule_index = 2511
 
-	protocol_v6 = "tcp"
+	protocol = "tcp"
 
 	src_address_ipv6 = "fd6a:37be:e364::1/64"
 	dst_address_ipv6 = "fd6a:37be:e364::2/64"
