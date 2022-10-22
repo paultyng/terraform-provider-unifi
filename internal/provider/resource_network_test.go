@@ -358,6 +358,7 @@ func TestAccNetwork_dhcpRelay(t *testing.T) {
 
 func TestAccNetwork_vlanOnly(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
+	vlanID := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -367,7 +368,7 @@ func TestAccNetwork_vlanOnly(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkVlanOnly(name),
+				Config: testAccNetworkVlanOnly(name, vlanID),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", "101"),
 				),
@@ -587,7 +588,7 @@ resource "unifi_network" "test" {
 `, name, vlan, dhcpRelay)
 }
 
-func testAccNetworkVlanOnly(name string) string {
+func testAccNetworkVlanOnly(name string, vlan int) string {
 	return fmt.Sprintf(`
 resource "unifi_site" "test" {
   description = "%[1]s"
@@ -597,9 +598,9 @@ resource "unifi_network" "test" {
   site    = unifi_site.test.name
   name    = "test"
   purpose = "vlan-only"
-  vlan_id = 101
+  vlan_id = %[2]d
 }
-`, name)
+`, name, vlan)
 }
 
 func testAccNetworkConfigDhcpV6(name string, vlan int, gatewayIP string, dhcpdV6Start string, dhcpdV6Stop string, dhcpV6DNS []string) string {
