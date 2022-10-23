@@ -75,6 +75,7 @@ func New(version string) func() *schema.Provider {
 				"unifi_radius_profile": dataRADIUSProfile(),
 				"unifi_user_group":     dataUserGroup(),
 				"unifi_user":           dataUser(),
+				"unifi_account":        dataAccount(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
 				// TODO: "unifi_ap_group"
@@ -91,6 +92,7 @@ func New(version string) func() *schema.Provider {
 				"unifi_user_group":     resourceUserGroup(),
 				"unifi_user":           resourceUser(),
 				"unifi_wlan":           resourceWLAN(),
+				"unifi_account":        resourceAccount(),
 
 				"unifi_setting_mgmt":   resourceSettingMgmt(),
 				"unifi_setting_radius": resourceSettingRadius(),
@@ -186,6 +188,12 @@ type unifiClient interface {
 	DeleteRADIUSProfile(ctx context.Context, site, id string) error
 	CreateRADIUSProfile(ctx context.Context, site string, d *unifi.RADIUSProfile) (*unifi.RADIUSProfile, error)
 	UpdateRADIUSProfile(ctx context.Context, site string, d *unifi.RADIUSProfile) (*unifi.RADIUSProfile, error)
+
+	ListAccounts(ctx context.Context, site string) ([]unifi.Account, error)
+	GetAccount(ctx context.Context, site, id string) (*unifi.Account, error)
+	DeleteAccount(ctx context.Context, site, id string) error
+	CreateAccount(ctx context.Context, site string, d *unifi.Account) (*unifi.Account, error)
+	UpdateAccount(ctx context.Context, site string, d *unifi.Account) (*unifi.Account, error)
 
 	GetSite(ctx context.Context, id string) (*unifi.Site, error)
 	ListSites(ctx context.Context) ([]unifi.Site, error)

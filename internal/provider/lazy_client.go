@@ -369,6 +369,36 @@ func (c *lazyClient) UpdateRADIUSProfile(ctx context.Context, site string, d *un
 	}
 	return c.inner.UpdateRADIUSProfile(ctx, site, d)
 }
+func (c *lazyClient) ListAccounts(ctx context.Context, site string) ([]unifi.Account, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListAccount(ctx, site)
+}
+func (c *lazyClient) GetAccount(ctx context.Context, site, id string) (*unifi.Account, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetAccount(ctx, site, id)
+}
+func (c *lazyClient) DeleteAccount(ctx context.Context, site, id string) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.DeleteAccount(ctx, site, id)
+}
+func (c *lazyClient) CreateAccount(ctx context.Context, site string, d *unifi.Account) (*unifi.Account, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.CreateAccount(ctx, site, d)
+}
+func (c *lazyClient) UpdateAccount(ctx context.Context, site string, d *unifi.Account) (*unifi.Account, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateAccount(ctx, site, d)
+}
 func (c *lazyClient) GetSite(ctx context.Context, id string) (*unifi.Site, error) {
 	if err := c.init(ctx); err != nil {
 		return nil, err
