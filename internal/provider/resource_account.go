@@ -2,8 +2,10 @@ package provider
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -11,11 +13,9 @@ func resourceAccount() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_account` manages a radius user account\n\n" +
 			"To authenticate devices based on MAC address, use the MAC address as the username and password under client creation. \n" +
-			"Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address.  \n" +
+			"Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address. \n\n" +
 			"ATTENTION: If the user profile does not include a VLAN, the client will fall back to the untagged VLAN. \n\n" +
-			"To authenticate devices based on MAC address, use the MAC address as the username and password under client creation.\n" +
-			"Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address.\n\n" +
-			"NOTE:MAC-based authentication accounts can only be used for wireless and wired clients. L2TP remote access does not apply.",
+			"NOTE: MAC-based authentication accounts can only be used for wireless and wired clients. L2TP remote access does not apply.",
 
 		CreateContext: resourceAccountCreate,
 		ReadContext:   resourceAccountRead,
@@ -50,16 +50,18 @@ func resourceAccount() *schema.Resource {
 				Sensitive:   true,
 			},
 			"tunnel_type": {
-				Description: "See RFC2868 section 3.1", // @TODO: better documentation https://help.ui.com/hc/en-us/articles/360015268353-UniFi-USG-UDM-Configuring-RADIUS-Server#6
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     13,
+				Description:  "See [RFC 2868](https://www.rfc-editor.org/rfc/rfc2868) section 3.1", // @TODO: better documentation https://help.ui.com/hc/en-us/articles/360015268353-UniFi-USG-UDM-Configuring-RADIUS-Server#6
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      13,
+				ValidateFunc: validation.IntBetween(1, 13),
 			},
 			"tunnel_medium_type": {
-				Description: "See RFC2868 section 3.2", // @TODO: better documentation https://help.ui.com/hc/en-us/articles/360015268353-UniFi-USG-UDM-Configuring-RADIUS-Server#6
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     6,
+				Description:  "See [RFC 2868](https://www.rfc-editor.org/rfc/rfc2868) section 3.2", // @TODO: better documentation https://help.ui.com/hc/en-us/articles/360015268353-UniFi-USG-UDM-Configuring-RADIUS-Server#6
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      6,
+				ValidateFunc: validation.IntBetween(1, 15),
 			},
 			"network_id": {
 				Description: "ID of the network for this account",

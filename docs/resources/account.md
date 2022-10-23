@@ -5,10 +5,9 @@ subcategory: ""
 description: |-
   unifi_account manages a radius user account
   To authenticate devices based on MAC address, use the MAC address as the username and password under client creation.
-  Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address.ATTENTION: If the user profile does not include a VLAN, the client will fall back to the untagged VLAN.
-  To authenticate devices based on MAC address, use the MAC address as the username and password under client creation.
   Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address.
-  NOTE:MAC-based authentication accounts can only be used for wireless and wired clients. L2TP remote access does not apply.
+  ATTENTION: If the user profile does not include a VLAN, the client will fall back to the untagged VLAN.
+  NOTE: MAC-based authentication accounts can only be used for wireless and wired clients. L2TP remote access does not apply.
 ---
 
 # unifi_account (Resource)
@@ -16,13 +15,11 @@ description: |-
 `unifi_account` manages a radius user account
 
 To authenticate devices based on MAC address, use the MAC address as the username and password under client creation. 
-Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address.  
+Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address. 
+
 ATTENTION: If the user profile does not include a VLAN, the client will fall back to the untagged VLAN. 
 
-To authenticate devices based on MAC address, use the MAC address as the username and password under client creation.
-Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address.
-
-NOTE:MAC-based authentication accounts can only be used for wireless and wired clients. L2TP remote access does not apply.
+NOTE: MAC-based authentication accounts can only be used for wireless and wired clients. L2TP remote access does not apply.
 
 
 
@@ -38,8 +35,8 @@ NOTE:MAC-based authentication accounts can only be used for wireless and wired c
 
 - `network_id` (String) ID of the network for this account
 - `site` (String) The name of the site to associate the account with.
-- `tunnel_medium_type` (Number) See RFC2868 section 3.2 Defaults to `6`.
-- `tunnel_type` (Number) See RFC2868 section 3.1 Defaults to `13`.
+- `tunnel_medium_type` (Number) See [RFC 2868](https://www.rfc-editor.org/rfc/rfc2868) section 3.2 Defaults to `6`.
+- `tunnel_type` (Number) See [RFC 2868](https://www.rfc-editor.org/rfc/rfc2868) section 3.1 Defaults to `13`.
 
 ### Read-Only
 
