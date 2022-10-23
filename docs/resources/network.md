@@ -53,14 +53,14 @@ resource "unifi_network" "wan" {
 
 - `dhcp_dns` (List of String) Specifies the IPv4 addresses for the DNS server to be returned from the DHCP server. Leave blank to disable this feature.
 - `dhcp_enabled` (Boolean) Specifies whether DHCP is enabled or not on this network.
-- `dhcp_lease` (Number) Specifies the lease time for DHCP addresses. Defaults to `86400`.
+- `dhcp_lease` (Number) Specifies the lease time for DHCP addresses in seconds. Defaults to `86400`.
 - `dhcp_relay_enabled` (Boolean) Specifies whether DHCP relay is enabled or not on this network.
 - `dhcp_start` (String) The IPv4 address where the DHCP range of addresses starts.
 - `dhcp_stop` (String) The IPv4 address where the DHCP range of addresses stops.
 - `dhcp_v6_dns` (List of String) Specifies the IPv6 addresses for the DNS server to be returned from the DHCP server. Used if `dhcp_v6_dns_auto` is set to `false`.
 - `dhcp_v6_dns_auto` (Boolean) Specifies DNS source to propagate. If set `false` the entries in `dhcp_v6_dns` are used, the upstream entries otherwise Defaults to `true`.
 - `dhcp_v6_enabled` (Boolean) Enable stateful DHCPv6 for static configuration.
-- `dhcp_v6_lease` (Number) Specifies the lease time for DHCPv6 addresses. Defaults to `86400`.
+- `dhcp_v6_lease` (Number) Specifies the lease time for DHCPv6 addresses in seconds. Defaults to `86400`.
 - `dhcp_v6_start` (String) Start address of the DHCPv6 range. Used in static DHCPv6 configuration.
 - `dhcp_v6_stop` (String) End address of the DHCPv6 range. Used in static DHCPv6 configuration.
 - `dhcpd_boot_enabled` (Boolean) Toggles on the DHCP boot options. Should be set to true when you want to have dhcpd_boot_filename, and dhcpd_boot_server to take effect.
@@ -78,7 +78,7 @@ resource "unifi_network" "wan" {
 - `ipv6_ra_enable` (Boolean) Specifies whether to enable router advertisements or not.
 - `ipv6_ra_preferred_lifetime` (Number) Lifetime in which the address can be used. Address becomes deprecated afterwards. Must be lower than or equal to `ipv6_ra_valid_lifetime` Defaults to `14400`.
 - `ipv6_ra_priority` (String) IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`
-- `ipv6_ra_valid_lifetime` (Number) Total lifetime in which the adress can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`. Defaults to `86400`.
+- `ipv6_ra_valid_lifetime` (Number) Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`. Defaults to `86400`.
 - `ipv6_static_subnet` (String) Specifies the static IPv6 subnet when `ipv6_interface_type` is 'static'.
 - `network_group` (String) The group of the network. Defaults to `LAN`.
 - `site` (String) The name of the site to associate the network with.

@@ -3,8 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -137,19 +135,29 @@ func resourceWLAN() *schema.Resource {
 							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"sun", "mon", "tue", "wed", "thu", "fri", "sat", "sun"}, false),
 						},
-						"block_start": {
-							Description:      "Time of day to start the block.",
-							Type:             schema.TypeString,
-							Required:         true,
-							ValidateFunc:     validation.StringMatch(timeOfDayRegexp, "Time of day is invalid"),
-							DiffSuppressFunc: timeOfDayDiffSuppress,
+						"start_hour": {
+							Description:  "Start hour for the block (0-23).",
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validation.IntBetween(0, 23),
 						},
-						"block_end": {
-							Description:      "Time of day to end the block.",
-							Type:             schema.TypeString,
-							Required:         true,
-							ValidateFunc:     validation.StringMatch(timeOfDayRegexp, "Time of day is invalid"),
-							DiffSuppressFunc: timeOfDayDiffSuppress,
+						"start_minute": {
+							Description:  "Start minute for the block (0-59).",
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Default:      0,
+							ValidateFunc: validation.IntBetween(0, 59),
+						},
+						"duration": {
+							Description:  "Length of the block in minutes.",
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validation.IntAtLeast(1),
+						},
+						"name": {
+							Description: "Name of the block.",
+							Type:        schema.TypeString,
+							Optional:    true,
 						},
 					},
 				},
@@ -263,7 +271,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 	}
 	wlanBand := d.Get("wlan_band").(string)
 
-	schedule, err := listToScheduleStrings(d.Get("schedule").([]interface{}))
+	schedule, err := listToSchedules(d.Get("schedule").([]interface{}))
 	if err != nil {
 		return nil, fmt.Errorf("unable to process schedule block: %w", err)
 	}
@@ -293,7 +301,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		MACFilterList:           macFilterList,
 		MACFilterPolicy:         d.Get("mac_filter_policy").(string),
 		RADIUSProfileID:         d.Get("radius_profile_id").(string),
-		Schedule:                schedule,
+		ScheduleWithDuration:    schedule,
 		ScheduleEnabled:         len(schedule) > 0,
 		WLANBand:                wlanBand,
 		PMFMode:                 pmf,
@@ -367,11 +375,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 
 	apGroupIDs := stringSliceToSet(resp.ApGroupIDs)
 
-	log.Printf("[TRACE] API Schedule: %#v", resp.Schedule)
-	schedule, err := listFromScheduleStrings(resp.Schedule)
-	if err != nil {
-		return diag.Errorf("unable to parse schedule: %s", err)
-	}
+	schedule := listFromSchedules(resp.ScheduleWithDuration)
 
 	d.Set("site", site)
 	d.Set("name", resp.Name)
@@ -469,59 +473,54 @@ func resourceWLANDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	return diag.FromErr(err)
 }
 
-func listToScheduleStrings(list []interface{}) ([]string, error) {
-	schedStrings := make([]string, 0, len(list))
+func listToSchedules(list []interface{}) ([]unifi.WLANScheduleWithDuration, error) {
+	schedules := make([]unifi.WLANScheduleWithDuration, 0, len(list))
 	for _, item := range list {
 		data, ok := item.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("unexpected data in block")
 		}
-		ss, err := toScheduleString(data)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create schedule string: %w", err)
-		}
-		schedStrings = append(schedStrings, ss)
+		ss := toSchedule(data)
+		schedules = append(schedules, ss)
 	}
-	return schedStrings, nil
+	return schedules, nil
 }
 
-func toScheduleString(data map[string]interface{}) (string, error) {
+func toSchedule(data map[string]interface{}) unifi.WLANScheduleWithDuration {
 	// TODO: error check these?
 	dow := data["day_of_week"].(string)
-	start := timeFromConfig(data["block_start"].(string))
-	end := timeFromConfig(data["block_end"].(string))
+	startHour := data["start_hour"].(int)
+	startMinute := data["start_minute"].(int)
+	duration := data["duration"].(int)
+	name := data["name"].(string)
 
-	return fmt.Sprintf("%s|%s-%s", dow, start, end), nil
+	return unifi.WLANScheduleWithDuration{
+		StartDaysOfWeek: []string{dow},
+		StartHour:       startHour,
+		StartMinute:     startMinute,
+		DurationMinutes: duration,
+		Name:            name,
+	}
 }
 
-func fromScheduleString(s string) (map[string]interface{}, error) {
-	parts := strings.Split(s, "|")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("malformed schedule string %q", s)
-	}
-	dow, times := parts[0], parts[1]
-	timeParts := strings.Split(times, "-")
-	if len(timeParts) != 2 {
-		return nil, fmt.Errorf("malformed schedule times %q", s)
-	}
-
-	start, end := timeFromUnifi(timeParts[0]), timeFromUnifi(timeParts[1])
-
+func fromSchedule(dow string, s unifi.WLANScheduleWithDuration) map[string]interface{} {
 	return map[string]interface{}{
-		"day_of_week": dow,
-		"block_start": start,
-		"block_end":   end,
-	}, nil
+		"day_of_week":  dow,
+		"start_hour":   s.StartHour,
+		"start_minute": s.StartMinute,
+		"duration":     s.DurationMinutes,
+		"name":         s.Name,
+	}
 }
 
-func listFromScheduleStrings(ss []string) ([]interface{}, error) {
+func listFromSchedules(ss []unifi.WLANScheduleWithDuration) []interface{} {
+	// this explodes days of week lists in to individual schedules
 	list := make([]interface{}, 0, len(ss))
 	for _, s := range ss {
-		v, err := fromScheduleString(s)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse schedule string %q: %w", s, err)
+		for _, dow := range s.StartDaysOfWeek {
+			v := fromSchedule(dow, s)
+			list = append(list, v)
 		}
-		list = append(list, v)
 	}
-	return list, nil
+	return list
 }
