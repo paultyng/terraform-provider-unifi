@@ -209,6 +209,22 @@ func TestAccNetwork_wan(t *testing.T) {
 				),
 			},
 			importStep("unifi_network.wan_test"),
+			// remove qos
+			{
+				Config: testWanNetworkConfig(name, "WAN", "pppoe", "192.168.1.1", 0, "username", "password", "8.8.8.8", "4.4.4.4"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_networkgroup", "WAN"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_type", "pppoe"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_ip", "192.168.1.1"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_egress_qos", "0"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "wan_username", "username"),
+					resource.TestCheckResourceAttr("unifi_network.wan_test", "x_wan_password", "password"),
+
+					resource.TestCheckOutput("wan_dns1", "8.8.8.8"),
+					resource.TestCheckOutput("wan_dns2", "4.4.4.4"),
+				),
+			},
+			importStep("unifi_network.wan_test"),
 			{
 				Config: testWanNetworkConfig(name, "WAN", "pppoe", "192.168.1.1", 1, "username", "password", "8.8.8.8", "4.4.4.4"),
 				Check: resource.ComposeTestCheckFunc(

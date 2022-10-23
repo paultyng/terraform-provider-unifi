@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.0
-	github.com/paultyng/go-unifi v1.28.0
+	github.com/paultyng/go-unifi v1.29.0
 )
 
 require (
