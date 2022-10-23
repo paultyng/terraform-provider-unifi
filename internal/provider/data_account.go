@@ -2,13 +2,14 @@ package provider
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataAccount() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_account` data source can be used to retrieve radius user accounts",
+		Description: "`unifi_account` data source can be used to retrieve RADIUS user accounts",
 
 		ReadContext: dataAccountRead,
 

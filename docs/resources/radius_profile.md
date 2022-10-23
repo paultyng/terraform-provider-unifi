@@ -3,12 +3,12 @@
 page_title: "unifi_radius_profile Resource - terraform-provider-unifi"
 subcategory: ""
 description: |-
-  unifi_radius_profile manages radius profiles.
+  unifi_radius_profile manages RADIUS profiles.
 ---
 
 # unifi_radius_profile (Resource)
 
-`unifi_radius_profile` manages radius profiles.
+`unifi_radius_profile` manages RADIUS profiles.
 
 
 
@@ -21,14 +21,14 @@ description: |-
 
 ### Optional
 
-- `accounting_enabled` (Boolean) Specifies whether to use radius accounting. Defaults to `false`.
+- `accounting_enabled` (Boolean) Specifies whether to use RADIUS accounting. Defaults to `false`.
 - `acct_server` (Block List) RADIUS accounting servers. (see [below for nested schema](#nestedblock--acct_server))
 - `auth_server` (Block List) RADIUS authentication servers. (see [below for nested schema](#nestedblock--auth_server))
 - `interim_update_enabled` (Boolean) Specifies whether to use interim_update. Defaults to `false`.
 - `interim_update_interval` (Number) Specifies interim_update interval. Defaults to `3600`.
 - `site` (String) The name of the site to associate the settings with.
-- `use_usg_acct_server` (Boolean) Specifies whether to use usg as a radius accounting server. Defaults to `false`.
-- `use_usg_auth_server` (Boolean) Specifies whether to use usg as a radius authentication server. Defaults to `false`.
+- `use_usg_acct_server` (Boolean) Specifies whether to use usg as a RADIUS accounting server. Defaults to `false`.
+- `use_usg_auth_server` (Boolean) Specifies whether to use usg as a RADIUS authentication server. Defaults to `false`.
 - `vlan_enabled` (Boolean) Specifies whether to use vlan on wired connections. Defaults to `false`.
 - `vlan_wlan_mode` (String) Specifies whether to use vlan on wireless connections. Must be one of `disabled`, `optional`, or `required`. Defaults to ``.
 

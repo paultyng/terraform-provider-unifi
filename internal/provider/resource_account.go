@@ -11,7 +11,7 @@ import (
 
 func resourceAccount() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_account` manages a radius user account\n\n" +
+		Description: "`unifi_account` manages a RADIUS user account\n\n" +
 			"To authenticate devices based on MAC address, use the MAC address as the username and password under client creation. \n" +
 			"Convert lowercase letters to uppercase, and also remove colons or periods from the MAC address. \n\n" +
 			"ATTENTION: If the user profile does not include a VLAN, the client will fall back to the untagged VLAN. \n\n" +

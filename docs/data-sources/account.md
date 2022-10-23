@@ -3,12 +3,12 @@
 page_title: "unifi_account Data Source - terraform-provider-unifi"
 subcategory: ""
 description: |-
-  unifi_account data source can be used to retrieve radius user accounts
+  unifi_account data source can be used to retrieve RADIUS user accounts
 ---
 
 # unifi_account (Data Source)
 
-`unifi_account` data source can be used to retrieve radius user accounts
+`unifi_account` data source can be used to retrieve RADIUS user accounts
 
 
 
