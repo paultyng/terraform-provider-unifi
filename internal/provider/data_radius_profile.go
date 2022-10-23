@@ -20,7 +20,7 @@ func dataRADIUSProfile() *schema.Resource {
 				Computed:    true,
 			},
 			"site": {
-				Description: "The name of the site the radius profile is associated with.",
+				Description: "The name of the site the RADIUS profile is associated with.",
 				Type:        schema.TypeString,
 				Computed:    true,
 				Optional:    true,

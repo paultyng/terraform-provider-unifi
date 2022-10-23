@@ -13,7 +13,7 @@ import (
 
 func resourceRadiusProfile() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_radius_profile` manages radius profiles.",
+		Description: "`unifi_radius_profile` manages RADIUS profiles.",
 
 		CreateContext: resourceRadiusProfileCreate,
 		ReadContext:   resourceRadiusProfileRead,
@@ -42,7 +42,7 @@ func resourceRadiusProfile() *schema.Resource {
 				Required:    true,
 			},
 			"accounting_enabled": {
-				Description: "Specifies whether to use radius accounting.",
+				Description: "Specifies whether to use RADIUS accounting.",
 				Type:        schema.TypeBool,
 				Default:     false,
 				Optional:    true,
@@ -60,13 +60,13 @@ func resourceRadiusProfile() *schema.Resource {
 				Optional:    true,
 			},
 			"use_usg_acct_server": {
-				Description: "Specifies whether to use usg as a radius accounting server.",
+				Description: "Specifies whether to use usg as a RADIUS accounting server.",
 				Type:        schema.TypeBool,
 				Default:     false,
 				Optional:    true,
 			},
 			"use_usg_auth_server": {
-				Description: "Specifies whether to use usg as a radius authentication server.",
+				Description: "Specifies whether to use usg as a RADIUS authentication server.",
 				Type:        schema.TypeBool,
 				Default:     false,
 				Optional:    true,
@@ -405,12 +405,12 @@ func getRadiusProfileIDByName(ctx context.Context, client unifiClient, profileNa
 			continue
 		}
 		if idMatchingName != "" {
-			return "", fmt.Errorf("Found multiple radius profiles with name '%s'", profileName)
+			return "", fmt.Errorf("Found multiple RADIUS profiles with name '%s'", profileName)
 		}
 		idMatchingName = profile.ID
 	}
 	if idMatchingName == "" {
-		return "", fmt.Errorf("Found no radius profile with name '%s', found: %s", profileName, strings.Join(allNames, ", "))
+		return "", fmt.Errorf("Found no RADIUS profile with name '%s', found: %s", profileName, strings.Join(allNames, ", "))
 	}
 	return idMatchingName, nil
 }
