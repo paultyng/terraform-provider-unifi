@@ -179,6 +179,14 @@ func TestAccWLAN_schedule(t *testing.T) {
 				),
 			},
 			importStep("unifi_wlan.test"),
+			// remove schedule
+			{
+				Config: testAccWLANConfig_open(vlanID),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
 		},
 	})
 }
@@ -502,14 +510,28 @@ resource "unifi_wlan" "test" {
 
 	schedule {
 		day_of_week = "mon"
-		block_start = "03:00"
-		block_end   = "9:00"
+		start_hour = 3
+		duration = 60*6
 	}
 
 	schedule {
 		day_of_week = "wed"
-		block_start = "13:00"
-		block_end   = "17:00"
+		start_hour = 13
+		start_minute = 30
+		duration = (60*3)+30
+		name = "minute"
+	}
+
+	schedule {
+		day_of_week = "thu"
+		start_hour = 19
+		duration = 60*1
+	}
+
+	schedule {
+		day_of_week = "fri"
+		start_hour = 19
+		duration = 60*1
 	}
 }
 `, vlanID)

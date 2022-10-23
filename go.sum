@@ -207,8 +207,8 @@ github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLA
 github.com/nsf/jsondiff v0.0.0-20200515183724-f29ed568f4ce h1:RPclfga2SEJmgMmz2k+Mg7cowZ8yv4Trqw9UsJby758=
 github.com/oklog/run v1.1.0 h1:GEenZ1cK0+q0+wsJew9qUg/DyD8k3JzYsZAi5gYi2mA=
 github.com/oklog/run v1.1.0/go.mod h1:sVPdnTZT1zYwAJeCMu2Th4T21pA3FPOQRfWjQlk7DVU=
-github.com/paultyng/go-unifi v1.27.0 h1:rCh3LgSDLfsYnlH67VWTN+j0lPCqM0bgSG0wYevPAuI=
-github.com/paultyng/go-unifi v1.27.0/go.mod h1:X8D1nofAy/G171iLaId4TRkO/UApbkEMTR97o6ECgcg=
+github.com/paultyng/go-unifi v1.28.0 h1:MeDgwVjWowysDwDesKdhOYMwcGTk1JfANyeSRSh4e6I=
+github.com/paultyng/go-unifi v1.28.0/go.mod h1:X8D1nofAy/G171iLaId4TRkO/UApbkEMTR97o6ECgcg=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
