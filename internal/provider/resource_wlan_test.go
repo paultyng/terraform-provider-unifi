@@ -511,27 +511,27 @@ resource "unifi_wlan" "test" {
 	schedule {
 		day_of_week = "mon"
 		start_hour = 3
-		duration_minutes = 60*6
+		duration = 60*6
 	}
 
 	schedule {
 		day_of_week = "wed"
 		start_hour = 13
 		start_minute = 30
-		duration_minutes = (60*3)+30
+		duration = (60*3)+30
 		name = "minute"
 	}
 
 	schedule {
 		day_of_week = "thu"
 		start_hour = 19
-		duration_minutes = 60*1
+		duration = 60*1
 	}
 
 	schedule {
 		day_of_week = "fri"
 		start_hour = 19
-		duration_minutes = 60*1
+		duration = 60*1
 	}
 }
 `, vlanID)
