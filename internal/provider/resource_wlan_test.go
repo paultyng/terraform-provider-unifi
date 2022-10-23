@@ -179,6 +179,13 @@ func TestAccWLAN_schedule(t *testing.T) {
 				),
 			},
 			importStep("unifi_wlan.test"),
+			// remove schedule
+			{
+				Config: testAccWLANConfig_open(vlanID),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
 		},
 	})
 }
