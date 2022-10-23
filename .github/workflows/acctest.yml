@@ -28,13 +28,12 @@ jobs:
           - "1.2.9"
           - "1.3.3"
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
-          go-version: "1.19"
-
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+          go-version-file: "go.mod"
+          cache: true
+          check-latest: true
 
       - run: make testacc-up UNIFI_VERSION=${{ matrix.unifi_version }}
 
