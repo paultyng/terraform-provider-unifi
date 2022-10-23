@@ -92,9 +92,14 @@ resource "unifi_wlan" "wifi" {
 
 Required:
 
-- `block_end` (String) Time of day to end the block.
-- `block_start` (String) Time of day to start the block.
 - `day_of_week` (String) Day of week for the block. Valid values are `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`.
+- `duration` (Number) Length of the block in minutes.
+- `start_hour` (Number) Start hour for the block (0-23).
+
+Optional:
+
+- `name` (String) Name of the block.
+- `start_minute` (Number) Start minute for the block (0-59). Defaults to `0`.
 
 ## Import
 
