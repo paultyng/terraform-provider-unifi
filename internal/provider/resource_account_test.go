@@ -2,8 +2,9 @@ package provider
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccAccount_basic(t *testing.T) {
@@ -19,6 +20,7 @@ func TestAccAccount_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_account.test", "name", "tfacc"),
 				),
 			},
+			importStep("unifi_account.test"),
 		},
 	})
 }
@@ -37,6 +39,7 @@ func TestAccAccount_mac(t *testing.T) {
 					resource.TestCheckResourceAttr("unifi_account.test", "password", "00B0D06FC226"),
 				),
 			},
+			importStep("unifi_account.test"),
 		},
 	})
 }
