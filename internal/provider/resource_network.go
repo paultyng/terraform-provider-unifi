@@ -36,6 +36,9 @@ var (
 
 	// This is a slightly larger range than the UI, it includes some reserved ones, so could be tightened up.
 	validateVLANID = validation.IntBetween(0, 4096)
+
+	ipV6RAPriorityRegexp   = regexp.MustCompile("high|medium|low")
+	validateIpV6RAPriority = validation.StringMatch(ipV6RAPriorityRegexp, "invalid IPv6 RA priority")
 )
 
 func resourceNetwork() *schema.Resource {
@@ -266,7 +269,7 @@ func resourceNetwork() *schema.Resource {
 				Description:  "IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`",
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.IsIPv4Address,
+				ValidateFunc: validateIpV6RAPriority,
 			},
 			"ipv6_ra_valid_lifetime": {
 				Description: "Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.",
