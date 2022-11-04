@@ -111,6 +111,11 @@ func dataUserRead(ctx context.Context, d *schema.ResourceData, meta interface{})
 	if resp.UseFixedIP {
 		fixedIP = resp.FixedIP
 	}
+	if resp.NetworkID == "" {
+		d.Set("network_id", macResp.NetworkID)
+	} else {
+		d.Set("network_id", resp.NetworkID)
+	}
 	d.SetId(resp.ID)
 	d.Set("site", site)
 	d.Set("mac", resp.MAC)
@@ -118,7 +123,6 @@ func dataUserRead(ctx context.Context, d *schema.ResourceData, meta interface{})
 	d.Set("user_group_id", resp.UserGroupID)
 	d.Set("note", resp.Note)
 	d.Set("fixed_ip", fixedIP)
-	d.Set("network_id", resp.NetworkID)
 	d.Set("blocked", resp.Blocked)
 	d.Set("dev_id_override", resp.DevIdOverride)
 	d.Set("hostname", resp.Hostname)
