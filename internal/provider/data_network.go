@@ -196,6 +196,11 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeInt,
 				Computed:    true,
 			},
+			"multicast_dns": {
+				Description: "Specifies whether Multicast DNS (mDNS) is enabled or not on the network (Controller >=v7).",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
 			"wan_ip": {
 				Description: "The IPv4 address of the WAN.",
 				Type:        schema.TypeString,
@@ -324,6 +329,7 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 			d.Set("vlan_id", n.VLAN)
 			d.Set("subnet", cidrZeroBased(n.IPSubnet))
 			d.Set("network_group", n.NetworkGroup)
+			d.Set("dhcp_dns", dhcpDNS)
 			d.Set("dhcp_start", n.DHCPDStart)
 			d.Set("dhcp_stop", n.DHCPDStop)
 			d.Set("dhcp_enabled", n.DHCPDEnabled)
@@ -333,12 +339,12 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 			d.Set("dhcpd_boot_filename", n.DHCPDBootFilename)
 			d.Set("domain_name", n.DomainName)
 			d.Set("igmp_snooping", n.IGMPSnooping)
-			d.Set("dhcp_dns", dhcpDNS)
 			d.Set("ipv6_interface_type", n.IPV6InterfaceType)
 			d.Set("ipv6_static_subnet", n.IPV6Subnet)
 			d.Set("ipv6_pd_interface", n.IPV6PDInterface)
 			d.Set("ipv6_pd_prefixid", n.IPV6PDPrefixid)
 			d.Set("ipv6_ra_enable", n.IPV6RaEnabled)
+			d.Set("multicast_dns", n.MdnsEnabled)
 			d.Set("wan_ip", n.WANIP)
 			d.Set("wan_netmask", n.WANNetmask)
 			d.Set("wan_gateway", n.WANGateway)

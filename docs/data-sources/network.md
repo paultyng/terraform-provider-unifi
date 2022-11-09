@@ -64,6 +64,7 @@ data "unifi_network" "my_network" {
 - `ipv6_ra_priority` (String) IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`
 - `ipv6_ra_valid_lifetime` (Number) Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`.
 - `ipv6_static_subnet` (String) Specifies the static IPv6 subnet (when ipv6_interface_type is 'static').
+- `multicast_dns` (Boolean) Specifies whether Multicast DNS (mDNS) is enabled or not on the network (Controller >=v7).
 - `network_group` (String) The group of the network.
 - `purpose` (String) The purpose of the network. One of `corporate`, `guest`, `wan`, or `vlan-only`.
 - `subnet` (String) The subnet of the network (CIDR address).
