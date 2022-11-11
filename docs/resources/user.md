@@ -40,6 +40,7 @@ resource "unifi_user" "test" {
 - `blocked` (Boolean) Specifies whether this user should be blocked from the network.
 - `dev_id_override` (Number) Override the device fingerprint.
 - `fixed_ip` (String) A fixed IPv4 address for this user.
+- `local_dns_record` (String) Specifies the local DNS record for this user.
 - `network_id` (String) The network ID for this user.
 - `note` (String) A note with additional information for the user.
 - `site` (String) The name of the site to associate the user with.
