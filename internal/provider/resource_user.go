@@ -83,6 +83,11 @@ func resourceUser() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 			},
+			"local_dns_record": {
+				Description: "Specifies the local DNS record for this user.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 
 			// these are "meta" attributes that control TF UX
 			"allow_existing": {
@@ -177,15 +182,18 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceUserGetResourceData(d *schema.ResourceData) (*unifi.User, error) {
 	fixedIP := d.Get("fixed_ip").(string)
+	localDnsRecord := d.Get("local_dns_record").(string)
 
 	return &unifi.User{
-		MAC:         d.Get("mac").(string),
-		Name:        d.Get("name").(string),
-		UserGroupID: d.Get("user_group_id").(string),
-		Note:        d.Get("note").(string),
-		FixedIP:     fixedIP,
-		UseFixedIP:  fixedIP != "",
-		NetworkID:   d.Get("network_id").(string),
+		MAC:                   d.Get("mac").(string),
+		Name:                  d.Get("name").(string),
+		UserGroupID:           d.Get("user_group_id").(string),
+		Note:                  d.Get("note").(string),
+		FixedIP:               fixedIP,
+		UseFixedIP:            fixedIP != "",
+		LocalDNSRecord:        localDnsRecord,
+		LocalDNSRecordEnabled: localDnsRecord != "",
+		NetworkID:             d.Get("network_id").(string),
 		// not sure if this matters/works
 		Blocked:       d.Get("blocked").(bool),
 		DevIdOverride: d.Get("dev_id_override").(int),
@@ -198,12 +206,18 @@ func resourceUserSetResourceData(resp *unifi.User, d *schema.ResourceData, site 
 		fixedIP = resp.FixedIP
 	}
 
+	localDnsRecord := ""
+	if resp.LocalDNSRecordEnabled {
+		localDnsRecord = resp.LocalDNSRecord
+	}
+
 	d.Set("site", site)
 	d.Set("mac", resp.MAC)
 	d.Set("name", resp.Name)
 	d.Set("user_group_id", resp.UserGroupID)
 	d.Set("note", resp.Note)
 	d.Set("fixed_ip", fixedIP)
+	d.Set("local_dns_record", localDnsRecord)
 	d.Set("network_id", resp.NetworkID)
 	d.Set("blocked", resp.Blocked)
 	d.Set("dev_id_override", resp.DevIdOverride)
