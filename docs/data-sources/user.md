@@ -37,6 +37,7 @@ data "unifi_user" "client" {
 - `hostname` (String) The hostname of the user.
 - `id` (String) The ID of the user.
 - `ip` (String) The IP address of the user.
+- `local_dns_record` (String) The local DNS record for this user.
 - `name` (String) The name of the user.
 - `network_id` (String) The network ID for this user.
 - `note` (String) A note with additional information for the user.

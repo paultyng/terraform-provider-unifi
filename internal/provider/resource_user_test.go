@@ -232,6 +232,43 @@ func TestAccUser_fingerprint(t *testing.T) {
 	})
 }
 
+func TestAccUser_localdns(t *testing.T) {
+	testMAC := generateTestMac()
+	vlanID := 301
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			preCheckVersionConstraint(t, ">= 7.2.91")
+		},
+		ProviderFactories: providerFactories,
+		CheckDestroy:      testCheckUserDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccUserConfig(testMAC, "tfacc", ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", ""),
+				),
+			},
+			userImportStep("unifi_user.test"),
+			{
+				Config: testAccUserConfig_localdns(vlanID, testMAC, "tfacc", "resource.example.com"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", "resource.example.com"),
+				),
+			},
+			userImportStep("unifi_user.test"),
+			{
+				Config: testAccUserConfig_localdns(vlanID, testMAC, "tfacc", ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", ""),
+				),
+			},
+			userImportStep("unifi_user.test"),
+		},
+	})
+}
+
 func testCheckUserDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "unifi_user" {
@@ -328,4 +365,17 @@ resource "unifi_user" "test" {
 	dev_id_override = %d
 }
 `, mac, name, devIdOverride)
+}
+
+func testAccUserConfig_localdns(vlanID int, mac, name string, localDnsRecord string) string {
+	return fmt.Sprintf(testAccUserConfig_network(vlanID)+`
+resource "unifi_user" "test" {
+	mac             = "%s"
+	name            = "%s"
+
+	fixed_ip   = "10.1.10.50"
+	network_id = unifi_network.test.id
+	local_dns_record = "%s"
+}
+`, mac, name, localDnsRecord)
 }
