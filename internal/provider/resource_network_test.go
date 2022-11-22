@@ -400,6 +400,36 @@ func TestAccNetwork_vlanOnly(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_mdns(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	vlanID := getTestVLAN(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			preCheckMinVersion(t, controllerV7)
+		},
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkConfigMDNS(name, vlanID, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "multicast_dns", "true"),
+				),
+			},
+			importStep("unifi_network.test"),
+			{
+				Config: testAccNetworkConfigMDNS(name, vlanID, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "multicast_dns", "false"),
+				),
+			},
+			importStep("unifi_network.test"),
+		},
+	})
+}
+
 // TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
@@ -644,4 +674,17 @@ resource "unifi_network" "test" {
 	dhcp_v6_lease = 12 * 60 * 60
 }
 `, name, vlan, gatewayIP, dhcpdV6Start, dhcpdV6Stop, strings.Join(quoteStrings(dhcpV6DNS), ","))
+}
+
+func testAccNetworkConfigMDNS(name string, vlan int, mdns bool) string {
+	return fmt.Sprintf(`
+resource "unifi_network" "test" {
+	name    = "%[1]s"
+	purpose = "corporate"
+	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
+	vlan_id = %[2]d
+
+	multicast_dns = %[3]t
+}
+`, name, vlan, mdns)
 }
