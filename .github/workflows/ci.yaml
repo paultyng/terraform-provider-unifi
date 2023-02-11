@@ -30,4 +30,4 @@ jobs:
           cache: true
           check-latest: true
 
-      - uses: "golangci/golangci-lint-action@v3.3.1"
+      - uses: "golangci/golangci-lint-action@v3.4.0"
