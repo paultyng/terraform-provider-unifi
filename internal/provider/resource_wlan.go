@@ -203,6 +203,7 @@ func resourceWLAN() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"2g", "5g", "both"}, false),
+				Default:      "both",
 			},
 			"network_id": {
 				Description: "ID of the network for this SSID",
