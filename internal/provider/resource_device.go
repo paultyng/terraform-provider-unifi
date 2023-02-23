@@ -165,7 +165,6 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 
 	if !device.Adopted {
 		if !d.Get("allow_adoption").(bool) {
-			// TODO: Is this actually the case?
 			return diag.Errorf("Device must be adopted before it can be managed")
 		}
 

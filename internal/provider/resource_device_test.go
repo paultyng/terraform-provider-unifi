@@ -26,7 +26,7 @@ func allocateDevice(t *testing.T) (device string) {
 	if !devicesInitialized {
 		devicesAvailable = []string{}
 		devicesInitialized = true
-		
+
 		devices, err := testClient.ListDevice(context.Background(), "default")
 		if err != nil {
 			t.Fatalf("Error listing devices: %s", err)
