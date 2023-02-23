@@ -98,7 +98,7 @@ func resourceDevice() *schema.Resource {
 				Description: "Specifies whether this resource should tell the controller to forget the device on destroy.",
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				Default:     true,
 			},
 		},
 	}
