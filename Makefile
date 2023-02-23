@@ -1,4 +1,4 @@
-export UNIFI_VERSION  ?= v6
+export UNIFI_VERSION  ?= v7
 export UNIFI_USERNAME ?= tfacctest
 export UNIFI_EMAIL    ?= tfacctest@example.com
 export UNIFI_PASSWORD ?= tfacctest1234
