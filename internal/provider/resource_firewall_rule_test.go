@@ -24,13 +24,17 @@ func TestAccFirewallRule_basic(t *testing.T) {
 	})
 }
 
-func TestAccFirewallRule_dst_port(t *testing.T) {
+func TestAccFirewallRule_port(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirewallRuleConfigWithPort,
+        Check: resource.ComposeTestCheckFunc(
+          resource.TestCheckResourceAttr("unifi_firewall_rule.test", "src_port", "123"),
+          resource.TestCheckResourceAttr("unifi_firewall_rule.test", "dst_port", "53"),
+        ),
 			},
 			importStep("unifi_firewall_rule.test"),
 		},
@@ -159,6 +163,7 @@ resource "unifi_firewall_rule" "test" {
 	protocol = "tcp"
 
 	src_address = "192.168.3.3"
+  src_port    = 123
 	dst_address = "192.168.1.1"
 	dst_port    = 53
 }
