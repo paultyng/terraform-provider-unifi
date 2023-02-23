@@ -183,6 +183,12 @@ func (c *lazyClient) GetDevice(ctx context.Context, site, id string) (*unifi.Dev
 	}
 	return c.inner.GetDevice(ctx, site, id)
 }
+func (c *lazyClient) GetDeviceByMAC(ctx context.Context, site, mac string) (*unifi.Device, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetDeviceByMAC(ctx, site, mac)
+}
 func (c *lazyClient) CreateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error) {
 	if err := c.init(ctx); err != nil {
 		return nil, err
@@ -206,6 +212,18 @@ func (c *lazyClient) ListDevice(ctx context.Context, site string) ([]unifi.Devic
 		return nil, err
 	}
 	return c.inner.ListDevice(ctx, site)
+}
+func (c *lazyClient) AdoptDevice(ctx context.Context, site, mac string) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.AdoptDevice(ctx, site, mac)
+}
+func (c *lazyClient) ForgetDevice(ctx context.Context, site, mac string) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.ForgetDevice(ctx, site, mac)
 }
 func (c *lazyClient) GetUser(ctx context.Context, site, id string) (*unifi.User, error) {
 	if err := c.init(ctx); err != nil {

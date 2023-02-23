@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
@@ -85,6 +87,19 @@ func resourceDevice() *schema.Resource {
 					},
 				},
 			},
+
+			"allow_adoption": {
+				Description: "Specifies whether this resource should tell the controller to adopt the device on create.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+			"forget_on_destroy": {
+				Description: "Specifies whether this resource should tell the controller to forget the device on destroy.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
 		},
 	}
 }
@@ -105,18 +120,14 @@ func resourceDeviceImport(ctx context.Context, d *schema.ResourceData, meta inte
 
 	if macAddressRegexp.MatchString(id) {
 		// look up id by mac
-		find := cleanMAC(id)
+		mac := cleanMAC(id)
+		device, err := c.c.GetDeviceByMAC(ctx, site, mac)
 
-		devices, err := c.c.ListDevice(ctx, site)
 		if err != nil {
 			return nil, err
 		}
-		for _, d := range devices {
-			if cleanMAC(d.MAC) == find {
-				id = d.ID
-				break
-			}
-		}
+
+		id = device.ID
 	}
 
 	if id != "" {
@@ -143,25 +154,33 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	mac = cleanMAC(mac)
-	devices, err := c.c.ListDevice(ctx, site)
-	if err != nil {
-		return diag.Errorf("unable to list devices: %s", err)
-	}
+	device, err := c.c.GetDeviceByMAC(ctx, site, mac)
 
-	var found *unifi.Device
-	for _, dev := range devices {
-		if cleanMAC(dev.MAC) == mac {
-			found = &dev
-			break
-		}
-	}
-	if found == nil {
+	if device == nil {
 		return diag.Errorf("device not found using mac %q", mac)
 	}
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	d.SetId(found.ID)
+	if !device.Adopted {
+		if !d.Get("allow_adoption").(bool) {
+			return diag.Errorf("Device must be adopted before it can be managed")
+		}
 
-	return resourceDeviceSetResourceData(found, d, site)
+		err := c.c.AdoptDevice(ctx, site, mac)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		device, err = waitForDeviceState(ctx, d, meta, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStatePending, unifi.DeviceStateProvisioning}, []unifi.DeviceState{unifi.DeviceStateConnected})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	d.SetId(device.ID)
+	return resourceDeviceUpdate(ctx, d, meta)
 }
 
 func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -188,13 +207,31 @@ func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	return resourceDeviceSetResourceData(resp, d, site)
 }
 
-func resourceDeviceDelete(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return diag.Diagnostics{
-		diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Deleting a device via Terraform is not supported, the device will just be removed from state.",
-		},
+func resourceDeviceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	c := meta.(*client)
+
+	if !d.Get("forget_on_destroy").(bool) {
+		return nil
 	}
+
+	site := d.Get("site").(string)
+	mac := d.Get("mac").(string)
+
+	if site == "" {
+		site = c.site
+	}
+
+	err := c.c.ForgetDevice(ctx, site, mac)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	_, err = waitForDeviceState(ctx, d, meta, []unifi.DeviceState{unifi.DeviceStateConnected, unifi.DeviceStateDeleting}, []unifi.DeviceState{unifi.DeviceStatePending})
+	if _, ok := err.(*unifi.NotFoundError); !ok {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
 func resourceDeviceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -301,4 +338,68 @@ func fromPortOverride(po unifi.DevicePortOverrides) (map[string]interface{}, err
 		"name":            po.Name,
 		"port_profile_id": po.PortProfileID,
 	}, nil
+}
+
+func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interface{}, pendingStates, targetStates []unifi.DeviceState) (*unifi.Device, error) {
+	c := meta.(*client)
+
+	site := d.Get("site").(string)
+	mac := d.Get("mac").(string)
+
+	if site == "" {
+		site = c.site
+	}
+
+	var pending []string
+	for _, state := range pendingStates {
+		pending = append(pending, state.String())
+	}
+
+	var target []string
+	for _, state := range targetStates {
+		target = append(target, state.String())
+	}
+
+	wait := resource.StateChangeConf{
+		Pending: pending,
+		Target:  target,
+		Refresh: func() (interface{}, string, error) {
+			device, err := c.c.GetDeviceByMAC(ctx, site, mac)
+
+			if _, ok := err.(*unifi.NotFoundError); ok {
+				err = nil
+			}
+
+			// When a device is forgotten, it will disappear from the UI for a few seconds before reappearing.
+			// During this time, `device.GetDeviceByMAC` will return a 400.
+			//
+			// TODO: Improve handling of this situation in `go-unifi`.
+			if err != nil && strings.Contains(err.Error(), "api.err.UnknownDevice") {
+				err = nil
+			}
+
+			var state string
+			if device != nil {
+				state = device.State.String()
+			}
+
+			// TODO: Why is this needed???
+			if device == nil {
+				return nil, state, err
+			}
+
+			return device, state, err
+		},
+		PollInterval:   1 * time.Second,
+		Timeout:        1 * time.Minute,
+		NotFoundChecks: 30,
+	}
+
+	outputRaw, err := wait.WaitForStateContext(ctx)
+
+	if output, ok := outputRaw.(*unifi.Device); ok {
+		return output, err
+	}
+
+	return nil, err
 }

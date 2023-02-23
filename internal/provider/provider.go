@@ -164,10 +164,13 @@ type unifiClient interface {
 	UpdateWLAN(ctx context.Context, site string, d *unifi.WLAN) (*unifi.WLAN, error)
 
 	GetDevice(ctx context.Context, site, id string) (*unifi.Device, error)
+	GetDeviceByMAC(ctx context.Context, site, mac string) (*unifi.Device, error)
 	CreateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error)
 	UpdateDevice(ctx context.Context, site string, d *unifi.Device) (*unifi.Device, error)
 	DeleteDevice(ctx context.Context, site, id string) error
 	ListDevice(ctx context.Context, site string) ([]unifi.Device, error)
+	AdoptDevice(ctx context.Context, site, mac string) error
+	ForgetDevice(ctx context.Context, site, mac string) error
 
 	GetUser(ctx context.Context, site, id string) (*unifi.User, error)
 	GetUserByMAC(ctx context.Context, site, mac string) (*unifi.User, error)
