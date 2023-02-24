@@ -3,10 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math"
+	"net"
 	"os"
 	"sync"
 	"testing"
 
+	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -90,16 +93,26 @@ const (
 )
 
 var (
+	network = &net.IPNet{
+		IP:   net.IPv4(10, 0, 0, 0).To4(),
+		Mask: net.IPv4Mask(255, 0, 0, 0),
+	}
+
 	vlanLock sync.Mutex
 	vlanNext = vlanMin
 )
 
-func getTestVLAN(t *testing.T) int {
+func getTestVLAN(t *testing.T) (*net.IPNet, int) {
 	vlanLock.Lock()
 	defer vlanLock.Unlock()
 
-	vl := vlanNext
+	vlan := vlanNext
 	vlanNext++
 
-	return vl
+	subnet, err := cidr.Subnet(network, int(math.Ceil(math.Log2(vlanMax))), vlan)
+	if err != nil {
+		t.Error(err)
+	}
+
+	return subnet, vlan
 }
