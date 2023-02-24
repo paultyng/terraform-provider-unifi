@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/paultyng/go-unifi/unifi"
@@ -60,7 +61,12 @@ func TestAccUser_basic(t *testing.T) {
 
 func TestAccUser_fixed_ip(t *testing.T) {
 	mac := generateTestMac()
-	vlanID := 301
+	subnet, vlan := getTestVLAN(t)
+
+	ip, err := cidr.Host(subnet, 1)
+	if err != nil {
+		t.Error(err)
+	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -76,10 +82,10 @@ func TestAccUser_fixed_ip(t *testing.T) {
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_fixedIP(vlanID, mac),
+				Config: testAccUserConfig_fixedIP(subnet, vlan, mac, &ip),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
-					resource.TestCheckResourceAttr("unifi_user.test", "fixed_ip", "10.1.10.50"),
+					resource.TestCheckResourceAttr("unifi_user.test", "fixed_ip", ip.String()),
 				),
 			},
 			userImportStep("unifi_user.test"),
@@ -87,7 +93,7 @@ func TestAccUser_fixed_ip(t *testing.T) {
 				// this passes the network again even though its not used
 				// to avoid a destroy order of operations issue, can
 				// maybe work it out some other way
-				Config: testAccUserConfig_network(vlanID) + testAccUserConfig(mac, "tfacc", "tfacc fixed ip"),
+				Config: testAccUserConfig_network(subnet, vlan) + testAccUserConfig(mac, "tfacc", "tfacc fixed ip"),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "fixed_ip", ""),
@@ -234,7 +240,12 @@ func TestAccUser_fingerprint(t *testing.T) {
 
 func TestAccUser_localdns(t *testing.T) {
 	testMAC := generateTestMac()
-	vlanID := 301
+	subnet, vlan := getTestVLAN(t)
+
+	ip, err := cidr.Host(subnet, 1)
+	if err != nil {
+		t.Error(err)
+	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -252,14 +263,14 @@ func TestAccUser_localdns(t *testing.T) {
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_localdns(vlanID, testMAC, "tfacc", "resource.example.com"),
+				Config: testAccUserConfig_localdns(subnet, vlan, testMAC, "tfacc", "resource.example.com", &ip),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", "resource.example.com"),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_localdns(vlanID, testMAC, "tfacc", ""),
+				Config: testAccUserConfig_localdns(subnet, vlan, testMAC, "tfacc", "", &ip),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", ""),
 				),
@@ -300,36 +311,32 @@ resource "unifi_user" "test" {
 `, mac, name, note)
 }
 
-func testAccUserConfig_network(vlanID int) string {
+func testAccUserConfig_network(subnet *net.IPNet, vlan int) string {
 	return fmt.Sprintf(`
-variable "subnet" {
-	default = "10.1.10.1/24"
-}
-
 resource "unifi_network" "test" {
 	name    = "tfaccfixedip"
 	purpose = "corporate"
 
-	vlan_id      = %d
-	subnet       = var.subnet
-	dhcp_start   = cidrhost(var.subnet, 6)
-	dhcp_stop    = cidrhost(var.subnet, 254)
+	vlan_id      = %[2]d
+	subnet       = "%[1]s"
+	dhcp_start   = cidrhost("%[1]s", 6)
+	dhcp_stop    = cidrhost("%[1]s", 254)
 	dhcp_enabled = true
 }
-`, vlanID)
+`, subnet, vlan)
 }
 
-func testAccUserConfig_fixedIP(vlanID int, mac string) string {
-	return fmt.Sprintf(testAccUserConfig_network(vlanID)+`
+func testAccUserConfig_fixedIP(subnet *net.IPNet, vlan int, mac string, ip *net.IP) string {
+	return fmt.Sprintf(testAccUserConfig_network(subnet, vlan)+`
 resource "unifi_user" "test" {
-	mac  = "%s"
+	mac  = "%[1]s"
 	name = "tfacc"
 	note = "tfacc fixed ip"
 
-	fixed_ip   = "10.1.10.50"
+	fixed_ip   = "%[2]s"
 	network_id = unifi_network.test.id
 }
-`, mac)
+`, mac, ip)
 }
 
 func testAccUserConfig_block(mac string, blocked bool) string {
@@ -367,15 +374,15 @@ resource "unifi_user" "test" {
 `, mac, name, devIdOverride)
 }
 
-func testAccUserConfig_localdns(vlanID int, mac, name string, localDnsRecord string) string {
-	return fmt.Sprintf(testAccUserConfig_network(vlanID)+`
+func testAccUserConfig_localdns(subnet *net.IPNet, vlan int, mac, name string, localDnsRecord string, ip *net.IP) string {
+	return fmt.Sprintf(testAccUserConfig_network(subnet, vlan)+`
 resource "unifi_user" "test" {
-	mac             = "%s"
-	name            = "%s"
+	mac             = "%[1]s"
+	name            = "%[2]s"
 
-	fixed_ip   = "10.1.10.50"
+	fixed_ip   = "%[4]s"
 	network_id = unifi_network.test.id
-	local_dns_record = "%s"
+	local_dns_record = "%[3]s"
 }
-`, mac, name, localDnsRecord)
+`, mac, name, localDnsRecord, ip)
 }

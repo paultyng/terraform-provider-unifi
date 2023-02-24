@@ -161,7 +161,7 @@ func TestAccNetwork_v6(t *testing.T) {
 			{
 				Config: testAccNetworkConfigDhcpV6(
 					name,
-          subnet3,
+					subnet3,
 					vlan3,
 					"fd6a:37be:e364::1/64",
 					"fd6a:37be:e364::2",
@@ -177,7 +177,7 @@ func TestAccNetwork_v6(t *testing.T) {
 			{
 				Config: testAccNetworkConfigDhcpV6(
 					name,
-          subnet3,
+					subnet3,
 					vlan3,
 					"fd6a:37be:e365::1/64",
 					"fd6a:37be:e364::2",
