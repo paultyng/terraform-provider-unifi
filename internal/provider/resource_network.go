@@ -277,6 +277,11 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 				Default:     86400,
 			},
+			"multicast_dns": {
+				Description: "Specifies whether Multicast DNS (mDNS) is enabled or not on the network (Controller >=v7).",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
 			"wan_ip": {
 				Description:  "The IPv4 address of the WAN.",
 				Type:         schema.TypeString,
@@ -425,6 +430,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		DHCPRelayEnabled:  d.Get("dhcp_relay_enabled").(bool),
 		DomainName:        d.Get("domain_name").(string),
 		IGMPSnooping:      d.Get("igmp_snooping").(bool),
+		MdnsEnabled:       d.Get("multicast_dns").(bool),
 
 		DHCPDDNSEnabled: len(dhcpDNS) > 0,
 		// this is kinda hacky but ¯\_(ツ)_/¯
@@ -591,6 +597,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("ipv6_ra_priority", resp.IPV6RaPriority)
 	d.Set("ipv6_ra_valid_lifetime", resp.IPV6RaValidLifetime)
 	d.Set("ipv6_static_subnet", resp.IPV6Subnet)
+	d.Set("multicast_dns", resp.MdnsEnabled)
 	d.Set("wan_dhcp_v6_pd_size", resp.WANDHCPv6PDSize)
 	d.Set("wan_dns", wanDNS)
 	d.Set("wan_egress_qos", resp.WANEgressQOS)
