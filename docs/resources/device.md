@@ -59,6 +59,8 @@ resource "unifi_device" "us_24_poe" {
 
 ### Optional
 
+- `allow_adoption` (Boolean) Specifies whether this resource should tell the controller to adopt the device on create. Defaults to `false`.
+- `forget_on_destroy` (Boolean) Specifies whether this resource should tell the controller to forget the device on destroy. Defaults to `true`.
 - `mac` (String) The MAC address of the device. This can be specified so that the provider can take control of a device (since devices are created through adoption).
 - `name` (String) The name of the device.
 - `port_override` (Block Set) Settings overrides for specific switch ports. (see [below for nested schema](#nestedblock--port_override))
