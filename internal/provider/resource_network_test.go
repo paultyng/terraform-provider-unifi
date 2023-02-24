@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,8 +14,8 @@ import (
 
 func TestAccNetwork_basic(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID1 := getTestVLAN(t)
-	vlanID2 := getTestVLAN(t)
+	subnet1, vlan1 := getTestVLAN(t)
+	subnet2, vlan2 := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -22,18 +23,18 @@ func TestAccNetwork_basic(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfig(name, vlanID1, true, nil),
+				Config: testAccNetworkConfig(name, subnet1, vlan1, true, nil),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID1)),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlan1)),
 					resource.TestCheckResourceAttr("unifi_network.test", "igmp_snooping", "true"),
 				),
 			},
 			importStep("unifi_network.test"),
 			{
-				Config: testAccNetworkConfig(name, vlanID2, false, nil),
+				Config: testAccNetworkConfig(name, subnet2, vlan2, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID2)),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlan2)),
 					resource.TestCheckResourceAttr("unifi_network.test", "igmp_snooping", "false"),
 				),
 			},
@@ -51,7 +52,7 @@ func TestAccNetwork_basic(t *testing.T) {
 
 func TestAccNetwork_weird_cidr(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID := getTestVLAN(t)
+	subnet, vlan := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -59,7 +60,7 @@ func TestAccNetwork_weird_cidr(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfig(name, vlanID, true, nil),
+				Config: testAccNetworkConfig(name, subnet, vlan, true, nil),
 				Check:  resource.ComposeTestCheckFunc(
 				// TODO: ...
 				),
@@ -71,7 +72,7 @@ func TestAccNetwork_weird_cidr(t *testing.T) {
 
 func TestAccNetwork_dhcp_dns(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID := getTestVLAN(t)
+	subnet, vlan := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -79,14 +80,14 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfig(name, vlanID, true, []string{"192.168.1.101"}),
+				Config: testAccNetworkConfig(name, subnet, vlan, true, []string{"192.168.1.101"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.0", "192.168.1.101"),
 				),
 			},
 			importStep("unifi_network.test"),
 			{
-				Config: testAccNetworkConfig(name, vlanID, true, []string{"192.168.1.101", "192.168.1.102"}),
+				Config: testAccNetworkConfig(name, subnet, vlan, true, []string{"192.168.1.101", "192.168.1.102"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.0", "192.168.1.101"),
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.1", "192.168.1.102"),
@@ -94,13 +95,13 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 			},
 			importStep("unifi_network.test"),
 			{
-				Config: testAccNetworkConfig(name, vlanID, true, nil),
+				Config: testAccNetworkConfig(name, subnet, vlan, true, nil),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.#", "0"),
 				),
 			},
 			{
-				Config: testAccNetworkConfig(name, vlanID, true, []string{"192.168.1.101"}),
+				Config: testAccNetworkConfig(name, subnet, vlan, true, []string{"192.168.1.101"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_dns.0", "192.168.1.101"),
 				),
@@ -111,7 +112,7 @@ func TestAccNetwork_dhcp_dns(t *testing.T) {
 
 func TestAccNetwork_dhcp_boot(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID := getTestVLAN(t)
+	subnet, vlan := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -119,7 +120,7 @@ func TestAccNetwork_dhcp_boot(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfigDHCPBoot(name, vlanID),
+				Config: testAccNetworkConfigDHCPBoot(name, subnet, vlan),
 				Check:  resource.ComposeTestCheckFunc(
 				// TODO: ...
 				),
@@ -131,9 +132,9 @@ func TestAccNetwork_dhcp_boot(t *testing.T) {
 
 func TestAccNetwork_v6(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID1 := getTestVLAN(t)
-	vlanID2 := getTestVLAN(t)
-	vlanID3 := getTestVLAN(t)
+	subnet1, vlan1 := getTestVLAN(t)
+	subnet2, vlan2 := getTestVLAN(t)
+	subnet3, vlan3 := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -141,18 +142,18 @@ func TestAccNetwork_v6(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfigV6(name, vlanID1, "static", "fd6a:37be:e362::1/64"),
+				Config: testAccNetworkConfigV6(name, subnet1, vlan1, "static", "fd6a:37be:e362::1/64"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "domain_name", "foo.local"),
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID1)),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlan1)),
 					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e362::1/64"),
 				),
 			},
 			importStep("unifi_network.test"),
 			{
-				Config: testAccNetworkConfigV6(name, vlanID2, "static", "fd6a:37be:e363::1/64"),
+				Config: testAccNetworkConfigV6(name, subnet2, vlan2, "static", "fd6a:37be:e363::1/64"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID2)),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlan2)),
 					resource.TestCheckResourceAttr("unifi_network.test", "ipv6_static_subnet", "fd6a:37be:e363::1/64"),
 				),
 			},
@@ -160,13 +161,14 @@ func TestAccNetwork_v6(t *testing.T) {
 			{
 				Config: testAccNetworkConfigDhcpV6(
 					name,
-					vlanID3,
+					subnet3,
+					vlan3,
 					"fd6a:37be:e364::1/64",
 					"fd6a:37be:e364::2",
 					"fd6a:37be:e364::7d1",
 					[]string{"2001:4860:4860::8888", "2001:4860:4860::8844"}),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID3)),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlan3)),
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_v6_start", "fd6a:37be:e364::2"),
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_v6_stop", "fd6a:37be:e364::7d1"),
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_v6_lease", strconv.Itoa(12*60*60)),
@@ -175,7 +177,8 @@ func TestAccNetwork_v6(t *testing.T) {
 			{
 				Config: testAccNetworkConfigDhcpV6(
 					name,
-					vlanID3,
+					subnet3,
+					vlan3,
 					"fd6a:37be:e365::1/64",
 					"fd6a:37be:e364::2",
 					"fd6a:37be:e364::7d1",
@@ -261,8 +264,8 @@ func TestAccNetwork_wan(t *testing.T) {
 
 func TestAccNetwork_differentSite(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID1 := getTestVLAN(t)
-	vlanID2 := getTestVLAN(t)
+	subnet1, vlan1 := getTestVLAN(t)
+	subnet2, vlan2 := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -270,7 +273,7 @@ func TestAccNetwork_differentSite(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkWithSiteConfig(name, vlanID1),
+				Config: testAccNetworkWithSiteConfig(name, subnet1, vlan1),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair("unifi_network.test", "site", "unifi_site.test", "name"),
 				),
@@ -282,7 +285,7 @@ func TestAccNetwork_differentSite(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccNetworkWithSiteConfig(name, vlanID2),
+				Config: testAccNetworkWithSiteConfig(name, subnet2, vlan2),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair("unifi_network.test", "site", "unifi_site.test", "name"),
 				),
@@ -299,9 +302,9 @@ func TestAccNetwork_differentSite(t *testing.T) {
 
 func TestAccNetwork_importByName(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID1 := getTestVLAN(t)
-	vlanID2 := getTestVLAN(t)
-	vlanID3 := getTestVLAN(t)
+	subnet1, vlan1 := getTestVLAN(t)
+	subnet2, vlan2 := getTestVLAN(t)
+	subnet3, vlan3 := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -309,10 +312,10 @@ func TestAccNetwork_importByName(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Apply and import network by name.
 			{
-				Config: testAccNetworkConfig(name, vlanID1, true, nil),
+				Config: testAccNetworkConfig(name, subnet1, vlan1, true, nil),
 			},
 			{
-				Config:            testAccNetworkConfig(name, vlanID1, true, nil),
+				Config:            testAccNetworkConfig(name, subnet1, vlan1, true, nil),
 				ResourceName:      "unifi_network.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -320,11 +323,11 @@ func TestAccNetwork_importByName(t *testing.T) {
 			},
 			// Apply and test errors.
 			{
-				Config: testAccNetworkWithDuplicateNames(vlanID2, vlanID3, "DUPLICATE_NAME"),
+				Config: testAccNetworkWithDuplicateNames(subnet2, vlan2, subnet3, vlan3, "DUPLICATE_NAME"),
 			},
 			// Test error on name that doesn't exist.
 			{
-				Config:            testAccNetworkWithDuplicateNames(vlanID2, vlanID3, "DUPLICATE_NAME"),
+				Config:            testAccNetworkWithDuplicateNames(subnet2, vlan2, subnet3, vlan3, "DUPLICATE_NAME"),
 				ResourceName:      "unifi_network.test1",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -333,7 +336,7 @@ func TestAccNetwork_importByName(t *testing.T) {
 			},
 			// Test error on multiple matches.
 			{
-				Config:            testAccNetworkWithDuplicateNames(vlanID2, vlanID3, "DUPLICATE_NAME"),
+				Config:            testAccNetworkWithDuplicateNames(subnet2, vlan2, subnet3, vlan3, "DUPLICATE_NAME"),
 				ResourceName:      "unifi_network.test1",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -346,7 +349,7 @@ func TestAccNetwork_importByName(t *testing.T) {
 
 func TestAccNetwork_dhcpRelay(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID := getTestVLAN(t)
+	subnet, vlan := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -356,14 +359,14 @@ func TestAccNetwork_dhcpRelay(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkConfigDHCPRelay(name, vlanID, true),
+				Config: testAccNetworkConfigDHCPRelay(name, subnet, vlan, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_relay_enabled", "true"),
 				),
 			},
 			importStep("unifi_network.test"),
 			{
-				Config: testAccNetworkConfigDHCPRelay(name, vlanID, false),
+				Config: testAccNetworkConfigDHCPRelay(name, subnet, vlan, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_relay_enabled", "false"),
 				),
@@ -375,7 +378,7 @@ func TestAccNetwork_dhcpRelay(t *testing.T) {
 
 func TestAccNetwork_vlanOnly(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
-	vlanID := getTestVLAN(t)
+	_, vlan := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -385,9 +388,9 @@ func TestAccNetwork_vlanOnly(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkVlanOnly(name, vlanID),
+				Config: testAccNetworkVlanOnly(name, vlan),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlanID)),
+					resource.TestCheckResourceAttr("unifi_network.test", "vlan_id", strconv.Itoa(vlan)),
 				),
 			},
 			{
@@ -410,11 +413,11 @@ func quoteStrings(src []string) []string {
 	return dst
 }
 
-func testAccNetworkConfigDHCPBoot(name string, vlan int) string {
+func testAccNetworkConfigDHCPBoot(name string, subnet *net.IPNet, vlan int) string {
 	return fmt.Sprintf(`
 locals {
-	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
-	vlan_id = %[2]d
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
 }
 
 resource "unifi_network" "test" {
@@ -434,14 +437,14 @@ resource "unifi_network" "test" {
 
 	dhcp_dns = ["192.168.1.101", "192.168.1.102"]
 }
-`, name, vlan)
+`, name, subnet, vlan)
 }
 
-func testAccNetworkConfig(name string, vlan int, igmpSnoop bool, dhcpDNS []string) string {
+func testAccNetworkConfig(name string, subnet *net.IPNet, vlan int, igmpSnoop bool, dhcpDNS []string) string {
 	return fmt.Sprintf(`
 locals {
-	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
-	vlan_id = %[2]d
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
 }
 
 resource "unifi_network" "test" {
@@ -454,18 +457,18 @@ resource "unifi_network" "test" {
 	dhcp_stop     = cidrhost(local.subnet, 254)
 	dhcp_enabled  = true
 	domain_name   = "foo.local"
-	igmp_snooping = %[3]t
+	igmp_snooping = %[4]t
 
-	dhcp_dns = [%[4]s]
+	dhcp_dns = [%[5]s]
 }
-`, name, vlan, igmpSnoop, strings.Join(quoteStrings(dhcpDNS), ","))
+`, name, subnet, vlan, igmpSnoop, strings.Join(quoteStrings(dhcpDNS), ","))
 }
 
-func testAccNetworkConfigV6(name string, vlan int, ipv6Type string, ipv6Subnet string) string {
+func testAccNetworkConfigV6(name string, subnet *net.IPNet, vlan int, ipv6Type string, ipv6Subnet string) string {
 	return fmt.Sprintf(`
 locals {
-	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
-	vlan_id = %[2]d
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
 }
 	
 resource "unifi_network" "test" {
@@ -479,11 +482,11 @@ resource "unifi_network" "test" {
 	dhcp_enabled  = true
 	domain_name   = "foo.local"
 
-	ipv6_interface_type = "%[3]s"
-	ipv6_static_subnet  = "%[4]s"
+	ipv6_interface_type = "%[4]s"
+	ipv6_static_subnet  = "%[5]s"
 	ipv6_ra_enable      = true
 }
-`, name, vlan, ipv6Type, ipv6Subnet)
+`, name, subnet, vlan, ipv6Type, ipv6Subnet)
 }
 
 func testWanNetworkConfig(name string, networkGroup string, wanType string, wanIP string, wanEgressQOS int, wanUsername string, wanPassword string, wanDNS1 string, wanDNS2 string) string {
@@ -531,11 +534,11 @@ resource "unifi_network" "wan_test" {
 `, name, wanTypeV6, wanDhcpV6PdSize)
 }
 
-func testAccNetworkWithSiteConfig(name string, vlan int) string {
+func testAccNetworkWithSiteConfig(name string, subnet *net.IPNet, vlan int) string {
 	return fmt.Sprintf(`
 locals {
-	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
-	vlan_id = %[2]d
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
 }
 
 resource "unifi_site" "test" {
@@ -555,20 +558,20 @@ resource "unifi_network" "test" {
 	domain_name   = "foo.local"
 	igmp_snooping = true
 }
-`, name, vlan)
+`, name, subnet, vlan)
 }
 
-func testAccNetworkWithDuplicateNames(vlan1, vlan2 int, networkName string) string {
+func testAccNetworkWithDuplicateNames(subnet1 *net.IPNet, vlan1 int, subnet2 *net.IPNet, vlan2 int, networkName string) string {
 	return fmt.Sprintf(`
 locals {
-	subnet1  = cidrsubnet("10.0.0.0/8", 6, %[1]d)
-	vlan_id1 = %[1]d
-	subnet2  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
-	vlan_id2 = %[2]d
+	subnet1  = "%[1]s"
+	vlan_id1 = %[2]d
+	subnet2  = "%[3]s"
+	vlan_id2 = %[4]d
 }
 
 resource "unifi_network" "test1" {
-	name    = "%[3]s"
+	name    = "%[5]s"
 	purpose = "corporate"
 
 	subnet  = local.subnet1
@@ -576,20 +579,20 @@ resource "unifi_network" "test1" {
 }
 
 resource "unifi_network" "test2" {
-	name    = "%[3]s"
+	name    = "%[5]s"
 	purpose = "corporate"
 
 	subnet  = local.subnet2
 	vlan_id = local.vlan_id2
 }
-`, vlan1, vlan2, networkName)
+`, subnet1, vlan1, subnet2, vlan2, networkName)
 }
 
-func testAccNetworkConfigDHCPRelay(name string, vlan int, dhcpRelay bool) string {
+func testAccNetworkConfigDHCPRelay(name string, subnet *net.IPNet, vlan int, dhcpRelay bool) string {
 	return fmt.Sprintf(`
 locals {
-	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
-	vlan_id = %[2]d
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
 }
 
 resource "unifi_network" "test" {
@@ -600,9 +603,9 @@ resource "unifi_network" "test" {
 	vlan_id     = local.vlan_id
 	domain_name = "foo.local"
 	
-	dhcp_relay_enabled = %[3]t
+	dhcp_relay_enabled = %[4]t
 }
-`, name, vlan, dhcpRelay)
+`, name, subnet, vlan, dhcpRelay)
 }
 
 func testAccNetworkVlanOnly(name string, vlan int) string {
@@ -620,11 +623,11 @@ resource "unifi_network" "test" {
 `, name, vlan)
 }
 
-func testAccNetworkConfigDhcpV6(name string, vlan int, gatewayIP string, dhcpdV6Start string, dhcpdV6Stop string, dhcpV6DNS []string) string {
+func testAccNetworkConfigDhcpV6(name string, subnet *net.IPNet, vlan int, gatewayIP string, dhcpdV6Start string, dhcpdV6Stop string, dhcpV6DNS []string) string {
 	return fmt.Sprintf(`
 locals {
-	subnet  = cidrsubnet("10.0.0.0/8", 6, %[2]d)
-	vlan_id = %[2]d
+  subnet  = "%[2]s"
+	vlan_id = %[3]d
 }
 
 resource "unifi_network" "test" {
@@ -634,14 +637,14 @@ resource "unifi_network" "test" {
 	subnet        = local.subnet
 	vlan_id       = local.vlan_id
 
-	ipv6_static_subnet  = "%[3]s"
+	ipv6_static_subnet  = "%[4]s"
 
 	dhcp_v6_dns_auto = false
-	dhcp_v6_dns = [%[6]s]
+	dhcp_v6_dns = [%[7]s]
 	dhcp_v6_enabled = true
-	dhcp_v6_start = "%[4]s"
-	dhcp_v6_stop = "%[5]s"
+	dhcp_v6_start = "%[5]s"
+	dhcp_v6_stop = "%[6]s"
 	dhcp_v6_lease = 12 * 60 * 60
 }
-`, name, vlan, gatewayIP, dhcpdV6Start, dhcpdV6Stop, strings.Join(quoteStrings(dhcpV6DNS), ","))
+`, name, subnet, vlan, gatewayIP, dhcpdV6Start, dhcpdV6Stop, strings.Join(quoteStrings(dhcpV6DNS), ","))
 }
