@@ -61,6 +61,7 @@ resource "unifi_firewall_rule" "drop_all" {
 - `src_mac` (String) The source MAC address of the firewall rule.
 - `src_network_id` (String) The source network ID for the firewall rule.
 - `src_network_type` (String) The source network type of the firewall rule. Can be one of `ADDRv4` or `NETv4`. Defaults to `NETv4`.
+- `src_port` (String) The source port of the firewall rule.
 - `state_established` (Boolean) Match where the state is established.
 - `state_invalid` (Boolean) Match where the state is invalid.
 - `state_new` (Boolean) Match where the state is new.

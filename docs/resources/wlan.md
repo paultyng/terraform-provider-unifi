@@ -79,7 +79,7 @@ resource "unifi_wlan" "wifi" {
 - `schedule` (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
 - `site` (String) The name of the site to associate the wlan with.
 - `uapsd` (Boolean) Enable Unscheduled Automatic Power Save Delivery Defaults to `false`.
-- `wlan_band` (String) Radio band your WiFi network will use.
+- `wlan_band` (String) Radio band your WiFi network will use. Defaults to `both`.
 - `wpa3_support` (Boolean) Enable WPA 3 support (security must be `wpapsk` and PMF must be turned on).
 - `wpa3_transition` (Boolean) Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).
 
