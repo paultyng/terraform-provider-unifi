@@ -228,6 +228,58 @@ func TestAccWLAN_no2ghz_oui(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_proxy_arp(t *testing.T) {
+	subnet, vlan := getTestVLAN(t)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			wlanPreCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_proxy_arp(subnet, vlan),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
+func TestAccWLAN_bss_transition(t *testing.T) {
+	subnet, vlan := getTestVLAN(t)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			wlanPreCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_bss_transition(subnet, vlan),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
 func TestAccWLAN_uapsd(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
@@ -243,6 +295,32 @@ func TestAccWLAN_uapsd(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_uapsd(subnet, vlan),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
+func TestAccWLAN_fast_roaming_enabled(t *testing.T) {
+	subnet, vlan := getTestVLAN(t)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			preCheck(t)
+			wlanPreCheck(t)
+		},
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			<-wlanConcurrency
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_fast_roaming_enabled(subnet, vlan),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
 				),
@@ -555,6 +633,56 @@ resource "unifi_wlan" "test" {
 `, subnet, vlan)
 }
 
+func testAccWLANConfig_proxy_arp(subnet *net.IPNet, vlan int) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
+data "unifi_user_group" "default" {}
+
+resource "unifi_network" "test" {
+	name    = "tfacc"
+	purpose = "corporate"
+	subnet  = "%[1]s"
+	vlan_id = %[2]d
+}
+
+resource "unifi_wlan" "test" {
+	name          = "tfacc-wpapsk"
+	network_id    = unifi_network.test.id
+	passphrase    = "12345678"
+	ap_group_ids  = [data.unifi_ap_group.default.id]
+	user_group_id = data.unifi_user_group.default.id
+	security      = "wpapsk"
+	proxy_arp     = true
+}
+`, subnet, vlan)
+}
+
+func testAccWLANConfig_bss_transition(subnet *net.IPNet, vlan int) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
+data "unifi_user_group" "default" {}
+
+resource "unifi_network" "test" {
+	name    = "tfacc"
+	purpose = "corporate"
+	subnet  = "%[1]s"
+	vlan_id = %[2]d
+}
+
+resource "unifi_wlan" "test" {
+	name           = "tfacc-wpapsk"
+	network_id     = unifi_network.test.id
+	passphrase     = "12345678"
+	ap_group_ids   = [data.unifi_ap_group.default.id]
+	user_group_id  = data.unifi_user_group.default.id
+	security       = "wpapsk"
+	bss_transition = true
+}
+`, subnet, vlan)
+}
+
 func testAccWLANConfig_uapsd(subnet *net.IPNet, vlan int) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {}
@@ -576,6 +704,31 @@ resource "unifi_wlan" "test" {
 	user_group_id = data.unifi_user_group.default.id
 	security      = "wpapsk"
 	uapsd         = true
+}
+`, subnet, vlan)
+}
+
+func testAccWLANConfig_fast_roaming_enabled(subnet *net.IPNet, vlan int) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
+data "unifi_user_group" "default" {}
+
+resource "unifi_network" "test" {
+	name    = "tfacc"
+	purpose = "corporate"
+	subnet  = "%[1]s"
+	vlan_id = %[2]d
+}
+
+resource "unifi_wlan" "test" {
+	name                 = "tfacc-wpapsk"
+	network_id           = unifi_network.test.id
+	passphrase           = "12345678"
+	ap_group_ids         = [data.unifi_ap_group.default.id]
+	user_group_id        = data.unifi_user_group.default.id
+	security             = "wpapsk"
+	fast_roaming_enabled = true
 }
 `, subnet, vlan)
 }
