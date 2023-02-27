@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 	insecure := os.Getenv("UNIFI_INSECURE") == "true"
 
 	testClient = &unifi.Client{}
-	setHTTPClient(testClient, insecure)
+	setHTTPClient(testClient, insecure, "unifi")
 	testClient.SetBaseURL(baseURL)
 	err := testClient.Login(context.Background(), user, pass)
 	if err != nil {
