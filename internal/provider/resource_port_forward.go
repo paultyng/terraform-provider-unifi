@@ -44,6 +44,7 @@ func resourcePortForward() *schema.Resource {
 			"enabled": {
 				Description: "Specifies whether the port forwarding rule is enabled or not.",
 				Type:        schema.TypeBool,
+				Default:     true,
 				Optional:    true,
 				Deprecated: "This will attribute will be removed in a future release. Instead of disabling a " +
 					"port forwarding rule you can remove it from your configuration.",
