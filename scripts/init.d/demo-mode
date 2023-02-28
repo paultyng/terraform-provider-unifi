@@ -4,7 +4,6 @@ write_config() {
   echo "${1}=${2}" >> /usr/lib/unifi/data/system.properties
 }
 
-write_config demo.skip_wizard false
 write_config is_simulation true
 
 # Increase the number of demo devices to allow more concurrent tests to be executed simultaneously.
