@@ -10,7 +10,9 @@ import (
 )
 
 func TestAccDataUser_default(t *testing.T) {
-	mac := generateTestMac()
+	mac, unallocateTestMac := allocateTestMac(t)
+	defer unallocateTestMac()
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			//preCheck(t)

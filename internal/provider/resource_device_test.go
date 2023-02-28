@@ -19,7 +19,7 @@ var (
 	devicesInitialized bool = false
 )
 
-func allocateDevice(t *testing.T) (device string) {
+func allocateDevice(t *testing.T) (string, func()) {
 	deviceLock.Lock()
 	defer deviceLock.Unlock()
 
@@ -44,15 +44,17 @@ func allocateDevice(t *testing.T) (device string) {
 		t.Fatal("Unable to allocate test device")
 	}
 
+	var device string
 	device, devicesAvailable = devicesAvailable[0], devicesAvailable[1:]
-	return
-}
 
-func unallocateDevice(t *testing.T, device string) {
-	deviceLock.Lock()
-	defer deviceLock.Unlock()
+	unallocate := func() {
+		deviceLock.Lock()
+		defer deviceLock.Unlock()
 
-	devicesAvailable = append(devicesAvailable, device)
+		devicesAvailable = append(devicesAvailable, device)
+	}
+
+	return device, unallocate
 }
 
 func preCheckDeviceExists(t *testing.T, site, mac string) {
@@ -81,8 +83,8 @@ func TestAccDevice_switch_basic(t *testing.T) {
 	resourceName := "unifi_device.test"
 	site := "default"
 
-	switchMAC := allocateDevice(t)
-	defer unallocateDevice(t, switchMAC)
+	switchMAC, unallocateDevice := allocateDevice(t)
+	defer unallocateDevice()
 
 	importStateVerifyIgnore := []string{"allow_adoption", "forget_on_destroy"}
 
@@ -136,8 +138,8 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 	resourceName := "unifi_device.test"
 	site := "default"
 
-	switchMAC := allocateDevice(t)
-	defer unallocateDevice(t, switchMAC)
+	switchMAC, unallocateDevice := allocateDevice(t)
+	defer unallocateDevice()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -166,8 +168,8 @@ func TestAccDevice_remove_portOverrides(t *testing.T) {
 	resourceName := "unifi_device.test"
 	site := "default"
 
-	switchMAC := allocateDevice(t)
-	defer unallocateDevice(t, switchMAC)
+	switchMAC, unallocateDevice := allocateDevice(t)
+	defer unallocateDevice()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
