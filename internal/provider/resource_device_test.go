@@ -36,8 +36,8 @@ func allocateDevice(t *testing.T) (string, func()) {
 				continue
 			}
 
-			// The USP-RPS isn't really a switch.
-			if device.Model == "USPRPS" {
+			// The USP-RPS and USP-RPS-Pro aren't really switches.
+			if device.Model == "USPRPS" || device.Model == "USPRPSP" {
 				continue
 			}
 
