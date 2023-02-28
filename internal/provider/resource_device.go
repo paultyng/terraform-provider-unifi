@@ -92,7 +92,7 @@ func resourceDevice() *schema.Resource {
 				Description: "Specifies whether this resource should tell the controller to adopt the device on create.",
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				Default:     true,
 			},
 			"forget_on_destroy": {
 				Description: "Specifies whether this resource should tell the controller to forget the device on destroy.",
