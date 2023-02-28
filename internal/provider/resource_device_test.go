@@ -41,7 +41,8 @@ func allocateDevice(t *testing.T) (string, func()) {
 				continue
 			}
 
-			if device.Model != "USPPDUHD" {
+			// The USP-PDU-HD and USP-PDU-Pro aren't really switches.
+			if device.Model == "USPPDUHD" || device.Model == "USPPDUP" {
 				continue
 			}
 
