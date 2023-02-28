@@ -5,6 +5,8 @@ services:
     init: true
     restart: "always"
     user: "unifi"
+    environment:
+      LOTSOFDEVICES: "true"
     ports:
       - "${UNIFI_HTTP_PORT:-8080}:8080/tcp"
       - "${UNIFI_HTTPS_PORT:-8443}:8443/tcp"
