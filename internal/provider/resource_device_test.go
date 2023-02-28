@@ -208,9 +208,6 @@ func testAccDeviceConfig(mac string) string {
 	return fmt.Sprintf(`
 resource "unifi_device" "test" {
 	mac = %q
-	
-	allow_adoption    = true
-	forget_on_destroy = true
 }
 `, mac)
 }
@@ -220,9 +217,6 @@ func testAccDeviceConfig_withName(mac, name string) string {
 resource "unifi_device" "test" {
 	mac  = %q
 	name = %q
-	
-	allow_adoption    = true
-	forget_on_destroy = true
 }
 `, mac, name)
 }
@@ -241,9 +235,6 @@ resource "unifi_device" "test" {
 		number = 2
 		name   = "Port 2"
 	}
-
-	allow_adoption    = true
-	forget_on_destroy = true
 }
 `, mac)
 }
