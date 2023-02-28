@@ -3,53 +3,22 @@ package provider
 import (
 	"fmt"
 	"net"
-	"os"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-// TODO: test changing security, see https://github.com/paultyng/terraform-provider-unifi/issues/32
-
-// there is a max of 4 SSID's at once, and if you are running this on a
-// controller with existing SSID's, you may want to limit the concurrency.
-var wlanConcurrency chan struct{}
-
-func init() {
-	wcs := os.Getenv("UNIFI_ACC_WLAN_CONCURRENCY")
-	if wcs == "" {
-		// default concurrent SSIDs
-		wcs = "1"
-	}
-	wc, err := strconv.Atoi(wcs)
-	if err != nil {
-		panic(err)
-	}
-	wlanConcurrency = make(chan struct{}, wc)
-}
-
-func wlanPreCheck(t *testing.T) {
-	if cap(wlanConcurrency) == 0 {
-		t.Skip("concurrency for WLAN testing set to 0")
-	}
-
-	wlanConcurrency <- struct{}{}
-}
-
 func TestAccWLAN_wpapsk(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -69,13 +38,11 @@ func TestAccWLAN_open(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -109,13 +76,11 @@ func TestAccWLAN_change_security_and_pmf(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -163,13 +128,11 @@ func TestAccWLAN_schedule(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -198,13 +161,11 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -224,13 +185,11 @@ func TestAccWLAN_wlan_band(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -250,13 +209,11 @@ func TestAccWLAN_no2ghz_oui(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -276,13 +233,11 @@ func TestAccWLAN_uapsd(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -303,13 +258,11 @@ func TestAccWLAN_wpa3(t *testing.T) {
 		PreCheck: func() {
 			preCheck(t)
 			preCheckMinVersion(t, controllerVersionWPA3)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
@@ -343,13 +296,11 @@ func TestAccWLAN_minimum_data_rate(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			wlanPreCheck(t)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
 
-			<-wlanConcurrency
 			return nil
 		},
 		Steps: []resource.TestStep{
