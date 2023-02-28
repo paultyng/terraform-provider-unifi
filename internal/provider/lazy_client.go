@@ -16,16 +16,17 @@ import (
 )
 
 type lazyClient struct {
-	baseURL  string
-	user     string
-	pass     string
-	insecure bool
+	baseURL   string
+	user      string
+	pass      string
+	insecure  bool
+	subsystem string
 
 	once  sync.Once
 	inner *unifi.Client
 }
 
-func setHTTPClient(c *unifi.Client, insecure bool) {
+func setHTTPClient(c *unifi.Client, insecure bool, subsystem string) {
 	httpClient := &http.Client{}
 	httpClient.Transport = &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -44,7 +45,7 @@ func setHTTPClient(c *unifi.Client, insecure bool) {
 		},
 	}
 
-	httpClient.Transport = logging.NewSubsystemLoggingHTTPTransport("Unifi", httpClient.Transport)
+	httpClient.Transport = logging.NewSubsystemLoggingHTTPTransport(subsystem, httpClient.Transport)
 
 	jar, _ := cookiejar.New(nil)
 	httpClient.Jar = jar
@@ -57,7 +58,7 @@ var initErr error
 func (c *lazyClient) init(ctx context.Context) error {
 	c.once.Do(func() {
 		c.inner = &unifi.Client{}
-		setHTTPClient(c.inner, c.insecure)
+		setHTTPClient(c.inner, c.insecure, c.subsystem)
 
 		initErr = c.inner.SetBaseURL(c.baseURL)
 		if initErr != nil {
