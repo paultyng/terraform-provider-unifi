@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 	"sync"
 	"testing"
 
@@ -33,10 +32,16 @@ func allocateDevice(t *testing.T) (string, func()) {
 		}
 
 		for _, device := range devices {
-			// TODO: Check device type instead of MAC address.
-			if strings.HasPrefix(device.MAC, "00:27:22:") {
-				devicesAvailable = append(devicesAvailable, device.MAC)
+			if device.Type != "usw" {
+				continue
 			}
+
+			// The USP-RPS isn't really a switch.
+			if device.Model == "USPRPS" {
+				continue
+			}
+
+			devicesAvailable = append(devicesAvailable, device.MAC)
 		}
 	}
 
