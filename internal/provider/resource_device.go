@@ -204,6 +204,11 @@ func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
+	_, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStateConnected, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStateProvisioning})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return resourceDeviceSetResourceData(resp, d, site)
 }
 
