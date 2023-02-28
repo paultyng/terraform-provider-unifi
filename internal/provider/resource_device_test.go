@@ -36,17 +36,11 @@ func allocateDevice(t *testing.T) (string, func()) {
 				continue
 			}
 
-			// The USP-RPS and USP-RPS-Pro aren't really switches.
-			if device.Model == "USPRPS" || device.Model == "USPRPSP" {
+			// These devices aren't really switches.
+			if device.Model == "USPRPS" || device.Model == "USPRPSP" || device.Model == "USPPDUHD" || device.Model == "USPPDUP" {
 				continue
 			}
 
-			// The USP-PDU-HD and USP-PDU-Pro aren't really switches.
-			if device.Model == "USPPDUHD" || device.Model == "USPPDUP" {
-				continue
-			}
-
-			t.Logf("Device %s: %s", device.MAC, device.Model)
 			devicesAvailable = append(devicesAvailable, device.MAC)
 		}
 	}
@@ -151,8 +145,6 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 
 	switchMAC, unallocateDevice := allocateDevice(t)
 	defer unallocateDevice()
-
-	t.Logf("Allocated device %s", switchMAC)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
