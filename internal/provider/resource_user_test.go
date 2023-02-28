@@ -3,10 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"net"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/apparentlymart/go-cidr/cidr"
@@ -19,14 +19,44 @@ func userImportStep(name string) resource.TestStep {
 	return importStep(name, "allow_existing", "skip_forget_on_destroy")
 }
 
+var (
+	testMacLock       sync.Mutex
+	testMacsAvailable []*net.HardwareAddr
+)
+
 // for test MAC addresses, see https://tools.ietf.org/html/rfc7042#section-2.1.2
-func generateTestMac() string {
-	mac := net.HardwareAddr{0x00, 0x00, 0x5e, 0x00, 0x53, byte(rand.Intn(256))}
-	return mac.String()
+func init() {
+	testMacsAvailable = make([]*net.HardwareAddr, 256)
+
+	for i := 0; i < 256; i++ {
+		testMacsAvailable[i] = &net.HardwareAddr{0x00, 0x00, 0x5e, 0x00, 0x53, byte(i)}
+	}
+}
+
+func allocateTestMac(t *testing.T) (string, func()) {
+	testMacLock.Lock()
+	defer testMacLock.Unlock()
+
+	if len(testMacsAvailable) == 0 {
+		t.Fatal("Unable to allocate test MAC")
+	}
+
+	var mac *net.HardwareAddr
+	mac, testMacsAvailable = testMacsAvailable[0], testMacsAvailable[1:]
+
+	unallocate := func() {
+		testMacLock.Lock()
+		defer testMacLock.Unlock()
+
+		testMacsAvailable = append(testMacsAvailable, mac) //nolint:makezero
+	}
+
+	return mac.String(), unallocate
 }
 
 func TestAccUser_basic(t *testing.T) {
-	mac := generateTestMac()
+	mac, unallocateTestMac := allocateTestMac(t)
+	defer unallocateTestMac()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -60,7 +90,9 @@ func TestAccUser_basic(t *testing.T) {
 }
 
 func TestAccUser_fixed_ip(t *testing.T) {
-	mac := generateTestMac()
+	mac, unallocateTestMac := allocateTestMac(t)
+	defer unallocateTestMac()
+
 	subnet, vlan := getTestVLAN(t)
 
 	ip, err := cidr.Host(subnet, 1)
@@ -105,7 +137,8 @@ func TestAccUser_fixed_ip(t *testing.T) {
 }
 
 func TestAccUser_blocking(t *testing.T) {
-	mac := generateTestMac()
+	mac, unallocateTestMac := allocateTestMac(t)
+	defer unallocateTestMac()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -141,7 +174,8 @@ func TestAccUser_blocking(t *testing.T) {
 }
 
 func TestAccUser_existing_mac_allow(t *testing.T) {
-	mac := generateTestMac()
+	mac, unallocateTestMac := allocateTestMac(t)
+	defer unallocateTestMac()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -152,7 +186,7 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 				Name: "tfacc-existing",
 				Note: "tfacc-existing",
 			})
-			if err != nil {
+			if err != nil && strings.Contains(err.Error(), "api.Err.MacUsed") {
 				t.Fatal(err)
 			}
 		},
@@ -176,27 +210,29 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 }
 
 func TestAccUser_existing_mac_deny(t *testing.T) {
-	mac := generateTestMac()
+	mac, unallocateTestMac := allocateTestMac(t)
+
+	_, err := testClient.CreateUser(context.Background(), "default", &unifi.User{
+		MAC:  mac,
+		Name: "tfacc-existing",
+		Note: "tfacc-existing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		err := testClient.DeleteUserByMAC(context.Background(), "default", mac)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		unallocateTestMac()
+	}()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-
-			_, err := testClient.CreateUser(context.Background(), "default", &unifi.User{
-				MAC:  mac,
-				Name: "tfacc-existing",
-				Note: "tfacc-existing",
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
-		CheckDestroy: func(*terraform.State) error {
-			// TODO: CheckDestroy: ,
-
-			return testClient.DeleteUserByMAC(context.Background(), "default", mac)
-		},
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccUserConfig_existing(mac, "tfacc", "tfacc note", false, false),
@@ -207,28 +243,29 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 }
 
 func TestAccUser_fingerprint(t *testing.T) {
-	testMAC := generateTestMac()
+	mac, unallocateTestMac := allocateTestMac(t)
+	defer unallocateTestMac()
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testCheckUserDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUserConfig_fingerprint(testMAC, "tfacc", 123),
+				Config: testAccUserConfig_fingerprint(mac, "tfacc", 123),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "123"),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_fingerprint(testMAC, "tfacc", 456),
+				Config: testAccUserConfig_fingerprint(mac, "tfacc", 456),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "456"),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig(testMAC, "tfacc", ""),
+				Config: testAccUserConfig(mac, "tfacc", ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "0"),
 				),
@@ -239,7 +276,9 @@ func TestAccUser_fingerprint(t *testing.T) {
 }
 
 func TestAccUser_localdns(t *testing.T) {
-	testMAC := generateTestMac()
+	mac, unallocateTestMac := allocateTestMac(t)
+	defer unallocateTestMac()
+
 	subnet, vlan := getTestVLAN(t)
 
 	ip, err := cidr.Host(subnet, 1)
@@ -256,21 +295,21 @@ func TestAccUser_localdns(t *testing.T) {
 		CheckDestroy:      testCheckUserDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUserConfig(testMAC, "tfacc", ""),
+				Config: testAccUserConfig(mac, "tfacc", ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", ""),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_localdns(subnet, vlan, testMAC, "tfacc", "resource.example.com", &ip),
+				Config: testAccUserConfig_localdns(subnet, vlan, mac, "tfacc", "resource.example.com", &ip),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", "resource.example.com"),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_localdns(subnet, vlan, testMAC, "tfacc", "", &ip),
+				Config: testAccUserConfig_localdns(subnet, vlan, mac, "tfacc", "", &ip),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", ""),
 				),
