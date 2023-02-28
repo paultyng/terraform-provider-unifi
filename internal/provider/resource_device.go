@@ -390,8 +390,7 @@ func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interf
 
 			return device, state, err
 		},
-		PollInterval:   1 * time.Second,
-		Timeout:        1 * time.Minute,
+		Timeout:        5 * time.Minute,
 		NotFoundChecks: 30,
 	}
 
