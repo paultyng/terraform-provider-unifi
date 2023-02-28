@@ -173,7 +173,7 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 			return diag.FromErr(err)
 		}
 
-		device, err = waitForDeviceState(ctx, d, meta, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStatePending, unifi.DeviceStateProvisioning}, []unifi.DeviceState{unifi.DeviceStateConnected})
+		device, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStateConnected, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStatePending, unifi.DeviceStateProvisioning, unifi.DeviceStateUpgrading})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -226,7 +226,7 @@ func resourceDeviceDelete(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	_, err = waitForDeviceState(ctx, d, meta, []unifi.DeviceState{unifi.DeviceStateConnected, unifi.DeviceStateDeleting}, []unifi.DeviceState{unifi.DeviceStatePending})
+	_, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStatePending, []unifi.DeviceState{unifi.DeviceStateConnected, unifi.DeviceStateDeleting})
 	if _, ok := err.(*unifi.NotFoundError); !ok {
 		return diag.FromErr(err)
 	}
@@ -340,7 +340,7 @@ func fromPortOverride(po unifi.DevicePortOverrides) (map[string]interface{}, err
 	}, nil
 }
 
-func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interface{}, pendingStates, targetStates []unifi.DeviceState) (*unifi.Device, error) {
+func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interface{}, targetState unifi.DeviceState, pendingStates []unifi.DeviceState) (*unifi.Device, error) {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -350,19 +350,17 @@ func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interf
 		site = c.site
 	}
 
+	// Always consider unknown to be a pending state.
+	pendingStates = append(pendingStates, unifi.DeviceStateUnknown)
+
 	var pending []string
 	for _, state := range pendingStates {
 		pending = append(pending, state.String())
 	}
 
-	var target []string
-	for _, state := range targetStates {
-		target = append(target, state.String())
-	}
-
 	wait := resource.StateChangeConf{
 		Pending: pending,
-		Target:  target,
+		Target:  []string{targetState.String()},
 		Refresh: func() (interface{}, string, error) {
 			device, err := c.c.GetDeviceByMAC(ctx, site, mac)
 
