@@ -41,6 +41,10 @@ func allocateDevice(t *testing.T) (string, func()) {
 				continue
 			}
 
+      if device.Model != "USPPDUHD" {
+        continue
+      }
+
 			devicesAvailable = append(devicesAvailable, device.MAC)
 		}
 	}
