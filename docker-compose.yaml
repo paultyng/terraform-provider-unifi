@@ -6,6 +6,9 @@ services:
     restart: "always"
     user: "unifi"
     environment:
+      JVM_INIT_HEAP_SIZE: "2g"
+      JVM_MAX_HEAP_SIZE: "2g"
+      LOTSOFDEVICES: "true"
       UNIFI_STDOUT: "true"
     ports:
       - "${UNIFI_HTTP_PORT:-8080}:8080/tcp"
