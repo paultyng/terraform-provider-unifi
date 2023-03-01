@@ -68,6 +68,19 @@ func TestAccFirewallRule_multiple_address_groups(t *testing.T) {
 	})
 }
 
+func TestAccFirewallRule_date_and_time(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFirewallRuleConfigWithDateTime,
+			},
+			importStep("unifi_firewall_rule.test"),
+		},
+	})
+}
+
 func TestAccFirewallRule_multiple_port_groups(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -129,6 +142,32 @@ func TestAccFirewallRule_IPv6_dst_port(t *testing.T) {
 // func TestAccFirewallRule_firewall_group(t *testing.T) {
 // func TestAccFirewallRule_network(t *testing.T) {
 
+const testAccFirewallRuleConfigWithDateTime = `
+resource "unifi_firewall_group" "test" {
+	name = "tf acc rule date time"
+	type = "address-group"
+
+	members = ["192.168.1.1", "192.168.1.2"]
+}
+
+resource "unifi_firewall_rule" "test" {
+	name    = "tf acc rule date time"
+	action  = "accept"
+	ruleset = "LAN_IN"
+
+	rule_index = 2021
+
+	protocol = "all"
+
+	src_firewall_group_ids = [unifi_firewall_group.test.id]
+	startdate = "1/1/2021"
+	stopdate  = "12/31/2021"
+	starttime = "00:00:00"
+	endtime   = "23:59:59"
+	weekdays  = "Mon,Tue,Wed,Thu,Fri"
+	utc       = false
+}
+`
 const testAccFirewallRuleConfig = `
 resource "unifi_firewall_group" "test" {
 	name = "tf acc rule"
