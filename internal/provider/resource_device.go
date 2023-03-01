@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-  "log"
 	"strings"
 	"time"
 
@@ -174,7 +173,7 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 			return diag.FromErr(err)
 		}
 
-		device, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStateConnected, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStatePending, unifi.DeviceStateProvisioning, unifi.DeviceStateUpgrading}, 5*time.Minute, "Create")
+		device, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStateConnected, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStatePending, unifi.DeviceStateProvisioning, unifi.DeviceStateUpgrading}, 2*time.Minute)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -205,7 +204,7 @@ func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	_, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStateConnected, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStateProvisioning}, 5*time.Minute, "Update")
+	_, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStateConnected, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStateProvisioning}, 30*time.Second)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -232,7 +231,7 @@ func resourceDeviceDelete(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	_, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStatePending, []unifi.DeviceState{unifi.DeviceStateConnected, unifi.DeviceStateDeleting}, 5*time.Minute, "Delete")
+	_, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStatePending, []unifi.DeviceState{unifi.DeviceStateConnected, unifi.DeviceStateDeleting}, 30*time.Second)
 	if _, ok := err.(*unifi.NotFoundError); !ok {
 		return diag.FromErr(err)
 	}
@@ -346,7 +345,7 @@ func fromPortOverride(po unifi.DevicePortOverrides) (map[string]interface{}, err
 	}, nil
 }
 
-func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interface{}, targetState unifi.DeviceState, pendingStates []unifi.DeviceState, timeout time.Duration, name string) (*unifi.Device, error) {
+func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interface{}, targetState unifi.DeviceState, pendingStates []unifi.DeviceState, timeout time.Duration) (*unifi.Device, error) {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -398,9 +397,7 @@ func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interf
 		NotFoundChecks: 30,
 	}
 
-  start := time.Now()
 	outputRaw, err := wait.WaitForStateContext(ctx)
-  log.Printf("[WARN] %s operation took %s", name, time.Since(start))
 
 	if output, ok := outputRaw.(*unifi.Device); ok {
 		return output, err
