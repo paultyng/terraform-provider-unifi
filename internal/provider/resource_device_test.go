@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -13,20 +14,16 @@ import (
 )
 
 var (
-	deviceLock         sync.Mutex
-	devicesAvailable   []string
-	devicesInitialized bool = false
+	deviceInit  sync.Once
+	deviceMutex sync.Mutex
+	devicePool  []string = []string{}
 )
 
 func allocateDevice(t *testing.T) (string, func()) {
-	deviceLock.Lock()
-	defer deviceLock.Unlock()
+	ctx := context.Background()
 
-	if !devicesInitialized {
-		devicesAvailable = []string{}
-		devicesInitialized = true
-
-		devices, err := testClient.ListDevice(context.Background(), "default")
+	deviceInit.Do(func() {
+		devices, err := testClient.ListDevice(ctx, "default")
 		if err != nil {
 			t.Fatalf("Error listing devices: %s", err)
 		}
@@ -41,22 +38,36 @@ func allocateDevice(t *testing.T) (string, func()) {
 				continue
 			}
 
-			devicesAvailable = append(devicesAvailable, device.MAC)
+			t.Logf("Discovered device %s\n", device.MAC)
+			devicePool = append(devicePool, device.MAC)
 		}
-	}
-
-	if len(devicesAvailable) == 0 {
-		t.Fatal("Unable to allocate test device")
-	}
+	})
 
 	var device string
-	device, devicesAvailable = devicesAvailable[0], devicesAvailable[1:]
+
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		deviceMutex.Lock()
+		defer deviceMutex.Unlock()
+
+		device, devicePool = devicePool[0], devicePool[1:]
+
+    if len(devicePool) == 0 {
+      return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
+    }
+
+		t.Logf("Allocated device %s. Device pool = #%v\n", device, devicePool)
+		return nil
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	unallocate := func() {
-		deviceLock.Lock()
-		defer deviceLock.Unlock()
-
-		devicesAvailable = append(devicesAvailable, device)
+		deviceMutex.Lock()
+		defer deviceMutex.Unlock()
+		devicePool = append(devicePool, device)
+		t.Logf("Unallocated device %s\n", device)
 	}
 
 	return device, unallocate
