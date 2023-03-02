@@ -48,6 +48,7 @@ resource "unifi_firewall_rule" "drop_all" {
 - `dst_network_id` (String) The destination network ID of the firewall rule.
 - `dst_network_type` (String) The destination network type of the firewall rule. Can be one of `ADDRv4` or `NETv4`. Defaults to `NETv4`.
 - `dst_port` (String) The destination port of the firewall rule.
+- `enabled` (Boolean) Specifies whether the rule should be enabled. Defaults to `true`.
 - `icmp_typename` (String) ICMP type name.
 - `icmp_v6_typename` (String) ICMPv6 type name.
 - `ip_sec` (String) Specify whether the rule matches on IPsec packets. Can be one of `match-ipset` or `match-none`.

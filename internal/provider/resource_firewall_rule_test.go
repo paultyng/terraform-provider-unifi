@@ -1,23 +1,35 @@
 package provider
 
 import (
+	"fmt"
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccFirewallRule_basic(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirewallRuleConfig,
-				// Check:  resource.ComposeTestCheckFunc(
-				// // testCheckFirewallGroupExists(t, "name"),
-				// ),
+				Config: testAccFirewallRuleConfig(name, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_firewall_rule.test", "name", name),
+					resource.TestCheckResourceAttr("unifi_firewall_rule.test", "enabled", "true"),
+				),
+			},
+			importStep("unifi_firewall_rule.test"),
+			{
+				Config: testAccFirewallRuleConfig(name, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_firewall_rule.test", "enabled", "false"),
+				),
 			},
 			importStep("unifi_firewall_rule.test"),
 		},
@@ -25,12 +37,14 @@ func TestAccFirewallRule_basic(t *testing.T) {
 }
 
 func TestAccFirewallRule_port(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirewallRuleConfigWithPort,
+				Config: testAccFirewallRuleConfigWithPort(name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_firewall_rule.test", "src_port", "123"),
 					resource.TestCheckResourceAttr("unifi_firewall_rule.test", "dst_port", "53"),
@@ -42,12 +56,14 @@ func TestAccFirewallRule_port(t *testing.T) {
 }
 
 func TestAccFirewallRule_icmp(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirewallRuleConfigWithICMP,
+				Config: testAccFirewallRuleConfigWithICMP(name),
 			},
 			importStep("unifi_firewall_rule.test"),
 		},
@@ -55,13 +71,15 @@ func TestAccFirewallRule_icmp(t *testing.T) {
 }
 
 func TestAccFirewallRule_multiple_address_groups(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccFirewallRuleConfigMultipleAddressGroups,
+				Config:      testAccFirewallRuleConfigMultipleAddressGroups(name),
 				ExpectError: regexp.MustCompile("firewall rule groups must be of different group types"),
 			},
 		},
@@ -69,13 +87,15 @@ func TestAccFirewallRule_multiple_address_groups(t *testing.T) {
 }
 
 func TestAccFirewallRule_multiple_port_groups(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccFirewallRuleConfigMultiplePortGroups,
+				Config:      testAccFirewallRuleConfigMultiplePortGroups(name),
 				ExpectError: regexp.MustCompile("firewall rule groups must be of different group types"),
 			},
 		},
@@ -83,13 +103,15 @@ func TestAccFirewallRule_multiple_port_groups(t *testing.T) {
 }
 
 func TestAccFirewallRule_address_and_port_group(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirewallRuleConfigAddressAndPortGroup,
+				Config: testAccFirewallRuleConfigAddressAndPortGroup(name),
 				// Check:  resource.ComposeTestCheckFunc(
 				// // testCheckFirewallGroupExists(t, "name"),
 				// ),
@@ -100,13 +122,15 @@ func TestAccFirewallRule_address_and_port_group(t *testing.T) {
 }
 
 func TestAccFirewallRule_IPv6_basic(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirewallRuleConfigIPv6,
+				Config: testAccFirewallRuleConfigIPv6(name),
 			},
 			importStep("unifi_firewall_rule.test"),
 		},
@@ -114,33 +138,34 @@ func TestAccFirewallRule_IPv6_basic(t *testing.T) {
 }
 
 func TestAccFirewallRule_IPv6_dst_port(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirewallRuleConfigIPv6WithPort,
+				Config: testAccFirewallRuleConfigIPv6WithPort(name),
 			},
 			importStep("unifi_firewall_rule.test"),
 		},
 	})
 }
 
-// func TestAccFirewallRule_firewall_group(t *testing.T) {
-// func TestAccFirewallRule_network(t *testing.T) {
-
-const testAccFirewallRuleConfig = `
+func testAccFirewallRuleConfig(name string, enabled bool) string {
+	return fmt.Sprintf(`
 resource "unifi_firewall_group" "test" {
-	name = "tf acc rule"
+	name = "%[1]s"
 	type = "address-group"
 
 	members = ["192.168.1.1", "192.168.1.2"]
 }
 
 resource "unifi_firewall_rule" "test" {
-	name    = "tf acc"
+	name    = "%[1]s"
 	action  = "accept"
 	ruleset = "LAN_IN"
+  enabled = %[2]t
 
 	rule_index = 2010
 
@@ -150,11 +175,13 @@ resource "unifi_firewall_rule" "test" {
 
 	dst_address = "192.168.1.1"
 }
-`
+`, name, enabled)
+}
 
-const testAccFirewallRuleConfigWithPort = `
+func testAccFirewallRuleConfigWithPort(name string) string {
+	return fmt.Sprintf(`
 resource "unifi_firewall_rule" "test" {
-	name    = "tf acc"
+	name    = "%s"
 	action  = "accept"
 	ruleset = "LAN_IN"
 
@@ -167,11 +194,13 @@ resource "unifi_firewall_rule" "test" {
 	dst_address = "192.168.1.1"
 	dst_port    = 53
 }
-`
+`, name)
+}
 
-const testAccFirewallRuleConfigWithICMP = `
+func testAccFirewallRuleConfigWithICMP(name string) string {
+	return fmt.Sprintf(`
 resource "unifi_firewall_rule" "test" {
-	name    = "tf acc"
+	name    = "%s"
 	action  = "accept"
 	ruleset = "LAN_LOCAL"
 
@@ -180,25 +209,27 @@ resource "unifi_firewall_rule" "test" {
 	protocol      = "icmp"
 	icmp_typename = "echo-request"
 }
-`
+`, name)
+}
 
-const testAccFirewallRuleConfigMultipleAddressGroups = `
+func testAccFirewallRuleConfigMultipleAddressGroups(name string) string {
+	return fmt.Sprintf(`
 resource "unifi_firewall_group" "test_a" {
-	name = "tf acc rule multiple address groups a"
+	name = "%[1]s-a"
 	type = "address-group"
 
 	members = ["192.168.1.1", "192.168.1.2"]
 }
 
 resource "unifi_firewall_group" "test_b" {
-	name = "tf acc rule multiple address groups b"
+	name = "%[1]s-b"
 	type = "address-group"
 
 	members = ["192.168.1.3"]
 }
 
 resource "unifi_firewall_rule" "test" {
-	name    = "tf acc"
+	name    = "%[1]s"
 	action  = "accept"
 	ruleset = "LAN_IN"
 
@@ -213,25 +244,27 @@ resource "unifi_firewall_rule" "test" {
 
 	dst_address = "192.168.1.1"
 }
-`
+`, name)
+}
 
-const testAccFirewallRuleConfigMultiplePortGroups = `
+func testAccFirewallRuleConfigMultiplePortGroups(name string) string {
+	return fmt.Sprintf(`
 resource "unifi_firewall_group" "test_a" {
-	name = "tf acc rule multiple port groups a"
+	name = "%[1]s-a"
 	type = "port-group"
 
 	members = ["53"]
 }
 
 resource "unifi_firewall_group" "test_b" {
-	name = "tf acc rule multiple port groups b"
+	name = "%[1]s-b"
 	type = "port-group"
 
 	members = ["80", "443"]
 }
 
 resource "unifi_firewall_rule" "test" {
-	name    = "tf acc"
+	name    = "%[1]s"
 	action  = "accept"
 	ruleset = "LAN_IN"
 
@@ -246,25 +279,27 @@ resource "unifi_firewall_rule" "test" {
 
 	dst_address = "192.168.1.1"
 }
-`
+`, name)
+}
 
-const testAccFirewallRuleConfigAddressAndPortGroup = `
+func testAccFirewallRuleConfigAddressAndPortGroup(name string) string {
+	return fmt.Sprintf(`
 resource "unifi_firewall_group" "test_a" {
-	name = "tf acc rule address and port group a"
+	name = "%[1]s-a"
 	type = "address-group"
 
 	members = ["192.168.1.1", "192.168.1.2"]
 }
 
 resource "unifi_firewall_group" "test_b" {
-	name = "tf acc rule address and port group b"
+	name = "%[1]s-b"
 	type = "port-group"
 
 	members = ["80", "443"]
 }
 
 resource "unifi_firewall_rule" "test" {
-	name    = "tf acc"
+	name    = "%[1]s"
 	action  = "accept"
 	ruleset = "LAN_IN"
 
@@ -279,25 +314,27 @@ resource "unifi_firewall_rule" "test" {
 
 	dst_address = "192.168.1.1"
 }
-`
+`, name)
+}
 
-const testAccFirewallRuleConfigIPv6 = `
+func testAccFirewallRuleConfigIPv6(name string) string {
+	return fmt.Sprintf(`
 resource "unifi_firewall_group" "test_a" {
-	name = "tf acc rule IPv6 group a"
+	name = "%[1]s-a"
 	type = "ipv6-address-group"
 
-	members = ["fd6a:37be:e364::/64", "fd6a:37be:e365::/64",]
+	members = ["fd6a:37be:e364::/64", "fd6a:37be:e365::/64"]
 }
 
 resource "unifi_firewall_group" "test_b" {
-	name = "tf acc rule IPv6 group b"
+	name = "%[1]s-b"
 	type = "ipv6-address-group"
 
 	members = ["2001:4860:4860::8888", "2001:4860:4860::8844"]
 }
 
 resource "unifi_firewall_rule" "test" {
-	name    = "tf acc"
+	name    = "%[1]s"
 	action  = "drop"
 	ruleset = "LANv6_IN"
 
@@ -309,11 +346,13 @@ resource "unifi_firewall_rule" "test" {
 
 	dst_firewall_group_ids = [unifi_firewall_group.test_b.id]
 }
-`
+`, name)
+}
 
-const testAccFirewallRuleConfigIPv6WithPort = `
+func testAccFirewallRuleConfigIPv6WithPort(name string) string {
+	return fmt.Sprintf(`
 resource "unifi_firewall_rule" "test" {
-	name    = "tf acc"
+	name    = "%s"
 	action  = "accept"
 	ruleset = "LANv6_IN"
 
@@ -325,4 +364,5 @@ resource "unifi_firewall_rule" "test" {
 	dst_address_ipv6 = "fd6a:37be:e364::2/64"
 	dst_port    = 53
 }
-`
+`, name)
+}
