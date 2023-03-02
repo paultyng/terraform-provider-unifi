@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
 	tc "github.com/testcontainers/testcontainers-go/modules/compose"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 var providerFactories = map[string]func() (*schema.Provider, error){
@@ -63,6 +64,11 @@ func runTests(m *testing.M) int {
 		panic(err)
 	}
 
+	port, err := container.MappedPort(ctx, "8443/tcp")
+	if err != nil {
+		panic(err)
+	}
+
 	const user = "admin"
 	const password = "admin"
 
@@ -79,6 +85,11 @@ func runTests(m *testing.M) int {
 	}
 
 	if err = os.Setenv("UNIFI_API", endpoint); err != nil {
+		panic(err)
+	}
+
+	w := wait.ForHTTP("/status").WithPort(port).WithTLS(true).WithAllowInsecure(true)
+	if err = w.WaitUntilReady(ctx, container); err != nil {
 		panic(err)
 	}
 
