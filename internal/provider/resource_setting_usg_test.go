@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // using an additional lock to the one around the resource to avoid deadlocking accidentally
