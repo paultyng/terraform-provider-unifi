@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
+	tc "github.com/testcontainers/testcontainers-go/modules/compose"
 )
 
 var providerFactories = map[string]func() (*schema.Provider, error){
@@ -30,20 +31,65 @@ func TestMain(m *testing.M) {
 		os.Exit(m.Run())
 	}
 
-	user := os.Getenv("UNIFI_USERNAME")
-	pass := os.Getenv("UNIFI_PASSWORD")
-	baseURL := os.Getenv("UNIFI_API")
-	insecure := os.Getenv("UNIFI_INSECURE") == "true"
+	os.Exit(runAcceptanceTests(m))
+}
 
-	testClient = &unifi.Client{}
-	setHTTPClient(testClient, insecure, "unifi")
-	testClient.SetBaseURL(baseURL)
-	err := testClient.Login(context.Background(), user, pass)
+func runAcceptanceTests(m *testing.M) int {
+	compose, err := tc.NewDockerCompose("../../docker-compose.yaml")
 	if err != nil {
 		panic(err)
 	}
 
-	resource.TestMain(m)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err = compose.WithOsEnv().Up(ctx, tc.Wait(true)); err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if err := compose.Down(context.Background(), tc.RemoveOrphans(true), tc.RemoveImagesLocal); err != nil {
+			panic(err)
+		}
+	}()
+
+	container, err := compose.ServiceContainer(ctx, "unifi")
+	if err != nil {
+		panic(err)
+	}
+
+	endpoint, err := container.PortEndpoint(ctx, "8443/tcp", "https")
+	if err != nil {
+		panic(err)
+	}
+
+	const user = "admin"
+	const password = "admin"
+
+	if err = os.Setenv("UNIFI_USERNAME", user); err != nil {
+		panic(err)
+	}
+
+	if err = os.Setenv("UNIFI_PASSWORD", password); err != nil {
+		panic(err)
+	}
+
+	if err = os.Setenv("UNIFI_INSECURE", "true"); err != nil {
+		panic(err)
+	}
+
+	if err = os.Setenv("UNIFI_API", endpoint); err != nil {
+		panic(err)
+	}
+
+	testClient = &unifi.Client{}
+	setHTTPClient(testClient, true, "unifi")
+	testClient.SetBaseURL(endpoint)
+	if err = testClient.Login(ctx, user, password); err != nil {
+		panic(err)
+	}
+
+	return m.Run()
 }
 
 func importStep(name string, ignore ...string) resource.TestStep {
