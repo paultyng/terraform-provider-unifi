@@ -34,5 +34,4 @@ jobs:
           check-latest: true
 
       - name: TF acceptance tests
-        timeout-minutes: 20
-        run: make testacc UNIFI_STDOUT=true UNIFI_VERSION=${{ matrix.unifi_version }}
+        run: make testacc TEST_COUNT=2 UNIFI_STDOUT=true UNIFI_VERSION=${{ matrix.unifi_version }}
