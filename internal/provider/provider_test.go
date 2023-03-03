@@ -43,7 +43,7 @@ func runTests(m *testing.M) int {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err = compose.Up(ctx, tc.Wait(true)); err != nil {
+	if err = compose.WithOsEnv().Up(ctx, tc.Wait(true)); err != nil {
 		panic(err)
 	}
 

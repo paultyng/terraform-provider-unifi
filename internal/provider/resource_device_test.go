@@ -50,7 +50,7 @@ func allocateDevice(t *testing.T) (string, func()) {
 				}
 			}
 
-      return nil
+			return nil
 		})
 
 		if err != nil {
