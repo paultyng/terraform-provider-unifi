@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
 	"github.com/testcontainers/testcontainers-go"
-	tc "github.com/testcontainers/testcontainers-go/modules/compose"
+	"github.com/testcontainers/testcontainers-go/modules/compose"
 )
 
 var providerFactories = map[string]func() (*schema.Provider, error){
@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 }
 
 func runAcceptanceTests(m *testing.M) int {
-	compose, err := tc.NewDockerCompose("../../docker-compose.yaml")
+	dc, err := compose.NewDockerCompose("../../docker-compose.yaml")
 	if err != nil {
 		panic(err)
 	}
@@ -45,24 +45,24 @@ func runAcceptanceTests(m *testing.M) int {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err = compose.WithOsEnv().Up(ctx, tc.Wait(true)); err != nil {
+	if err = dc.WithOsEnv().Up(ctx, tc.Wait(true)); err != nil {
 		panic(err)
 	}
 
 	defer func() {
-		if err := compose.Down(context.Background(), tc.RemoveOrphans(true), tc.RemoveImagesLocal); err != nil {
+		if err := dc.Down(context.Background(), tc.RemoveOrphans(true), tc.RemoveImagesLocal); err != nil {
 			panic(err)
 		}
 	}()
 
-	container, err := compose.ServiceContainer(ctx, "unifi")
+	container, err := dc.ServiceContainer(ctx, "unifi")
 	if err != nil {
 		panic(err)
 	}
-  
-  // Dump the container logs on exit.
-  //
-  // TODO: Use https://pkg.go.dev/github.com/testcontainers/testcontainers-go#LogConsumer instead.
+
+	// Dump the container logs on exit.
+	//
+	// TODO: Use https://pkg.go.dev/github.com/testcontainers/testcontainers-go#LogConsumer instead.
 	defer func() {
 		reader, err := container.Logs(ctx)
 		if err != nil {
@@ -74,7 +74,7 @@ func runAcceptanceTests(m *testing.M) int {
 			panic(err)
 		}
 
-    testcontainers.Logger.Printf("%s", bytes)
+		testcontainers.Logger.Printf("%s", bytes)
 	}()
 
 	endpoint, err := container.PortEndpoint(ctx, "8443/tcp", "https")
