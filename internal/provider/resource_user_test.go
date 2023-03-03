@@ -30,10 +30,10 @@ func allocateTestMac(t *testing.T) (string, func()) {
 	defer macMutex.Unlock()
 
 	macInit.Do(func() {
-		macPool = make([]net.HardwareAddr, 8)
+		macPool = make([]net.HardwareAddr, 256)
 
 		// for test MAC addresses, see https://tools.ietf.org/html/rfc7042#section-2.1.
-		for i := 0; i < 8; i++ {
+		for i := 0; i < 256; i++ {
 			macPool[i] = net.HardwareAddr{0x00, 0x00, 0x5e, 0x00, 0x53, byte(i)}
 		}
 	})
@@ -44,14 +44,12 @@ func allocateTestMac(t *testing.T) (string, func()) {
 
 	var mac net.HardwareAddr
 	mac, macPool = macPool[0], macPool[1:]
-	t.Logf("Allocated %s. Pool = %#v\n", mac, macPool)
 
 	unallocate := func() {
 		macMutex.Lock()
 		defer macMutex.Unlock()
 
 		macPool = append(macPool, mac) //nolint:makezero
-		t.Logf("Unallocated %s. Pool = %#v\n", mac, macPool)
 	}
 
 	return mac.String(), unallocate
