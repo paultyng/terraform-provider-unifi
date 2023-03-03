@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"io"
 	"math"
 	"net"
 	"os"
@@ -68,17 +67,14 @@ func runAcceptanceTests(m *testing.M) int {
 			return
 		}
 
-		reader, err := container.Logs(ctx)
+		stream, err := container.Logs(ctx)
 		if err != nil {
 			panic(err)
 		}
 
-		bytes, err := io.ReadAll(reader)
-		if err != nil {
-			panic(err)
-		}
-
-		testcontainers.Logger.Printf("%s", bytes)
+		buffer := new(bytes.Buffer)
+		buffer.ReadFrom(stream)
+		testcontainers.Logger.Printf("%s", buffer)
 	}()
 
 	endpoint, err := container.PortEndpoint(ctx, "8443/tcp", "https")
