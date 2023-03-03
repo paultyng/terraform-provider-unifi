@@ -6,27 +6,24 @@ import (
 	"regexp"
 	"sync"
 	"testing"
+	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
 var (
-	deviceLock         sync.Mutex
-	devicesAvailable   []string
-	devicesInitialized bool = false
+	deviceInit sync.Once
+	devicePool mapset.Set[*unifi.Device] = mapset.NewSet[*unifi.Device]()
 )
 
 func allocateDevice(t *testing.T) (string, func()) {
-	deviceLock.Lock()
-	defer deviceLock.Unlock()
+	ctx := context.Background()
 
-	if !devicesInitialized {
-		devicesAvailable = []string{}
-		devicesInitialized = true
-
-		devices, err := testClient.ListDevice(context.Background(), "default")
+	deviceInit.Do(func() {
+		devices, err := testClient.ListDevice(ctx, "default")
 		if err != nil {
 			t.Fatalf("Error listing devices: %s", err)
 		}
@@ -41,25 +38,37 @@ func allocateDevice(t *testing.T) (string, func()) {
 				continue
 			}
 
-			devicesAvailable = append(devicesAvailable, device.MAC)
+			d := device
+			if ok := devicePool.Add(&d); !ok {
+				t.Fatal("Failed to add device to pool")
+			}
+		}
+	})
+
+	var device *unifi.Device
+
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		var ok bool
+		device, ok = devicePool.Pop()
+
+		if device == nil || !ok {
+			return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	unallocate := func() {
+		if ok := devicePool.Add(device); !ok {
+			t.Fatal("Failed to add device to pool")
 		}
 	}
 
-	if len(devicesAvailable) == 0 {
-		t.Fatal("Unable to allocate test device")
-	}
-
-	var device string
-	device, devicesAvailable = devicesAvailable[0], devicesAvailable[1:]
-
-	unallocate := func() {
-		deviceLock.Lock()
-		defer deviceLock.Unlock()
-
-		devicesAvailable = append(devicesAvailable, device)
-	}
-
-	return device, unallocate
+	return device.MAC, unallocate
 }
 
 func preCheckDeviceExists(t *testing.T, site, mac string) {
