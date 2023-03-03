@@ -8,7 +8,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -101,8 +100,6 @@ func runTests(m *testing.M) int {
 	if err != nil {
 		panic(err)
 	}
-
-	time.Sleep(10 * time.Second)
 
 	return m.Run()
 }
