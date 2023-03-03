@@ -70,7 +70,7 @@ func runAcceptanceTests(m *testing.M) int {
 			panic(err)
 		}
 
-		fmt.Printf(string(b))
+		fmt.Print(string(b))
 	}()
 
 	endpoint, err := container.PortEndpoint(ctx, "8443/tcp", "https")
