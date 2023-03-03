@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"io"
 	"math"
 	"net"
 	"os"
@@ -59,19 +58,11 @@ func runAcceptanceTests(m *testing.M) int {
 		panic(err)
 	}
 
-	defer func() {
-		reader, err := container.Logs(ctx)
-		if err != nil {
-			panic(err)
-		}
-
-		b, err := io.ReadAll(reader)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Print(string(b))
-	}()
+	if err = container.StartLogProducer(ctx); err != nil {
+		panic(err)
+	}
+	defer container.StopLogProducer()
+	container.FollowOutput(&LogConsumer{})
 
 	endpoint, err := container.PortEndpoint(ctx, "8443/tcp", "https")
 	if err != nil {

@@ -10,8 +10,3 @@ write_config is_simulation true
 write_config demo.num_uap 0
 write_config demo.num_ugw 0
 write_config demo.num_usw 20
-
-write_config debug.device debug
-write_config debug.mgmt debug
-write_config debug.sdn debug
-write_config debug.system debug
