@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/apparentlymart/go-cidr/cidr"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
@@ -22,7 +23,7 @@ func userImportStep(name string) resource.TestStep {
 var (
 	macInit  sync.Once
 	macMutex sync.Mutex
-	macPool  []net.HardwareAddr = []net.HardwareAddr{}
+	macPool  mapset.Set[*net.HardwareAddr] = mapset.NewSet[*net.HardwareAddr]()
 )
 
 func allocateTestMac(t *testing.T) (string, func()) {
@@ -30,26 +31,31 @@ func allocateTestMac(t *testing.T) (string, func()) {
 	defer macMutex.Unlock()
 
 	macInit.Do(func() {
-		macPool = make([]net.HardwareAddr, 256)
-
 		// for test MAC addresses, see https://tools.ietf.org/html/rfc7042#section-2.1.
 		for i := 0; i < 256; i++ {
-			macPool[i] = net.HardwareAddr{0x00, 0x00, 0x5e, 0x00, 0x53, byte(i)}
+			mac := net.HardwareAddr{0x00, 0x00, 0x5e, 0x00, 0x53, byte(i)}
+			if ok := macPool.Add(&mac); !ok {
+				t.Fatal("Failed to add MAC to pool")
+			}
 		}
 	})
 
-	if len(macPool) == 0 {
+	if macPool.Cardinality() == 0 {
 		t.Fatal("Unable to allocate test MAC")
 	}
 
-	var mac net.HardwareAddr
-	mac, macPool = macPool[0], macPool[1:]
+	mac, ok := macPool.Pop()
+	if !ok {
+		t.Fatal("Failed to pop MAC from pool")
+	}
 
 	unallocate := func() {
 		macMutex.Lock()
 		defer macMutex.Unlock()
 
-		macPool = append(macPool, mac) //nolint:makezero
+		if ok := macPool.Add(mac); !ok {
+			t.Fatal("Failed to add MAC to pool")
+		}
 	}
 
 	return mac.String(), unallocate

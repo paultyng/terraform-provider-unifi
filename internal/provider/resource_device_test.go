@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
@@ -16,7 +17,7 @@ import (
 var (
 	deviceInit  sync.Once
 	deviceMutex sync.Mutex
-	devicePool  []unifi.Device = []unifi.Device{}
+	devicePool  mapset.Set[*unifi.Device] = mapset.NewSet[*unifi.Device]()
 )
 
 func allocateDevice(t *testing.T) (string, func()) {
@@ -38,21 +39,29 @@ func allocateDevice(t *testing.T) (string, func()) {
 				continue
 			}
 
-			devicePool = append(devicePool, device)
+			d := device
+			if ok := devicePool.Add(&d); !ok {
+				t.Fatal("Failed to add device to pool")
+			}
 		}
 	})
 
-	var device unifi.Device
+	var device *unifi.Device
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		deviceMutex.Lock()
 		defer deviceMutex.Unlock()
 
-		if len(devicePool) == 0 {
+		if devicePool.Cardinality() == 0 {
 			return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
 		}
 
-		device, devicePool = devicePool[0], devicePool[1:]
+		var ok bool
+		device, ok = devicePool.Pop()
+		if !ok {
+			return resource.NonRetryableError(fmt.Errorf("Failed to pop device from pool"))
+		}
+
 		return nil
 	})
 
@@ -63,7 +72,10 @@ func allocateDevice(t *testing.T) (string, func()) {
 	unallocate := func() {
 		deviceMutex.Lock()
 		defer deviceMutex.Unlock()
-		devicePool = append(devicePool, device)
+
+		if ok := devicePool.Add(device); !ok {
+			t.Fatal("Failed to add device to pool")
+		}
 	}
 
 	return device.MAC, unallocate
