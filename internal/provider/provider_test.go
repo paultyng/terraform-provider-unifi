@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
+	tc "github.com/testcontainers/testcontainers-go/modules/compose"
 )
 
 var providerFactories = map[string]func() (*schema.Provider, error){
@@ -25,25 +26,71 @@ var providerFactories = map[string]func() (*schema.Provider, error){
 var testClient *unifi.Client
 
 func TestMain(m *testing.M) {
+	os.Exit(runTests(m))
+}
+
+func runTests(m *testing.M) int {
 	if os.Getenv("TF_ACC") == "" {
 		// short circuit non acceptance test runs
 		os.Exit(m.Run())
 	}
 
-	user := os.Getenv("UNIFI_USERNAME")
-	pass := os.Getenv("UNIFI_PASSWORD")
-	baseURL := os.Getenv("UNIFI_API")
-	insecure := os.Getenv("UNIFI_INSECURE") == "true"
-
-	testClient = &unifi.Client{}
-	setHTTPClient(testClient, insecure, "unifi")
-	testClient.SetBaseURL(baseURL)
-	err := testClient.Login(context.Background(), user, pass)
+	compose, err := tc.NewDockerCompose("../../docker-compose.yaml")
 	if err != nil {
 		panic(err)
 	}
 
-	resource.TestMain(m)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err = compose.Up(ctx, tc.Wait(true)); err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if err := compose.Down(context.Background(), tc.RemoveOrphans(true), tc.RemoveImagesLocal); err != nil {
+			panic(err)
+		}
+	}()
+
+	container, err := compose.ServiceContainer(ctx, "unifi")
+	if err != nil {
+		panic(err)
+	}
+
+	endpoint, err := container.PortEndpoint(ctx, "8443/tcp", "https")
+	if err != nil {
+		panic(err)
+	}
+
+	const user = "admin"
+	const password = "admin"
+
+	if err = os.Setenv("UNIFI_USERNAME", user); err != nil {
+		panic(err)
+	}
+
+	if err = os.Setenv("UNIFI_PASSWORD", password); err != nil {
+		panic(err)
+	}
+
+	if err = os.Setenv("UNIFI_INSECURE", "true"); err != nil {
+		panic(err)
+	}
+
+	if err = os.Setenv("UNIFI_API", endpoint); err != nil {
+		panic(err)
+	}
+
+	testClient = &unifi.Client{}
+	setHTTPClient(testClient, true, "unifi")
+	testClient.SetBaseURL(endpoint)
+	err = testClient.Login(context.Background(), user, password)
+	if err != nil {
+		panic(err)
+	}
+
+	return m.Run()
 }
 
 func importStep(name string, ignore ...string) resource.TestStep {
