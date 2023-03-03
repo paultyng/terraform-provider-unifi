@@ -64,6 +64,10 @@ func runAcceptanceTests(m *testing.M) int {
 	//
 	// TODO: Use https://pkg.go.dev/github.com/testcontainers/testcontainers-go#LogConsumer instead.
 	defer func() {
+		if os.Getenv("UNIFI_STDOUT") == "" {
+			return
+		}
+
 		reader, err := container.Logs(ctx)
 		if err != nil {
 			panic(err)
