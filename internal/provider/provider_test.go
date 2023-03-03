@@ -44,12 +44,12 @@ func runAcceptanceTests(m *testing.M) int {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err = dc.WithOsEnv().Up(ctx, tc.Wait(true)); err != nil {
+	if err = dc.WithOsEnv().Up(ctx, compose.Wait(true)); err != nil {
 		panic(err)
 	}
 
 	defer func() {
-		if err := dc.Down(context.Background(), tc.RemoveOrphans(true), tc.RemoveImagesLocal); err != nil {
+		if err := dc.Down(context.Background(), compose.RemoveOrphans(true), compose.RemoveImagesLocal); err != nil {
 			panic(err)
 		}
 	}()
