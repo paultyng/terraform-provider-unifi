@@ -44,6 +44,11 @@ func allocateDevice(t *testing.T) (string, func()) {
 					continue
 				}
 
+				// The USW-Leaf is an EOL product and consistently fails to be adopted.
+				if device.Model == "UDC48X6" {
+					continue
+				}
+
 				d := device
 				if ok := devicePool.Add(&d); !ok {
 					return resource.NonRetryableError(fmt.Errorf("Failed to add device to pool"))
