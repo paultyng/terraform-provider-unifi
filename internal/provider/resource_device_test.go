@@ -23,25 +23,38 @@ func allocateDevice(t *testing.T) (string, func()) {
 	ctx := context.Background()
 
 	deviceInit.Do(func() {
-		devices, err := testClient.ListDevice(ctx, "default")
+		// The demo devices don't appear instantly when the controller starts.
+		err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+			devices, err := testClient.ListDevice(ctx, "default")
+			if err != nil {
+				return resource.NonRetryableError(fmt.Errorf("Error listing devices: %w", err))
+			}
+
+			if len(devices) == 0 {
+				return resource.RetryableError(fmt.Errorf("No devices found"))
+			}
+
+			for _, device := range devices {
+				if device.Type != "usw" {
+					continue
+				}
+
+				// These devices aren't really switches.
+				if device.Model == "USPRPS" || device.Model == "USPRPSP" || device.Model == "USPPDUHD" || device.Model == "USPPDUP" {
+					continue
+				}
+
+				d := device
+				if ok := devicePool.Add(&d); !ok {
+					return resource.NonRetryableError(fmt.Errorf("Failed to add device to pool"))
+				}
+			}
+
+			return nil
+		})
+
 		if err != nil {
-			t.Fatalf("Error listing devices: %s", err)
-		}
-
-		for _, device := range devices {
-			if device.Type != "usw" {
-				continue
-			}
-
-			// These devices aren't really switches.
-			if device.Model == "USPRPS" || device.Model == "USPRPSP" || device.Model == "USPPDUHD" || device.Model == "USPPDUP" {
-				continue
-			}
-
-			d := device
-			if ok := devicePool.Add(&d); !ok {
-				t.Fatal("Failed to add device to pool")
-			}
+			t.Fatal(err)
 		}
 	})
 
