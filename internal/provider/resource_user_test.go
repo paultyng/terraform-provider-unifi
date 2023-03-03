@@ -20,35 +20,36 @@ func userImportStep(name string) resource.TestStep {
 }
 
 var (
-	testMacLock       sync.Mutex
-	testMacsAvailable []*net.HardwareAddr
+	macInit  sync.Once
+	macMutex sync.Mutex
+	macPool  []net.HardwareAddr = []net.HardwareAddr{}
 )
 
-// for test MAC addresses, see https://tools.ietf.org/html/rfc7042#section-2.1.2
-func init() {
-	testMacsAvailable = make([]*net.HardwareAddr, 256)
-
-	for i := 0; i < 256; i++ {
-		testMacsAvailable[i] = &net.HardwareAddr{0x00, 0x00, 0x5e, 0x00, 0x53, byte(i)}
-	}
-}
-
 func allocateTestMac(t *testing.T) (string, func()) {
-	testMacLock.Lock()
-	defer testMacLock.Unlock()
+	macMutex.Lock()
+	defer macMutex.Unlock()
 
-	if len(testMacsAvailable) == 0 {
+	macInit.Do(func() {
+		macPool = make([]net.HardwareAddr, 256)
+
+		// for test MAC addresses, see https://tools.ietf.org/html/rfc7042#section-2.1.
+		for i := 0; i < 256; i++ {
+			macPool[i] = net.HardwareAddr{0x00, 0x00, 0x5e, 0x00, 0x53, byte(i)}
+		}
+	})
+
+	if len(macPool) == 0 {
 		t.Fatal("Unable to allocate test MAC")
 	}
 
-	var mac *net.HardwareAddr
-	mac, testMacsAvailable = testMacsAvailable[0], testMacsAvailable[1:]
+	var mac net.HardwareAddr
+	mac, macPool = macPool[0], macPool[1:]
 
 	unallocate := func() {
-		testMacLock.Lock()
-		defer testMacLock.Unlock()
+		macMutex.Lock()
+		defer macMutex.Unlock()
 
-		testMacsAvailable = append(testMacsAvailable, mac) //nolint:makezero
+		macPool = append(macPool, mac) //nolint:makezero
 	}
 
 	return mac.String(), unallocate

@@ -48,9 +48,9 @@ func allocateDevice(t *testing.T) (string, func()) {
 		deviceMutex.Lock()
 		defer deviceMutex.Unlock()
 
-    if len(devicePool) == 0 {
-      return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
-    }
+		if len(devicePool) == 0 {
+			return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
+		}
 
 		device, devicePool = devicePool[0], devicePool[1:]
 		return nil
