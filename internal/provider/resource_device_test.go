@@ -15,9 +15,8 @@ import (
 )
 
 var (
-	deviceInit  sync.Once
-	deviceMutex sync.Mutex
-	devicePool  mapset.Set[*unifi.Device] = mapset.NewSet[*unifi.Device]()
+	deviceInit sync.Once
+	devicePool mapset.Set[*unifi.Device] = mapset.NewSet[*unifi.Device]()
 )
 
 func allocateDevice(t *testing.T) (string, func()) {
@@ -49,17 +48,11 @@ func allocateDevice(t *testing.T) (string, func()) {
 	var device *unifi.Device
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
-		deviceMutex.Lock()
-		defer deviceMutex.Unlock()
-
-		if devicePool.Cardinality() == 0 {
-			return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
-		}
-
 		var ok bool
 		device, ok = devicePool.Pop()
-		if !ok {
-			return resource.NonRetryableError(fmt.Errorf("Failed to pop device from pool"))
+
+		if device == nil || !ok {
+			return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
 		}
 
 		return nil
@@ -70,9 +63,6 @@ func allocateDevice(t *testing.T) (string, func()) {
 	}
 
 	unallocate := func() {
-		deviceMutex.Lock()
-		defer deviceMutex.Unlock()
-
 		if ok := devicePool.Add(device); !ok {
 			t.Fatal("Failed to add device to pool")
 		}

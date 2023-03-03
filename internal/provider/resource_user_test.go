@@ -21,15 +21,11 @@ func userImportStep(name string) resource.TestStep {
 }
 
 var (
-	macInit  sync.Once
-	macMutex sync.Mutex
-	macPool  mapset.Set[*net.HardwareAddr] = mapset.NewSet[*net.HardwareAddr]()
+	macInit sync.Once
+	macPool mapset.Set[*net.HardwareAddr] = mapset.NewSet[*net.HardwareAddr]()
 )
 
 func allocateTestMac(t *testing.T) (string, func()) {
-	macMutex.Lock()
-	defer macMutex.Unlock()
-
 	macInit.Do(func() {
 		// for test MAC addresses, see https://tools.ietf.org/html/rfc7042#section-2.1.
 		for i := 0; i < 256; i++ {
@@ -40,19 +36,12 @@ func allocateTestMac(t *testing.T) (string, func()) {
 		}
 	})
 
-	if macPool.Cardinality() == 0 {
+	mac, ok := macPool.Pop()
+	if mac == nil || !ok {
 		t.Fatal("Unable to allocate test MAC")
 	}
 
-	mac, ok := macPool.Pop()
-	if !ok {
-		t.Fatal("Failed to pop MAC from pool")
-	}
-
 	unallocate := func() {
-		macMutex.Lock()
-		defer macMutex.Unlock()
-
 		if ok := macPool.Add(mac); !ok {
 			t.Fatal("Failed to add MAC to pool")
 		}
