@@ -16,7 +16,7 @@ import (
 var (
 	deviceInit  sync.Once
 	deviceMutex sync.Mutex
-	devicePool  []string = []string{}
+	devicePool  []unifi.Device = []unifi.Device{}
 )
 
 func allocateDevice(t *testing.T) (string, func()) {
@@ -38,24 +38,21 @@ func allocateDevice(t *testing.T) (string, func()) {
 				continue
 			}
 
-			t.Logf("Discovered device %s\n", device.MAC)
-			devicePool = append(devicePool, device.MAC)
+			devicePool = append(devicePool, device)
 		}
 	})
 
-	var device string
+	var device unifi.Device
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		deviceMutex.Lock()
 		defer deviceMutex.Unlock()
 
-		device, devicePool = devicePool[0], devicePool[1:]
-
     if len(devicePool) == 0 {
       return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
     }
 
-		t.Logf("Allocated device %s. Device pool = #%v\n", device, devicePool)
+		device, devicePool = devicePool[0], devicePool[1:]
 		return nil
 	})
 
@@ -67,10 +64,9 @@ func allocateDevice(t *testing.T) (string, func()) {
 		deviceMutex.Lock()
 		defer deviceMutex.Unlock()
 		devicePool = append(devicePool, device)
-		t.Logf("Unallocated device %s\n", device)
 	}
 
-	return device, unallocate
+	return device.MAC, unallocate
 }
 
 func preCheckDeviceExists(t *testing.T, site, mac string) {
