@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
+	"github.com/testcontainers/testcontainers-go"
 	tc "github.com/testcontainers/testcontainers-go/modules/compose"
 )
 
@@ -58,19 +59,22 @@ func runAcceptanceTests(m *testing.M) int {
 	if err != nil {
 		panic(err)
 	}
-
+  
+  // Dump the container logs on exit.
+  //
+  // TODO: Use https://pkg.go.dev/github.com/testcontainers/testcontainers-go#LogConsumer instead.
 	defer func() {
 		reader, err := container.Logs(ctx)
 		if err != nil {
 			panic(err)
 		}
 
-		b, err := io.ReadAll(reader)
+		bytes, err := io.ReadAll(reader)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Print(string(b))
+    testcontainers.Logger.Printf("%s", bytes)
 	}()
 
 	endpoint, err := container.PortEndpoint(ctx, "8443/tcp", "https")
