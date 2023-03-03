@@ -26,15 +26,15 @@ var providerFactories = map[string]func() (*schema.Provider, error){
 var testClient *unifi.Client
 
 func TestMain(m *testing.M) {
-	os.Exit(runTests(m))
-}
-
-func runTests(m *testing.M) int {
 	if os.Getenv("TF_ACC") == "" {
 		// short circuit non acceptance test runs
 		os.Exit(m.Run())
 	}
 
+	os.Exit(runAcceptanceTests(m))
+}
+
+func runAcceptanceTests(m *testing.M) int {
 	compose, err := tc.NewDockerCompose("../../docker-compose.yaml")
 	if err != nil {
 		panic(err)
@@ -85,8 +85,7 @@ func runTests(m *testing.M) int {
 	testClient = &unifi.Client{}
 	setHTTPClient(testClient, true, "unifi")
 	testClient.SetBaseURL(endpoint)
-	err = testClient.Login(context.Background(), user, password)
-	if err != nil {
+	if err = testClient.Login(ctx, user, password); err != nil {
 		panic(err)
 	}
 
