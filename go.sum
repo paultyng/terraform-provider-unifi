@@ -948,8 +948,8 @@ github.com/tenntenn/modver v1.0.1 h1:2klLppGhDgzJrScMpkj9Ujy3rXPUspSjAcev9tSEBgA
 github.com/tenntenn/modver v1.0.1/go.mod h1:bePIyQPb7UeioSRkw3Q0XeMhYZSMx9B8ePqg6SAMGH0=
 github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3 h1:f+jULpRQGxTSkNYKJ51yaw6ChIqO+Je8UqsTKN/cDag=
 github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3/go.mod h1:ON8b8w4BN/kE1EOhwT0o+d62W65a6aPw1nouo9LMgyY=
-github.com/testcontainers/testcontainers-go v0.17.0 h1:UdKSw2DJXinlS6ijbFb4VHpQzD+EfTwcTq1/19a+8PU=
-github.com/testcontainers/testcontainers-go v0.17.0/go.mod h1:n5trpHrB68IUelEqGNC8VipaCo6jOGusU44kIK11XRs=
+github.com/testcontainers/testcontainers-go v0.18.0 h1:8RXrcIQv5xX/uBOSmZd297gzvA7F0yuRA37/918o7Yg=
+github.com/testcontainers/testcontainers-go v0.18.0/go.mod h1:rLC7hR2SWRjJZZNrUYiTKvUXCziNxzZiYtz9icTWYNQ=
 github.com/testcontainers/testcontainers-go/modules/compose v0.17.0 h1:YFePiM0kM1CE1I3QrxAyYiyCn1moyvFObWkU4RmmirU=
 github.com/testcontainers/testcontainers-go/modules/compose v0.17.0/go.mod h1:zumN8asCeQ35/37B51NrLsndOcsGinoH1yRJl2v9kBw=
 github.com/tetafro/godot v1.4.11 h1:BVoBIqAf/2QdbFmSwAWnaIqDivZdOV0ZRwEm6jivLKw=
