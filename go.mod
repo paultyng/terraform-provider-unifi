@@ -43,6 +43,18 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/ashanbrown/forbidigo v1.4.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.17.1 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.18.3 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.3 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.19 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.25 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.19 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.26 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.19 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.11.25 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.17.5 // indirect
+	github.com/aws/smithy-go v1.13.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/bkielbasa/cyclop v1.2.0 // indirect
@@ -56,7 +68,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/charithe/durationcheck v0.0.9 // indirect
 	github.com/chavacava/garif v0.0.0-20221024190013-b3ef35877348 // indirect
-	github.com/compose-spec/compose-go v1.8.0 // indirect
+	github.com/compose-spec/compose-go v1.9.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/containerd v1.6.18 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
@@ -67,9 +79,9 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denis-tingaikin/go-header v0.4.3 // indirect
 	github.com/distribution/distribution/v3 v3.0.0-20221201083218-92d136e113cf // indirect
-	github.com/docker/buildx v0.9.1 // indirect
-	github.com/docker/cli v20.10.20+incompatible // indirect
-	github.com/docker/compose/v2 v2.14.0 // indirect
+	github.com/docker/buildx v0.10.2 // indirect
+	github.com/docker/cli v23.0.0+incompatible // indirect
+	github.com/docker/compose/v2 v2.16.0 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v23.0.0+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
@@ -152,6 +164,7 @@ require (
 	github.com/jgautheron/goconst v1.5.1 // indirect
 	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
 	github.com/jirfag/go-printf-func-name v0.0.0-20200119135958-7558a9eaa5af // indirect
+	github.com/jonboulle/clockwork v0.3.1-0.20230117163003-a89700cec744 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/julz/importas v0.1.0 // indirect
 	github.com/junk1tm/musttag v0.4.5 // indirect
@@ -187,10 +200,11 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/buildkit v0.10.4 // indirect
+	github.com/moby/buildkit v0.11.2 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
+	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/moby/sys/symlink v0.2.0 // indirect
@@ -215,7 +229,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polyfloyd/go-errorlint v1.1.0 // indirect
 	github.com/posener/complete v1.2.3 // indirect
-	github.com/prometheus/client_golang v1.13.1 // indirect
+	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
@@ -255,11 +269,12 @@ require (
 	github.com/tdakkota/asciicheck v0.1.1 // indirect
 	github.com/tetafro/godot v1.4.11 // indirect
 	github.com/theupdateframework/notary v0.7.0 // indirect
+	github.com/tilt-dev/fsnotify v1.4.8-0.20220602155310-fff9c274a375 // indirect
 	github.com/timakin/bodyclose v0.0.0-20221125081123-e39cf3fc478e // indirect
 	github.com/timonwong/loggercheck v0.9.3 // indirect
 	github.com/tomarrell/wrapcheck/v2 v2.8.0 // indirect
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1 // indirect
-	github.com/tonistiigi/fsutil v0.0.0-20220930225714-4638ad635be5 // indirect
+	github.com/tonistiigi/fsutil v0.0.0-20230105215944-fb433841cbfa // indirect
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
 	github.com/tonistiigi/vt100 v0.0.0-20210615222946-8066bb97264f // indirect
 	github.com/ultraware/funlen v0.0.3 // indirect
@@ -278,7 +293,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.29.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.29.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.29.0 // indirect
-	go.opentelemetry.io/otel v1.11.1 // indirect
+	go.opentelemetry.io/otel v1.13.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.4.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.4.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.4.1 // indirect
@@ -286,7 +301,7 @@ require (
 	go.opentelemetry.io/otel/internal/metric v0.27.0 // indirect
 	go.opentelemetry.io/otel/metric v0.27.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.4.1 // indirect
-	go.opentelemetry.io/otel/trace v1.11.1 // indirect
+	go.opentelemetry.io/otel/trace v1.13.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
@@ -327,11 +342,7 @@ require (
 
 // See testcontainers/testcontainers-go#632.
 replace (
-	github.com/docker/cli => github.com/docker/cli v20.10.3-0.20221013132413-1d6c6e2367e2+incompatible // 22.06 master branch
-	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20221013203545-33ab36d6b304+incompatible // 22.06 branch
-	github.com/moby/buildkit => github.com/moby/buildkit v0.10.1-0.20220816171719-55ba9d14360a // same as buildx
-	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2 // Can be removed on next bump of containerd to > 1.6.4
-	go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v0.12.0
+	github.com/cucumber/godog => github.com/laurazard/godog v0.0.0-20220922095256-4c4b17abdae7
 	k8s.io/api => k8s.io/api v0.22.4
 	k8s.io/apimachinery => k8s.io/apimachinery v0.22.4
 	k8s.io/client-go => k8s.io/client-go v0.22.4
