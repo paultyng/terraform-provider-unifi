@@ -8,7 +8,7 @@ go 1.19
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/deckarep/golang-set/v2 v2.1.0
+	github.com/deckarep/golang-set/v2 v2.2.0
 	github.com/golangci/golangci-lint v1.51.2
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.14.1
