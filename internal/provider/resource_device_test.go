@@ -49,6 +49,11 @@ func allocateDevice(t *testing.T) (*unifi.Device, func()) {
 					continue
 				}
 
+				// Only switches with these chipsets support both port mirroring ang aggregation.
+				if !(isBroadcomSwitch(device) || isMicrosemiSwitch(device) || isNephosSwitch(device)) {
+					continue
+				}
+
 				d := device
 				if ok := devicePool.Add(&d); !ok {
 					return resource.NonRetryableError(fmt.Errorf("Failed to add device to pool"))
@@ -87,6 +92,76 @@ func allocateDevice(t *testing.T) (*unifi.Device, func()) {
 	}
 
 	return device, unallocate
+}
+
+func isBroadcomSwitch(device unifi.Device) bool {
+	if device.Type != "usw" {
+		return false
+	}
+
+	switch device.Model {
+	// US-8 variants
+	case "US8", "US8P60", "US8P150", "S28150":
+		return true
+
+	// US-16 variants
+	case "US16P150", "S216150", "USXG":
+		return true
+
+	// US-24 variants
+	case "US24", "US24P250", "S224250", "US24P500", "S224500", "US24PL2":
+		return true
+
+	// US-48 variants
+	case "US48", "US48P500", "S248500", "US48P750", "S248750", "US48PL2":
+		return true
+
+	// USW-Pro
+	case "US24PRO", "US24PRO2", "US48PRO", "US48PRO2", "USAGGPRO":
+		return true
+
+		// USW-Enterprise
+	case "US624P", "US648P", "USXG24":
+		return true
+
+	// US-XG-6PoE
+	case "US6XG150":
+		return true
+	}
+
+	return false
+}
+
+func isMicrosemiSwitch(device unifi.Device) bool {
+	if device.Type != "usw" {
+		return false
+	}
+
+	switch device.Model {
+	// US-8 variants
+	case "USC8", "USC8P60", "USC8P150":
+		return true
+
+	// USW-Industrial
+	case "USC8P450":
+		return true
+	}
+
+	return false
+}
+
+func isNephosSwitch(device unifi.Device) bool {
+	if device.Type != "usw" {
+		return false
+	}
+
+	switch device.Model {
+	// USW-Leaf
+	case "UDC48X6":
+		return true
+	}
+
+	return false
 }
 
 func preCheckDeviceExists(t *testing.T, site, mac string) {
@@ -185,11 +260,24 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 				Config: testAccDeviceConfig_withPortOverrides(device.MAC),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "port_override.#", "2"),
-					resource.TestCheckResourceAttr(resourceName, "port_override.0.number", "1"),
-					resource.TestCheckResourceAttr(resourceName, "port_override.0.name", "Port 1"),
-					resource.TestCheckResourceAttr(resourceName, "port_override.1.number", "2"),
-					resource.TestCheckResourceAttr(resourceName, "port_override.1.name", "Port 2"),
+					resource.TestCheckResourceAttr(resourceName, "port_override.#", "3"),
+
+					// TODO: Why are these out of order?
+					resource.TestCheckResourceAttr(resourceName, "port_override.0.number", "3"),
+					resource.TestCheckResourceAttr(resourceName, "port_override.0.name", ""),
+					resource.TestCheckResourceAttr(resourceName, "port_override.0.port_profile_id", ""),
+					resource.TestCheckResourceAttr(resourceName, "port_override.0.op_mode", "aggregate"),
+					resource.TestCheckResourceAttr(resourceName, "port_override.0.aggregate_num_ports", "2"),
+
+					resource.TestCheckResourceAttr(resourceName, "port_override.1.number", "1"),
+					resource.TestCheckResourceAttr(resourceName, "port_override.1.name", "Port 1"),
+					resource.TestCheckResourceAttr(resourceName, "port_override.1.port_profile_id", ""),
+					resource.TestCheckResourceAttr(resourceName, "port_override.1.op_mode", "switch"),
+
+					resource.TestCheckResourceAttr(resourceName, "port_override.2.number", "2"),
+					resource.TestCheckResourceAttr(resourceName, "port_override.2.name", "Port 2"),
+					//resource.TestCheckResourceAttr(resourceName, "port_override.2.port_profile_id", ""),
+					resource.TestCheckResourceAttr(resourceName, "port_override.2.op_mode", "switch"),
 				),
 			},
 			{
@@ -228,6 +316,8 @@ resource "unifi_device" "test" {
 
 func testAccDeviceConfig_withPortOverrides(mac string) string {
 	return fmt.Sprintf(`
+data "unifi_port_profile" "all" {}
+
 resource "unifi_device" "test" {
 	mac = %q
 
@@ -237,8 +327,16 @@ resource "unifi_device" "test" {
 	}
 
 	port_override {
-		number = 2
-		name   = "Port 2"
+		number          = 2
+		name            = "Port 2"
+		port_profile_id = data.unifi_port_profile.all.id
+		op_mode         = "switch"
+	}
+
+	port_override {
+		number              = 3
+		op_mode             = "aggregate"
+		aggregate_num_ports = 2
 	}
 }
 `, mac)
