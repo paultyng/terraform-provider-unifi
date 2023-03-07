@@ -19,7 +19,7 @@ var (
 	devicePool mapset.Set[*unifi.Device] = mapset.NewSet[*unifi.Device]()
 )
 
-func allocateDevice(t *testing.T) (string, func()) {
+func allocateDevice(t *testing.T) (*unifi.Device, func()) {
 	ctx := context.Background()
 
 	deviceInit.Do(func() {
@@ -86,7 +86,7 @@ func allocateDevice(t *testing.T) (string, func()) {
 		}
 	}
 
-	return device.MAC, unallocate
+	return device, unallocate
 }
 
 func preCheckDeviceExists(t *testing.T, site, mac string) {
@@ -115,7 +115,7 @@ func TestAccDevice_switch_basic(t *testing.T) {
 	resourceName := "unifi_device.test"
 	site := "default"
 
-	switchMAC, unallocateDevice := allocateDevice(t)
+	device, unallocateDevice := allocateDevice(t)
 	defer unallocateDevice()
 
 	importStateVerifyIgnore := []string{"allow_adoption", "forget_on_destroy"}
@@ -123,17 +123,17 @@ func TestAccDevice_switch_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckDeviceExists(t, site, switchMAC)
+			preCheckDeviceExists(t, site, device.MAC)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testAccCheckDeviceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDeviceConfig(switchMAC),
+				Config: testAccDeviceConfig(device.MAC),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "site", site),
-					resource.TestCheckResourceAttr(resourceName, "mac", switchMAC),
+					resource.TestCheckResourceAttr(resourceName, "mac", device.MAC),
 					resource.TestCheckResourceAttr(resourceName, "name", ""),
 				),
 			},
@@ -150,13 +150,13 @@ func TestAccDevice_switch_basic(t *testing.T) {
 			{
 				ResourceName:            resourceName,
 				ImportState:             true,
-				ImportStateId:           switchMAC,
+				ImportStateId:           device.MAC,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: importStateVerifyIgnore,
 			},
 
 			{
-				Config: testAccDeviceConfig_withName(switchMAC, "Test Switch"),
+				Config: testAccDeviceConfig_withName(device.MAC, "Test Switch"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", "Test Switch"),
@@ -170,19 +170,19 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 	resourceName := "unifi_device.test"
 	site := "default"
 
-	switchMAC, unallocateDevice := allocateDevice(t)
+	device, unallocateDevice := allocateDevice(t)
 	defer unallocateDevice()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckDeviceExists(t, site, switchMAC)
+			preCheckDeviceExists(t, site, device.MAC)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testAccCheckDeviceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDeviceConfig_withPortOverrides(switchMAC),
+				Config: testAccDeviceConfig_withPortOverrides(device.MAC),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "port_override.#", "2"),
@@ -200,22 +200,22 @@ func TestAccDevice_remove_portOverrides(t *testing.T) {
 	resourceName := "unifi_device.test"
 	site := "default"
 
-	switchMAC, unallocateDevice := allocateDevice(t)
+	device, unallocateDevice := allocateDevice(t)
 	defer unallocateDevice()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
-			preCheckDeviceExists(t, site, switchMAC)
+			preCheckDeviceExists(t, site, device.MAC)
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testAccCheckDeviceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDeviceConfig_withPortOverrides(switchMAC),
+				Config: testAccDeviceConfig_withPortOverrides(device.MAC),
 			},
 			{
-				Config: testAccDeviceConfig(switchMAC),
+				Config: testAccDeviceConfig(device.MAC),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "port_override.#", "0"),
