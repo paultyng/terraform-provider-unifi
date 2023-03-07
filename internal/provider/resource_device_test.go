@@ -192,28 +192,6 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "port_override.1.name", "Port 2"),
 				),
 			},
-		},
-	})
-}
-
-func TestAccDevice_remove_portOverrides(t *testing.T) {
-	resourceName := "unifi_device.test"
-	site := "default"
-
-	device, unallocateDevice := allocateDevice(t)
-	defer unallocateDevice()
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-			preCheckDeviceExists(t, site, device.MAC)
-		},
-		ProviderFactories: providerFactories,
-		CheckDestroy:      testAccCheckDeviceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccDeviceConfig_withPortOverrides(device.MAC),
-			},
 			{
 				Config: testAccDeviceConfig(device.MAC),
 				Check: resource.ComposeTestCheckFunc(
