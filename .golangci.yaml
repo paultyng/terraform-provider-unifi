@@ -16,4 +16,4 @@ linters:
     - "unused"
 
 run:
-  timeout: '2m'
+  timeout: '5m'
