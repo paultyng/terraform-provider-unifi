@@ -84,6 +84,19 @@ func resourceDevice() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 						},
+						"op_mode": {
+							Description:  "Operating mode of the port, valid values are `switch`, `mirror`, and `aggregate`.",
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "switch",
+							ValidateFunc: validation.StringInSlice([]string{"switch", "mirror", "aggregate"}, false),
+						},
+						"aggregate_num_ports": {
+							Description:  "Number of ports in the aggregate.",
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(2, 8),
+						},
 					},
 				},
 			},
@@ -326,22 +339,28 @@ func setFromPortOverrides(pos []unifi.DevicePortOverrides) ([]map[string]interfa
 }
 
 func toPortOverride(data map[string]interface{}) (unifi.DevicePortOverrides, error) {
-	// TODO: error check these?
 	idx := data["number"].(int)
 	name := data["name"].(string)
-	profile_id := data["port_profile_id"].(string)
+	profileID := data["port_profile_id"].(string)
+	opMode := data["op_mode"].(string)
+	aggregateNumPorts := data["aggregate_num_ports"].(int)
+
 	return unifi.DevicePortOverrides{
-		PortIDX:       idx,
-		Name:          name,
-		PortProfileID: profile_id,
+		PortIDX:           idx,
+		Name:              name,
+		PortProfileID:     profileID,
+		OpMode:            opMode,
+		AggregateNumPorts: aggregateNumPorts,
 	}, nil
 }
 
 func fromPortOverride(po unifi.DevicePortOverrides) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"number":          po.PortIDX,
-		"name":            po.Name,
-		"port_profile_id": po.PortProfileID,
+		"number":              po.PortIDX,
+		"name":                po.Name,
+		"port_profile_id":     po.PortProfileID,
+		"op_mode":             po.OpMode,
+		"aggregate_num_ports": po.AggregateNumPorts,
 	}, nil
 }
 
