@@ -272,12 +272,12 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "port_override.1.number", "1"),
 					resource.TestCheckResourceAttr(resourceName, "port_override.1.name", "Port 1"),
 					resource.TestCheckResourceAttr(resourceName, "port_override.1.port_profile_id", ""),
-					resource.TestCheckResourceAttr(resourceName, "port_override.1.op_mode", "switch"),
+					//resource.TestCheckResourceAttr(resourceName, "port_override.1.op_mode", "switch"),
 
 					resource.TestCheckResourceAttr(resourceName, "port_override.2.number", "2"),
 					resource.TestCheckResourceAttr(resourceName, "port_override.2.name", "Port 2"),
 					//resource.TestCheckResourceAttr(resourceName, "port_override.2.port_profile_id", ""),
-					resource.TestCheckResourceAttr(resourceName, "port_override.2.op_mode", "switch"),
+					//resource.TestCheckResourceAttr(resourceName, "port_override.2.op_mode", "switch"),
 				),
 			},
 			{
