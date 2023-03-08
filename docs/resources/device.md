@@ -51,6 +51,13 @@ resource "unifi_device" "us_24_poe" {
     name            = "disabled"
     port_profile_id = data.unifi_port_profile.disabled.id
   }
+
+  # port aggregation for ports 11 and 12
+  port_override {
+    number              = 11
+    op_mode             = "aggregate"
+    aggregate_num_ports = 2
+  }
 }
 ```
 
@@ -80,7 +87,9 @@ Required:
 
 Optional:
 
+- `aggregate_num_ports` (Number) Number of ports in the aggregate.
 - `name` (String) Human-readable name of the port.
+- `op_mode` (String) Operating mode of the port, valid values are `switch`, `mirror`, and `aggregate`.
 - `port_profile_id` (String) ID of the Port Profile used on this port.
 
 

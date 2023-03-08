@@ -33,4 +33,11 @@ resource "unifi_device" "us_24_poe" {
     name            = "disabled"
     port_profile_id = data.unifi_port_profile.disabled.id
   }
+
+  # port aggregation for ports 11 and 12
+  port_override {
+    number              = 11
+    op_mode             = "aggregate"
+    aggregate_num_ports = 2
+  }
 }
