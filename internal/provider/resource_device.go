@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -90,12 +91,24 @@ func resourceDevice() *schema.Resource {
 							Optional:     true,
 							Default:      "switch",
 							ValidateFunc: validation.StringInSlice([]string{"switch", "mirror", "aggregate"}, false),
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if old == "" && new == "switch" {
+									return true
+								}
+								return false
+							},
 						},
 						"aggregate_num_ports": {
 							Description:  "Number of ports in the aggregate.",
 							Type:         schema.TypeInt,
 							Optional:     true,
 							ValidateFunc: validation.IntBetween(2, 8),
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if old == strconv.Itoa(0) && new == "" {
+									return true
+								}
+								return false
+							},
 						},
 					},
 				},
