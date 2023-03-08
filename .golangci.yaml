@@ -14,3 +14,6 @@ linters:
     - "structcheck"
     - "unconvert"
     - "unused"
+
+run:
+  timeout: '2m'

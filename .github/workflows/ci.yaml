@@ -31,3 +31,5 @@ jobs:
           check-latest: true
 
       - uses: "golangci/golangci-lint-action@v3.4.0"
+        with:
+          skip-pkg-cache: true
