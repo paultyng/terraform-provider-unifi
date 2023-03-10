@@ -182,35 +182,56 @@ func TestAccStaticRoute_interface_ipv6(t *testing.T) {
 
 func testAccStaticRouteConfig_nextHop(name string, network *net.IPNet, distance int, nextHop *net.IP) string {
 	return fmt.Sprintf(`
+resource "unifi_device" "gateway" {
+  mac               = "dc:9f:db:00:00:01"
+  forget_on_destroy = false
+}
+
 resource "unifi_static_route" "test" {
 	type     = "nexthop-route"
 	network  = "%[2]s"
 	name     = "%[1]s"
 	distance = %[3]d
 	next_hop = "%[4]s"
+
+  depends_on = [unifi_device.gateway]
 }
 `, name, network, distance, nextHop)
 }
 
 func testAccStaticRouteConfig_blackhole(name string, network *net.IPNet, distance int) string {
 	return fmt.Sprintf(`
+resource "unifi_device" "gateway" {
+  mac               = "dc:9f:db:00:00:01"
+  forget_on_destroy = false
+}
+
 resource "unifi_static_route" "test" {
 	type     = "blackhole"
 	network  = "%[2]s"
 	name     = "%[1]s"
 	distance = %[3]d
+
+  depends_on = [unifi_device.gateway]
 }
 `, name, network, distance)
 }
 
 func testAccStaticRouteConfig_interface(name string, network *net.IPNet, distance int, networkInterface string) string {
 	return fmt.Sprintf(`
+resource "unifi_device" "gateway" {
+  mac               = "dc:9f:db:00:00:01"
+  forget_on_destroy = false
+}
+
 resource "unifi_static_route" "test" {
 	type      = "interface-route"
 	network   = "%[2]s"
 	name      = "%[1]s"
 	distance  = %[3]d
 	interface = "%[4]s"
+
+  depends_on = [unifi_device.gateway]
 }
 `, name, network, distance, networkInterface)
 }
