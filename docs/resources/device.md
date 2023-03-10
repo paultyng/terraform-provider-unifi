@@ -89,7 +89,7 @@ Optional:
 
 - `aggregate_num_ports` (Number) Number of ports in the aggregate.
 - `name` (String) Human-readable name of the port.
-- `op_mode` (String) Operating mode of the port, valid values are `switch`, `mirror`, and `aggregate`.
+- `op_mode` (String) Operating mode of the port, valid values are `switch`, `mirror`, and `aggregate`. Defaults to `switch`.
 - `port_profile_id` (String) ID of the Port Profile used on this port.
 
 
