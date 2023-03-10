@@ -175,13 +175,13 @@ func resourceWLAN() *schema.Resource {
 				Default:     false,
 			},
 			"proxy_arp": {
-				Description: "Proxy ARP.",
+				Description: "Reduces airtime usage by allowing APs to \"proxy\" common broadcast frames as unicast.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 			},
 			"bss_transition": {
-				Description: "BSS transition.",
+				Description: "Improves client transitions between APs when they have a weak signal.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
@@ -193,7 +193,7 @@ func resourceWLAN() *schema.Resource {
 				Default:     false,
 			},
 			"fast_roaming_enabled": {
-				Description: "Fast roaming.",
+				Description: "Enables 802.11r fast roaming.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,

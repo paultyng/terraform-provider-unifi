@@ -62,8 +62,8 @@ resource "unifi_wlan" "wifi" {
 ### Optional
 
 - `ap_group_ids` (Set of String) IDs of the AP groups to use for this network.
-- `bss_transition` (Boolean) BSS transition. Defaults to `false`.
-- `fast_roaming_enabled` (Boolean) Fast roaming. Defaults to `false`.
+- `bss_transition` (Boolean) Improves client transitions between APs when they have a weak signal. Defaults to `true`.
+- `fast_roaming_enabled` (Boolean) Enables 802.11r fast roaming. Defaults to `false`.
 - `hide_ssid` (Boolean) Indicates whether or not to hide the SSID from broadcast.
 - `is_guest` (Boolean) Indicates that this is a guest WLAN and should use guest behaviors.
 - `l2_isolation` (Boolean) Isolates stations on layer 2 (ethernet) level. Defaults to `false`.
@@ -77,7 +77,7 @@ resource "unifi_wlan" "wifi" {
 - `no2ghz_oui` (Boolean) Connect high performance clients to 5 GHz only. Defaults to `true`.
 - `passphrase` (String, Sensitive) The passphrase for the network, this is only required if `security` is not set to `open`.
 - `pmf_mode` (String) Enable Protected Management Frames. This cannot be disabled if using WPA 3. Valid values are `required`, `optional` and `disabled`. Defaults to `disabled`.
-- `proxy_arp` (Boolean) Proxy ARP. Defaults to `false`.
+- `proxy_arp` (Boolean) Reduces airtime usage by allowing APs to "proxy" common broadcast frames as unicast. Defaults to `false`.
 - `radius_profile_id` (String) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
 - `schedule` (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
 - `site` (String) The name of the site to associate the wlan with.
