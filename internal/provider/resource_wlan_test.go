@@ -612,6 +612,8 @@ resource "unifi_wlan" "test" {
 
 func testAccWLANConfig_proxy_arp(name string, subnet *net.IPNet, vlan int, proxyArp bool) string {
 	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
 data "unifi_user_group" "default" {}
 
 resource "unifi_network" "test" {
@@ -625,6 +627,7 @@ resource "unifi_wlan" "test" {
 	name          = "%[1]s"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
+  ap_group_ids  = [data.unifi_ap_group.default.id]
   user_group_id = data.unifi_user_group.default.id
 	security      = "wpapsk"
 	proxy_arp     = %[4]t
@@ -634,6 +637,8 @@ resource "unifi_wlan" "test" {
 
 func testAccWLANConfig_bss_transition(name string, subnet *net.IPNet, vlan int, bssTransition bool) string {
 	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
 data "unifi_user_group" "default" {}
 
 resource "unifi_network" "test" {
@@ -647,6 +652,7 @@ resource "unifi_wlan" "test" {
 	name           = "%[1]s"
 	network_id     = unifi_network.test.id
 	passphrase     = "12345678"
+  ap_group_ids   = [data.unifi_ap_group.default.id]
   user_group_id  = data.unifi_user_group.default.id
 	security       = "wpapsk"
 	bss_transition = %[4]t
@@ -681,6 +687,8 @@ resource "unifi_wlan" "test" {
 
 func testAccWLANConfig_fast_roaming_enabled(name string, subnet *net.IPNet, vlan int, fastRoamingEnabled bool) string {
 	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
 data "unifi_user_group" "default" {}
 
 resource "unifi_network" "test" {
@@ -694,6 +702,7 @@ resource "unifi_wlan" "test" {
 	name                 = "%[1]s"
 	network_id           = unifi_network.test.id
 	passphrase           = "12345678"
+  ap_group_ids         = [data.unifi_ap_group.default.id]
   user_group_id        = data.unifi_user_group.default.id
 	security             = "wpapsk"
 	fast_roaming_enabled = %[4]t
