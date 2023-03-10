@@ -62,11 +62,11 @@ resource "unifi_wlan" "wifi" {
 ### Optional
 
 - `ap_group_ids` (Set of String) IDs of the AP groups to use for this network.
-- `bss_transition` (Boolean) Enable BSS Transition Defaults to `false`.
-- `fast_roaming_enabled` (Boolean) Enable Fast Roaming Defaults to `false`.
+- `bss_transition` (Boolean) BSS transition. Defaults to `false`.
+- `fast_roaming_enabled` (Boolean) Fast roaming. Defaults to `false`.
 - `hide_ssid` (Boolean) Indicates whether or not to hide the SSID from broadcast.
 - `is_guest` (Boolean) Indicates that this is a guest WLAN and should use guest behaviors.
-- `l2_isolation` (Boolean) Isolates stations on layer 2 (ethernet) level Defaults to `false`.
+- `l2_isolation` (Boolean) Isolates stations on layer 2 (ethernet) level. Defaults to `false`.
 - `mac_filter_enabled` (Boolean) Indicates whether or not the MAC filter is turned of for the network.
 - `mac_filter_list` (Set of String) List of MAC addresses to filter (only valid if `mac_filter_enabled` is `true`).
 - `mac_filter_policy` (String) MAC address filter policy (only valid if `mac_filter_enabled` is `true`). Defaults to `deny`.
@@ -74,14 +74,14 @@ resource "unifi_wlan" "wifi" {
 - `minimum_data_rate_5g_kbps` (Number) Set minimum data rate control for 5G devices, in Kbps. Use `0` to disable minimum data rates. Valid values are: `6000`, `9000`, `12000`, `18000`, `24000`, `36000`, `48000`,  and `54000`.
 - `multicast_enhance` (Boolean) Indicates whether or not Multicast Enhance is turned of for the network.
 - `network_id` (String) ID of the network for this SSID
-- `no2ghz_oui` (Boolean) Connect high performance clients to 5 GHz only Defaults to `true`.
+- `no2ghz_oui` (Boolean) Connect high performance clients to 5 GHz only. Defaults to `true`.
 - `passphrase` (String, Sensitive) The passphrase for the network, this is only required if `security` is not set to `open`.
 - `pmf_mode` (String) Enable Protected Management Frames. This cannot be disabled if using WPA 3. Valid values are `required`, `optional` and `disabled`. Defaults to `disabled`.
-- `proxy_arp` (Boolean) Enable Proxy ARP Defaults to `false`.
+- `proxy_arp` (Boolean) Proxy ARP. Defaults to `false`.
 - `radius_profile_id` (String) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
 - `schedule` (Block List) Start and stop schedules for the WLAN (see [below for nested schema](#nestedblock--schedule))
 - `site` (String) The name of the site to associate the wlan with.
-- `uapsd` (Boolean) Enable Unscheduled Automatic Power Save Delivery Defaults to `false`.
+- `uapsd` (Boolean) Enable Unscheduled Automatic Power Save Delivery. Defaults to `false`.
 - `wlan_band` (String) Radio band your WiFi network will use. Defaults to `both`.
 - `wpa3_support` (Boolean) Enable WPA 3 support (security must be `wpapsk` and PMF must be turned on).
 - `wpa3_transition` (Boolean) Enable WPA 3 and WPA 2 support (security must be `wpapsk` and `wpa3_support` must be true).
