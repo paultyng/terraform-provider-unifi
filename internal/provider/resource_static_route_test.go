@@ -39,6 +39,35 @@ func TestAccStaticRoute_nextHop(t *testing.T) {
 	})
 }
 
+func TestAccStaticRoute_nextHop_ipv6(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	network := &net.IPNet{
+		IP:   net.IP{0xfd, 0x6a, 0x37, 0xbe, 0xe3, 0x62, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1},
+		Mask: net.IPMask{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+	}
+	distance := 1
+	nextHop := net.IP{0xfd, 0x6a, 0x37, 0xbe, 0xe3, 0x62, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStaticRouteConfig_nextHop(name, network, distance, &nextHop),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_static_route.test", "type", "nexthop-route"),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "network", network.String()),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "name", name),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "distance", strconv.Itoa(distance)),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "next_hop", nextHop.String()),
+				),
+			},
+			importStep("unifi_static_route.test"),
+		},
+	})
+}
+
 func TestAccStaticRoute_blackhole(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
 	network := &net.IPNet{
@@ -66,11 +95,67 @@ func TestAccStaticRoute_blackhole(t *testing.T) {
 	})
 }
 
+func TestAccStaticRoute_blackhole_ipv6(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	network := &net.IPNet{
+		IP:   net.IP{0xfd, 0x6a, 0x37, 0xbe, 0xe3, 0x62, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1},
+		Mask: net.IPMask{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+	}
+	distance := 1
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStaticRouteConfig_blackhole(name, network, distance),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_static_route.test", "type", "blackhole"),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "network", network.String()),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "name", name),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "distance", strconv.Itoa(distance)),
+				),
+			},
+			importStep("unifi_static_route.test"),
+		},
+	})
+}
+
 func TestAccStaticRoute_interface(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
 	network := &net.IPNet{
 		IP:   net.IPv4(172, 19, 0, 0).To4(),
 		Mask: net.IPv4Mask(255, 255, 0, 0),
+	}
+	distance := 1
+	networkInterface := "WAN2"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStaticRouteConfig_interface(name, network, distance, networkInterface),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_static_route.test", "type", "interface-route"),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "network", network.String()),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "name", name),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "distance", strconv.Itoa(distance)),
+					resource.TestCheckResourceAttr("unifi_static_route.test", "interface", networkInterface),
+				),
+			},
+			importStep("unifi_static_route.test"),
+		},
+	})
+}
+
+func TestAccStaticRoute_interface_ipv6(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	network := &net.IPNet{
+		IP:   net.IP{0xfd, 0x6a, 0x37, 0xbe, 0xe3, 0x62, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1},
+		Mask: net.IPMask{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	}
 	distance := 1
 	networkInterface := "WAN2"
