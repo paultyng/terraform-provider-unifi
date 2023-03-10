@@ -163,19 +163,37 @@ func resourceWLAN() *schema.Resource {
 				},
 			},
 			"no2ghz_oui": {
-				Description: "Connect high performance clients to 5 GHz only",
+				Description: "Connect high performance clients to 5 GHz only.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
 			},
 			"l2_isolation": {
-				Description: "Isolates stations on layer 2 (ethernet) level",
+				Description: "Isolates stations on layer 2 (ethernet) level.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 			},
+			"proxy_arp": {
+				Description: "Reduces airtime usage by allowing APs to \"proxy\" common broadcast frames as unicast.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+			"bss_transition": {
+				Description: "Improves client transitions between APs when they have a weak signal.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
 			"uapsd": {
-				Description: "Enable Unscheduled Automatic Power Save Delivery",
+				Description: "Enable Unscheduled Automatic Power Save Delivery.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+			"fast_roaming_enabled": {
+				Description: "Enables 802.11r fast roaming.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
@@ -313,11 +331,14 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		Enabled:            true,
 		NameCombineEnabled: true,
 
-		GroupRekey:   3600,
-		DTIMMode:     "default",
-		No2GhzOui:    d.Get("no2ghz_oui").(bool),
-		L2Isolation:  d.Get("l2_isolation").(bool),
-		UapsdEnabled: d.Get("uapsd").(bool),
+		GroupRekey:         3600,
+		DTIMMode:           "default",
+		No2GhzOui:          d.Get("no2ghz_oui").(bool),
+		L2Isolation:        d.Get("l2_isolation").(bool),
+		ProxyArp:           d.Get("proxy_arp").(bool),
+		BssTransition:      d.Get("bss_transition").(bool),
+		UapsdEnabled:       d.Get("uapsd").(bool),
+		FastRoamingEnabled: d.Get("fast_roaming_enabled").(bool),
 
 		MinrateSettingPreference: minrateSettingPreference,
 
@@ -396,7 +417,10 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("wlan_band", resp.WLANBand)
 	d.Set("no2ghz_oui", resp.No2GhzOui)
 	d.Set("l2_isolation", resp.L2Isolation)
+	d.Set("proxy_arp", resp.ProxyArp)
+	d.Set("bss_transition", resp.BssTransition)
 	d.Set("uapsd", resp.UapsdEnabled)
+	d.Set("fast_roaming_enabled", resp.FastRoamingEnabled)
 	d.Set("ap_group_ids", apGroupIDs)
 	d.Set("network_id", resp.NetworkID)
 	d.Set("pmf_mode", resp.PMFMode)

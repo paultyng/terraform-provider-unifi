@@ -5,6 +5,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -12,9 +13,7 @@ import (
 func TestAccWLAN_wpapsk(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -36,9 +35,7 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 func TestAccWLAN_open(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -74,9 +71,7 @@ func TestAccWLAN_open(t *testing.T) {
 func TestAccWLAN_change_security_and_pmf(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -126,9 +121,7 @@ func TestAccWLAN_change_security_and_pmf(t *testing.T) {
 func TestAccWLAN_schedule(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -159,9 +152,7 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -183,9 +174,7 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 func TestAccWLAN_wlan_band(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -207,9 +196,7 @@ func TestAccWLAN_wlan_band(t *testing.T) {
 func TestAccWLAN_no2ghz_oui(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -228,12 +215,58 @@ func TestAccWLAN_no2ghz_oui(t *testing.T) {
 	})
 }
 
+func TestAccWLAN_proxy_arp(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	subnet, vlan := getTestVLAN(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_proxy_arp(name, subnet, vlan, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_wlan.test", "proxy_arp", "true"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
+func TestAccWLAN_bss_transition(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	subnet, vlan := getTestVLAN(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_bss_transition(name, subnet, vlan, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_wlan.test", "bss_transition", "false"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
 func TestAccWLAN_uapsd(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -245,6 +278,30 @@ func TestAccWLAN_uapsd(t *testing.T) {
 				Config: testAccWLANConfig_uapsd(subnet, vlan),
 				Check:  resource.ComposeTestCheckFunc(
 				// testCheckNetworkExists(t, "name"),
+				),
+			},
+			importStep("unifi_wlan.test"),
+		},
+	})
+}
+
+func TestAccWLAN_fast_roaming_enabled(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	subnet, vlan := getTestVLAN(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		CheckDestroy: func(*terraform.State) error {
+			// TODO: actual CheckDestroy
+
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWLANConfig_fast_roaming_enabled(name, subnet, vlan, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_wlan.test", "fast_roaming_enabled", "true"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -294,9 +351,7 @@ func TestAccWLAN_wpa3(t *testing.T) {
 func TestAccWLAN_minimum_data_rate(t *testing.T) {
 	subnet, vlan := getTestVLAN(t)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			preCheck(t)
-		},
+		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		CheckDestroy: func(*terraform.State) error {
 			// TODO: actual CheckDestroy
@@ -555,6 +610,56 @@ resource "unifi_wlan" "test" {
 `, subnet, vlan)
 }
 
+func testAccWLANConfig_proxy_arp(name string, subnet *net.IPNet, vlan int, proxyArp bool) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
+data "unifi_user_group" "default" {}
+
+resource "unifi_network" "test" {
+  name    = "%[1]s"
+	purpose = "corporate"
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
+}
+
+resource "unifi_wlan" "test" {
+	name          = "%[1]s"
+	network_id    = unifi_network.test.id
+	passphrase    = "12345678"
+  ap_group_ids  = [data.unifi_ap_group.default.id]
+  user_group_id = data.unifi_user_group.default.id
+	security      = "wpapsk"
+	proxy_arp     = %[4]t
+}
+`, name, subnet, vlan, proxyArp)
+}
+
+func testAccWLANConfig_bss_transition(name string, subnet *net.IPNet, vlan int, bssTransition bool) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
+data "unifi_user_group" "default" {}
+
+resource "unifi_network" "test" {
+	name    = "%[1]s"
+	purpose = "corporate"
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
+}
+
+resource "unifi_wlan" "test" {
+	name           = "%[1]s"
+	network_id     = unifi_network.test.id
+	passphrase     = "12345678"
+  ap_group_ids   = [data.unifi_ap_group.default.id]
+  user_group_id  = data.unifi_user_group.default.id
+	security       = "wpapsk"
+	bss_transition = %[4]t
+}
+`, name, subnet, vlan, bssTransition)
+}
+
 func testAccWLANConfig_uapsd(subnet *net.IPNet, vlan int) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {}
@@ -578,6 +683,31 @@ resource "unifi_wlan" "test" {
 	uapsd         = true
 }
 `, subnet, vlan)
+}
+
+func testAccWLANConfig_fast_roaming_enabled(name string, subnet *net.IPNet, vlan int, fastRoamingEnabled bool) string {
+	return fmt.Sprintf(`
+data "unifi_ap_group" "default" {}
+
+data "unifi_user_group" "default" {}
+
+resource "unifi_network" "test" {
+	name    = "%[1]s"
+	purpose = "corporate"
+	subnet  = "%[2]s"
+	vlan_id = %[3]d
+}
+
+resource "unifi_wlan" "test" {
+	name                 = "%[1]s"
+	network_id           = unifi_network.test.id
+	passphrase           = "12345678"
+  ap_group_ids         = [data.unifi_ap_group.default.id]
+  user_group_id        = data.unifi_user_group.default.id
+	security             = "wpapsk"
+	fast_roaming_enabled = %[4]t
+}
+`, name, subnet, vlan, fastRoamingEnabled)
 }
 
 func testAccWLANConfig_wpa3(subnet *net.IPNet, vlan int, wpa3Transition bool, pmf string) string {
