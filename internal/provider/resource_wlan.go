@@ -184,7 +184,7 @@ func resourceWLAN() *schema.Resource {
 				Description: "BSS transition.",
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				Default:     true,
 			},
 			"uapsd": {
 				Description: "Enable Unscheduled Automatic Power Save Delivery.",
