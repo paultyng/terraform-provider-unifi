@@ -40,9 +40,6 @@ func cidrZeroBased(cidr string) string {
 	if err != nil {
 		return ""
 	}
-	if len(cidrNet.Mask) == net.IPv6len {
-		return ""
-	}
 
 	return cidrNet.String()
 }
@@ -50,9 +47,6 @@ func cidrZeroBased(cidr string) string {
 func cidrOneBased(cidr string) string {
 	_, cidrNet, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return ""
-	}
-	if len(cidrNet.Mask) == net.IPv6len {
 		return ""
 	}
 

@@ -64,7 +64,7 @@ func resourceStaticRoute() *schema.Resource {
 				Description:  "The next hop of the static route (only valid for `nexthop-route` type).",
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.IsIPv4Address,
+				ValidateFunc: validation.IsIPAddress,
 			},
 			"interface": {
 				Description: "The interface of the static route (only valid for `interface-route` type). This can be `WAN1`, `WAN2`, or a network ID.",
