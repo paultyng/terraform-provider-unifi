@@ -17,7 +17,6 @@ import (
 var (
 	deviceInit sync.Once
 	devicePool mapset.Set[*unifi.Device] = mapset.NewSet[*unifi.Device]()
-	gateway    unifi.Device
 )
 
 func allocateDevice(t *testing.T) (*unifi.Device, func()) {
@@ -36,10 +35,6 @@ func allocateDevice(t *testing.T) (*unifi.Device, func()) {
 			}
 
 			for _, device := range devices {
-				if device.Type == "ugw" {
-					gateway = device
-				}
-
 				if device.Type != "usw" {
 					continue
 				}

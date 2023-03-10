@@ -9,7 +9,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -109,15 +108,6 @@ func runAcceptanceTests(m *testing.M) int {
 	if err = testClient.Login(ctx, user, password); err != nil {
 		panic(err)
 	}
-
-	// Adopt gateway
-	_, unallocate := allocateDevice(nil)
-	unallocate()
-
-	if err = testClient.AdoptDevice(ctx, "default", gateway.MAC); err != nil {
-		panic(err)
-	}
-	time.Sleep(30 * time.Second)
 
 	return m.Run()
 }
