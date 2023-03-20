@@ -13,10 +13,9 @@ jobs:
       - name: Unshallow
         run: git fetch --prune --unshallow
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
-          cache: true
           check-latest: true
       - name: Import GPG key
         id: import_gpg
