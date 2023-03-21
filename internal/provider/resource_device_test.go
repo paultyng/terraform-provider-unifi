@@ -9,6 +9,7 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
@@ -24,14 +25,14 @@ func allocateDevice(t *testing.T) (*unifi.Device, func()) {
 
 	deviceInit.Do(func() {
 		// The demo devices don't appear instantly when the controller starts.
-		err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 			devices, err := testClient.ListDevice(ctx, "default")
 			if err != nil {
-				return resource.NonRetryableError(fmt.Errorf("Error listing devices: %w", err))
+				return retry.NonRetryableError(fmt.Errorf("Error listing devices: %w", err))
 			}
 
 			if len(devices) == 0 {
-				return resource.RetryableError(fmt.Errorf("No devices found"))
+				return retry.RetryableError(fmt.Errorf("No devices found"))
 			}
 
 			for _, device := range devices {
@@ -56,7 +57,7 @@ func allocateDevice(t *testing.T) (*unifi.Device, func()) {
 
 				d := device
 				if ok := devicePool.Add(&d); !ok {
-					return resource.NonRetryableError(fmt.Errorf("Failed to add device to pool"))
+					return retry.NonRetryableError(fmt.Errorf("Failed to add device to pool"))
 				}
 			}
 
@@ -70,12 +71,12 @@ func allocateDevice(t *testing.T) (*unifi.Device, func()) {
 
 	var device *unifi.Device
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var ok bool
 		device, ok = devicePool.Pop()
 
 		if device == nil || !ok {
-			return resource.RetryableError(fmt.Errorf("Unable to allocate test device"))
+			return retry.RetryableError(fmt.Errorf("Unable to allocate test device"))
 		}
 
 		return nil
