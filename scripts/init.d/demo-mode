@@ -8,5 +8,5 @@ write_config is_simulation true
 
 # Increase the number of demo devices to allow more concurrent tests to be executed simultaneously.
 write_config demo.num_uap 0
-write_config demo.num_ugw 0
+write_config demo.num_ugw 1
 write_config demo.num_usw 20
