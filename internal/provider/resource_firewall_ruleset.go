@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -19,7 +20,9 @@ func resourceFirewallRuleset() *schema.Resource {
 		ReadContext:   resourceFirewallRulesetRead,
 		UpdateContext: reorderFirewallRules,
 		DeleteContext: resourceFirewallRulesetDelete,
-		// Import is not necessary since this is a virtual resource only.
+		Importer: &schema.ResourceImporter{
+			StateContext: importRuleset,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -64,20 +67,31 @@ func resourceFirewallRuleset() *schema.Resource {
 
 func resourceFirewallRulesetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
+	var site, ruleset string
+	var err error
 
-	site := d.Get("site").(string)
-	if site == "" {
-		site = c.site
+	id := d.Id()
+	if id != "" {
+		site, ruleset, err = parseRulesetId(id)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		site = d.Get("site").(string)
+		if site == "" {
+			site = c.site
+		}
+
+		ruleset = d.Get("ruleset").(string)
 	}
 
-	ruleset := d.Get("ruleset").(string)
 	currentRuleset, err := getRuleset(ctx, c, site, ruleset)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	// Only one ruleset resource can be created per site and ruleset.
-	id := site + "_" + ruleset
+	id = site + ":" + strings.ToUpper(ruleset)
 	d.SetId(id)
 	d.Set("site", site)
 	d.Set("ruleset", ruleset)
@@ -232,4 +246,24 @@ func (r *FirewallRuleset) getIds(pre, post bool) []string {
 		}
 	}
 	return ids
+}
+
+func importRuleset(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	site, ruleset, err := parseRulesetId(d.Id())
+	if err != nil {
+		return nil, err
+	}
+	ruleset = strings.ToUpper(ruleset)
+	d.Set("site", site)
+	d.Set("ruleset", ruleset)
+	d.SetId(site + ":" + ruleset)
+	return []*schema.ResourceData{d}, nil
+}
+
+func parseRulesetId(id string) (string, string, error) {
+	parts := strings.SplitN(id, ":", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", fmt.Errorf("unexpected format of ID (%s), expected attribute1:attribute2", id)
+	}
+	return parts[0], parts[1], nil
 }

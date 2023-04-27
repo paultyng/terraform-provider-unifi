@@ -26,6 +26,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{1, 2, 3}, []int{4, 5, 6}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfig(name, [3]int{3, 1, 2}, [3]int{6, 4, 5}),
 				Check: resource.ComposeTestCheckFunc(
@@ -33,6 +34,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{3, 1, 2}, []int{6, 4, 5}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfig(name, [3]int{1, 3, 2}, [3]int{4, 6, 5}),
 				Check: resource.ComposeTestCheckFunc(
@@ -40,6 +42,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{1, 3, 2}, []int{4, 6, 5}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfig(name, [3]int{1, 3, 5}, [3]int{4, 6, 2}),
 				Check: resource.ComposeTestCheckFunc(
@@ -47,6 +50,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{1, 3, 5}, []int{4, 6, 2}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfig(name, [3]int{6, 3, 5}, [3]int{4, 1, 2}),
 				Check: resource.ComposeTestCheckFunc(
@@ -54,6 +58,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{6, 3, 5}, []int{4, 1, 2}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfig(name, [3]int{1, 2, 3}, [3]int{4, 5, 6}),
 				Check: resource.ComposeTestCheckFunc(
@@ -61,6 +66,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{1, 2, 3}, []int{4, 5, 6}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfigRemove(name, [2]int{1, 2}, [2]int{4, 5}),
 				Check: resource.ComposeTestCheckFunc(
@@ -68,6 +74,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{1, 2}, []int{4, 5}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfig(name, [3]int{1, 2, 3}, [3]int{4, 5, 6}),
 				Check: resource.ComposeTestCheckFunc(
@@ -75,6 +82,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{1, 2, 3}, []int{4, 5, 6}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfigRemove(name, [2]int{2, 1}, [2]int{5, 4}),
 				Check: resource.ComposeTestCheckFunc(
@@ -82,6 +90,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{2, 1}, []int{5, 4}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfig(name, [3]int{1, 2, 3}, [3]int{4, 5, 6}),
 				Check: resource.ComposeTestCheckFunc(
@@ -89,6 +98,7 @@ func TestAccFirewallRuleset_basic(t *testing.T) {
 					testAccCheckRulesOrder([]int{1, 2, 3}, []int{4, 5, 6}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.lan_in"),
 			{
 				Config: testAccFirewallRulesetConfigRemove(name, [2]int{4, 1}, [2]int{2, 5}),
 				Check: resource.ComposeTestCheckFunc(
@@ -114,6 +124,7 @@ func TestAccFirewallRuleset_unrelated_unmanaged_rules(t *testing.T) {
 					testAccCheckRulesOrder([]int{1, 2, 3}, []int{4, 5, 6}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.guest_in"),
 			{
 				Config: testAccFirewallRulesetConfigUnrelatedUnmanaged(name, [3]int{4, 1, 6}, [3]int{3, 5, 2}),
 				Check: resource.ComposeTestCheckFunc(
@@ -121,6 +132,7 @@ func TestAccFirewallRuleset_unrelated_unmanaged_rules(t *testing.T) {
 					testAccCheckRulesOrder([]int{4, 1, 6}, []int{3, 5, 2}, &rulesMap),
 				),
 			},
+			importStep("unifi_firewall_ruleset.guest_in"),
 		},
 	})
 }
