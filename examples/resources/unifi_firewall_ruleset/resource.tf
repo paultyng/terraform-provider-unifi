@@ -7,8 +7,8 @@ variable "src_ip_address" {
 }
 
 resource "unifi_firewall_rule" "allow_from" {
-  name    = "drop all"
-  action  = "drop"
+  name    = "allow from single host"
+  action  = "accept"
   ruleset = "LAN_IN"
 
   protocol = "all"

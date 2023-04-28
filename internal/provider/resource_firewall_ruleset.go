@@ -14,7 +14,7 @@ import (
 
 func resourceFirewallRuleset() *schema.Resource {
 	return &schema.Resource{
-		Description: "`unifi_firewall_ruleset` manages the order of individual firewall rules in a ruleset. You must provide all rule IDs present in the set for this to succeed. There can only be one ruleset resource per site and ruleset. Since this resource will be managed on-the-fly, you do not need to import it.",
+		Description: "`unifi_firewall_ruleset` manages the order of individual firewall rules in a ruleset. You must provide all rule IDs present in the set for this to succeed. There can only be one ruleset resource per site and ruleset combination. Since this resource will be managed on-the-fly, importing it is optional.",
 
 		CreateContext: reorderFirewallRules,
 		ReadContext:   resourceFirewallRulesetRead,
@@ -26,12 +26,12 @@ func resourceFirewallRuleset() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"id": {
-				Description: "The ID of the firewall ruleset.",
+				Description: "The ID of the firewall ruleset. It is a concatenation of `<name>:<ruleset>`.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"site": {
-				Description: "The name of the site to associate the firewall rule with.",
+				Description: "The name of the site this ruleset is associated with.",
 				Type:        schema.TypeString,
 				Computed:    true,
 				Optional:    true,
