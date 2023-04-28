@@ -253,10 +253,9 @@ func importRuleset(ctx context.Context, d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return nil, err
 	}
-	ruleset = strings.ToUpper(ruleset)
 	d.Set("site", site)
 	d.Set("ruleset", ruleset)
-	d.SetId(site + ":" + ruleset)
+	d.SetId(site + ":" + strings.ToUpper(ruleset))
 	return []*schema.ResourceData{d}, nil
 }
 
@@ -265,5 +264,6 @@ func parseRulesetId(id string) (string, string, error) {
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return "", "", fmt.Errorf("unexpected format of ID (%s), expected attribute1:attribute2", id)
 	}
-	return parts[0], parts[1], nil
+	// rulesets in IDs have an uppercased v6
+	return parts[0], strings.Replace(strings.ToUpper(parts[1]), "V", "v", 1), nil
 }
