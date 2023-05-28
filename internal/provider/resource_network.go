@@ -120,6 +120,19 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 				Default:     86400,
 			},
+			"dhcp_ntp": {
+				Description: "Specified the address for the NTP server to be returned from the DHCP server.",
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    2,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					ValidateFunc: validation.All(
+						validation.IsIPv4Address,
+						validation.StringLenBetween(1, 50),
+					),
+				},
+			},
 			"dhcp_dns": {
 				Description: "Specifies the IPv4 addresses for the DNS server to be returned from the DHCP " +
 					"server. Leave blank to disable this feature.",
@@ -405,6 +418,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert dhcp_dns to string slice: %w", err)
 	}
+	dhcpNtp, err := listToStringSlice(d.Get("dhcp_ntp").([]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert dhcp_ntp to string slice: %w", err)
+	}
 	dhcpV6DNS, err := listToStringSlice(d.Get("dhcp_v6_dns").([]interface{}))
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert dhcp_v6_dns to string slice: %w", err)
@@ -438,6 +455,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		DHCPDDNS2: append(dhcpDNS, "", "")[1],
 		DHCPDDNS3: append(dhcpDNS, "", "", "")[2],
 		DHCPDDNS4: append(dhcpDNS, "", "", "", "")[3],
+
+		DHCPDNtpEnabled: len(dhcpNtp) > 0,
+		DHCPDNtp1:       append(dhcpNtp, "")[0],
+		DHCPDNtp2:       append(dhcpNtp, "", "")[1],
 
 		VLANEnabled: vlan != 0 && vlan != 1,
 
@@ -533,6 +554,19 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 		dhcpLease = 86400
 	}
 
+	dhcpNTP := []string{}
+	if resp.DHCPDNtpEnabled {
+		for _, ntp := range []string{
+			resp.DHCPDNtp1,
+			resp.DHCPDNtp2,
+		} {
+			if ntp == "" {
+				continue
+			}
+			dhcpNTP = append(dhcpNTP, ntp)
+		}
+	}
+
 	dhcpDNS := []string{}
 	if resp.DHCPDDNSEnabled {
 		for _, dns := range []string{
@@ -568,6 +602,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("subnet", cidrZeroBased(resp.IPSubnet))
 	d.Set("network_group", resp.NetworkGroup)
 
+	d.Set("dhcp_ntp", dhcpNTP)
 	d.Set("dhcp_dns", dhcpDNS)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
 	d.Set("dhcp_lease", dhcpLease)
