@@ -23,8 +23,12 @@ jobs:
           - "v7.1"
           - "v7.2"
           - "v7.3"
+          - "v7.4"
           - "v7"
           - "latest"
+        include:
+          - unifi_version: "v7.4"
+            unifi_download_url: "https://dl.ui.com/unifi/7.4.156/unifi_sysvinit_all.deb"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
@@ -34,4 +38,4 @@ jobs:
 
       - name: TF acceptance tests
         timeout-minutes: 20
-        run: make testacc UNIFI_STDOUT=true UNIFI_VERSION=${{ matrix.unifi_version }}
+        run: make testacc UNIFI_STDOUT=true UNIFI_VERSION=${{ matrix.unifi_download_url && 'beta' || matrix.unifi_version }} UNIFI_DOWNLOAD_URL=${{ matrix.unifi_download_url }}

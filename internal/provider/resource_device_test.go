@@ -253,6 +253,7 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 		PreCheck: func() {
 			preCheck(t)
 			preCheckDeviceExists(t, site, device.MAC)
+			preCheckVersionConstraint(t, "< 7.4")
 		},
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testAccCheckDeviceDestroy,
