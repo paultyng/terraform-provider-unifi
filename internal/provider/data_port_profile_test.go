@@ -9,7 +9,10 @@ import (
 
 func TestAccDataPortProfile_default(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { preCheck(t) },
+		PreCheck: func() {
+			preCheck(t)
+			preCheckVersionConstraint(t, "< 7.4")
+		},
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
@@ -23,7 +26,10 @@ func TestAccDataPortProfile_default(t *testing.T) {
 
 func TestAccDataPortProfile_multiple_providers(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
+		PreCheck: func() {
+			preCheck(t)
+			preCheckVersionConstraint(t, "< 7.4")
+		},
 		ProviderFactories: map[string]func() (*schema.Provider, error){
 			"unifi2": func() (*schema.Provider, error) {
 				return New("acctest")(), nil
