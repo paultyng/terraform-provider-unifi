@@ -4,8 +4,8 @@ services:
     image: "jacobalberty/unifi:${UNIFI_VERSION:-latest}"
     init: true
     restart: "always"
-    user: "unifi"
     environment:
+      PKGURL: "${UNIFI_DOWNLOAD_URL:-}"
       UNIFI_STDOUT: "true"
     ports:
       - "${UNIFI_HTTP_PORT:-8080}:8080/tcp"
