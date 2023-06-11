@@ -26,9 +26,6 @@ jobs:
           - "v7.4"
           - "v7"
           - "latest"
-        include:
-          - unifi_version: "v7.4"
-            unifi_download_url: "https://dl.ui.com/unifi/7.4.156/unifi_sysvinit_all.deb"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
