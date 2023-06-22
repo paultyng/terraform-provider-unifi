@@ -1,6 +1,6 @@
 TEST       ?= ./...
 TESTARGS   ?=
-TEST_COUNT ?= 1
+TEST_COUNT ?= 3
 
 .PHONY: default
 default: build

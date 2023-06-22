@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+  "github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/paultyng/go-unifi/unifi"
 )
 
@@ -26,8 +27,10 @@ func TestAccDataUser_default(t *testing.T) {
 				t.Fatal(err)
 			}
 		},
-		//PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
+    CheckDestroy: func(*terraform.State) error {
+      return testClient.DeleteUserByMAC(context.Background(), "default", mac)
+    },
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataUserConfig_default(mac),

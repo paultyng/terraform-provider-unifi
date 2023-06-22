@@ -5,6 +5,8 @@ services:
     init: true
     restart: "always"
     environment:
+      JVM_MAX_HEAP_SIZE: "2048M"
+      LOTSOFDEVICES: "true"
       PKGURL: "${UNIFI_DOWNLOAD_URL:-}"
       UNIFI_STDOUT: "true"
     ports:
