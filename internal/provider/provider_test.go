@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 	os.Exit(runAcceptanceTests(m))
 }
 
-type LogConsumer struct {}
+type LogConsumer struct{}
 
 func (lc *LogConsumer) Accept(l testcontainers.Log) {
 	os.Stdout.Write(l.Content)
