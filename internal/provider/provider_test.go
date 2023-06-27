@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math"
@@ -36,6 +35,12 @@ func TestMain(m *testing.M) {
 	os.Exit(runAcceptanceTests(m))
 }
 
+type LogConsumer struct {}
+
+func (lc *LogConsumer) Accept(l testcontainers.Log) {
+	os.Stdout.Write(l.Content)
+}
+
 func runAcceptanceTests(m *testing.M) int {
 	dc, err := compose.NewDockerCompose("../../docker-compose.yaml")
 	if err != nil {
@@ -60,23 +65,15 @@ func runAcceptanceTests(m *testing.M) int {
 		panic(err)
 	}
 
-	// Dump the container logs on exit.
-	//
-	// TODO: Use https://pkg.go.dev/github.com/testcontainers/testcontainers-go#LogConsumer instead.
-	defer func() {
-		if os.Getenv("UNIFI_STDOUT") == "" {
-			return
-		}
+	if os.Getenv("UNIFI_STDOUT") != "" {
+		lc := LogConsumer{}
+		container.FollowOutput(&lc)
 
-		stream, err := container.Logs(ctx)
+		err = container.StartLogProducer(ctx)
 		if err != nil {
 			panic(err)
 		}
-
-		buffer := new(bytes.Buffer)
-		buffer.ReadFrom(stream)
-		testcontainers.Logger.Printf("%s", buffer)
-	}()
+	}
 
 	endpoint, err := container.PortEndpoint(ctx, "8443/tcp", "https")
 	if err != nil {
