@@ -5,10 +5,22 @@ services:
     init: true
     restart: "always"
     environment:
-      JVM_MAX_HEAP_SIZE: "2048M"
-      LOTSOFDEVICES: "true"
+      #JVM_MAX_HEAP_SIZE: "2048M"
+      #LOTSOFDEVICES: "true"
       PKGURL: "${UNIFI_DOWNLOAD_URL:-}"
       UNIFI_STDOUT: "true"
+
+      JVM_EXTRA_OPTS: "-XX:+UseParallelGC -XX:GCTimeRatio=24 -XX:YoungGenerationSizeIncrement=15 -XX:TenuredGenerationSizeIncrement=10 -XX:AdaptiveSizeDecrementScaleFactor=2 -XX:-TieredCompilation -XX:+ExitOnOutOfMemoryError -XX:+CrashOnOutOfMemoryError"
+      JVM_INIT_HEAP_SIZE: "128M"
+      JVM_MAX_HEAP_SIZE: "512M"
+      JVM_MAX_THREAD_STACK_SIZE: "1024K"
+
+      #-Dunifi.core.enabled=true -Dunifi.mongodb.service.enabled=true
+
+      #ExecStartPre=/usr/sbin/unifi-network-service-helper init
+      #ExecStartPre=+/usr/sbin/unifi-network-service-helper init-uos
+      #ExecStartPost=/usr/sbin/unifi-network-service-helper healthcheck
+      #ExecStopPost=+/usr/sbin/unifi-network-service-helper cleanup
     ports:
       - "${UNIFI_HTTP_PORT:-8080}:8080/tcp"
       - "${UNIFI_HTTPS_PORT:-8443}:8443/tcp"
