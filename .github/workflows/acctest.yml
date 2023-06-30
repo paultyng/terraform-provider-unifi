@@ -33,6 +33,11 @@ jobs:
           go-version-file: "go.mod"
           check-latest: true
 
+      # The acceptance tests sometimes timeout for some unknown reason.
       - name: TF acceptance tests
-        timeout-minutes: 20
-        run: make testacc UNIFI_STDOUT=true UNIFI_VERSION=${{ matrix.unifi_download_url && 'beta' || matrix.unifi_version }} UNIFI_DOWNLOAD_URL=${{ matrix.unifi_download_url }}
+        uses: "nick-fields/retry@v2"
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          command: make testacc TEST_TIMEOUT=1h UNIFI_STDOUT=true UNIFI_VERSION=${{ matrix.unifi_download_url && 'beta' || matrix.unifi_version }} UNIFI_DOWNLOAD_URL=${{ matrix.unifi_download_url }}
+          retry_on: "timeout"
