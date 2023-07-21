@@ -8,9 +8,6 @@ resource "unifi_port_profile" "poe" {
   forward = "customize"
 
   native_networkconf_id = var.native_network_id
-  tagged_networkconf_ids = [
-    var.some_vlan_network_id,
-  ]
 
   poe_mode = "auto"
 }
