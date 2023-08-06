@@ -98,6 +98,12 @@ func resourceDevice() *schema.Resource {
 								return false
 							},
 						},
+						"poe_mode": {
+							Description: "PoE mode of the port; valid values are `auto`, `pasv24`, `passthrough`, and `off`.",
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"auto", "pasv24", "passthrough", "off"}, false),
+						},
 						"aggregate_num_ports": {
 							Description:  "Number of ports in the aggregate.",
 							Type:         schema.TypeInt,
@@ -356,6 +362,7 @@ func toPortOverride(data map[string]interface{}) (unifi.DevicePortOverrides, err
 	name := data["name"].(string)
 	profileID := data["port_profile_id"].(string)
 	opMode := data["op_mode"].(string)
+	poeMode := data["poe_mode"].(string)
 	aggregateNumPorts := data["aggregate_num_ports"].(int)
 
 	return unifi.DevicePortOverrides{
@@ -363,6 +370,7 @@ func toPortOverride(data map[string]interface{}) (unifi.DevicePortOverrides, err
 		Name:              name,
 		PortProfileID:     profileID,
 		OpMode:            opMode,
+		PoeMode:           poeMode,
 		AggregateNumPorts: aggregateNumPorts,
 	}, nil
 }
@@ -373,6 +381,7 @@ func fromPortOverride(po unifi.DevicePortOverrides) (map[string]interface{}, err
 		"name":                po.Name,
 		"port_profile_id":     po.PortProfileID,
 		"op_mode":             po.OpMode,
+		"poe_mode":            po.PoeMode,
 		"aggregate_num_ports": po.AggregateNumPorts,
 	}, nil
 }
