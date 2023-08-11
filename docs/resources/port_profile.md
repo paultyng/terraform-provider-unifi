@@ -46,6 +46,7 @@ resource "unifi_port_profile" "poe_disabled" {
 - `dot1x_idle_timeout` (Number) The timeout, in seconds, to use when using the MAC Based 802.1X control. Can be between 0 and 65535 Defaults to `300`.
 - `egress_rate_limit_kbps` (Number) The egress rate limit, in kpbs, for the port profile. Can be between `64` and `9999999`.
 - `egress_rate_limit_kbps_enabled` (Boolean) Enable egress rate limiting for the port profile. Defaults to `false`.
+- `excluded_networkconf_ids` (Set of String) The IDs of networks to block traffic for this port profile.
 - `forward` (String) The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`. Defaults to `native`.
 - `full_duplex` (Boolean) Enable full duplex for the port profile. Defaults to `false`.
 - `isolation` (Boolean) Enable port isolation for the port profile. Defaults to `false`.
@@ -61,6 +62,7 @@ resource "unifi_port_profile" "poe_disabled" {
 - `priority_queue2_level` (Number) The priority queue 2 level for the port profile. Can be between 0 and 100.
 - `priority_queue3_level` (Number) The priority queue 3 level for the port profile. Can be between 0 and 100.
 - `priority_queue4_level` (Number) The priority queue 4 level for the port profile. Can be between 0 and 100.
+- `show_traffic_restriction_as_allowlist` (Boolean) Show the Traffic Restriction as allow list. This only affect to the UI, the list need to be configured on `excluded_networkconf_ids` as black list.
 - `site` (String) The name of the site to associate the port profile with.
 - `speed` (Number) The link speed to set for the port profile. Can be one of `10`, `100`, `1000`, `2500`, `5000`, `10000`, `20000`, `25000`, `40000`, `50000` or `100000`
 - `stormctrl_bcast_enabled` (Boolean) Enable broadcast Storm Control for the port profile. Defaults to `false`.
@@ -74,7 +76,6 @@ resource "unifi_port_profile" "poe_disabled" {
 - `stormctrl_ucast_level` (Number) The unknown unicast Storm Control level for the port profile. Can be between 0 and 100.
 - `stormctrl_ucast_rate` (Number) The unknown unicast Storm Control rate for the port profile. Can be between 0 and 14880000.
 - `stp_port_mode` (Boolean) Enable spanning tree protocol on the port profile. Defaults to `true`.
-- `tagged_networkconf_ids` (Set of String) The IDs of networks to tag traffic with for the port profile.
 - `voice_networkconf_id` (String) The ID of network to use as the voice network on the port profile.
 
 ### Read-Only
