@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
-	github.com/hashicorp/terraform-plugin-testing v1.3.0
+	github.com/hashicorp/terraform-plugin-testing v1.5.1
 	github.com/paultyng/go-unifi v1.32.0
 	github.com/testcontainers/testcontainers-go v0.23.0
 	github.com/testcontainers/testcontainers-go/modules/compose v0.23.0

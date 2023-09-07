@@ -11,16 +11,71 @@ import (
 	tfjson "github.com/hashicorp/terraform-json"
 	"github.com/mitchellh/go-testing-interface"
 
+	"github.com/hashicorp/terraform-plugin-testing/config"
+	"github.com/hashicorp/terraform-plugin-testing/internal/teststep"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/hashicorp/terraform-plugin-testing/internal/logging"
 	"github.com/hashicorp/terraform-plugin-testing/internal/plugintest"
 )
 
-func testStepNewConfig(ctx context.Context, t testing.T, c TestCase, wd *plugintest.WorkingDir, step TestStep, providers *providerFactories) error {
+func testStepNewConfig(ctx context.Context, t testing.T, c TestCase, wd *plugintest.WorkingDir, step TestStep, providers *providerFactories, stepIndex int) error {
 	t.Helper()
 
-	err := wd.SetConfig(ctx, step.mergedConfig(ctx, c))
+	configRequest := teststep.PrepareConfigurationRequest{
+		Directory: step.ConfigDirectory,
+		File:      step.ConfigFile,
+		Raw:       step.Config,
+		TestStepConfigRequest: config.TestStepConfigRequest{
+			StepNumber: stepIndex + 1,
+			TestName:   t.Name(),
+		},
+	}.Exec()
+
+	cfg := teststep.Configuration(configRequest)
+
+	var hasTerraformBlock bool
+	var hasProviderBlock bool
+
+	if cfg != nil {
+		var err error
+
+		hasTerraformBlock, err = cfg.HasTerraformBlock(ctx)
+
+		if err != nil {
+			logging.HelperResourceError(ctx,
+				"Error determining whether configuration contains terraform block",
+				map[string]interface{}{logging.KeyError: err},
+			)
+			t.Fatalf("Error determining whether configuration contains terraform block: %s", err)
+		}
+
+		hasProviderBlock, err = cfg.HasProviderBlock(ctx)
+
+		if err != nil {
+			logging.HelperResourceError(ctx,
+				"Error determining whether configuration contains provider block",
+				map[string]interface{}{logging.KeyError: err},
+			)
+			t.Fatalf("Error determining whether configuration contains provider block: %s", err)
+		}
+	}
+
+	mergedConfig := step.mergedConfig(ctx, c, hasTerraformBlock, hasProviderBlock)
+
+	confRequest := teststep.PrepareConfigurationRequest{
+		Directory: step.ConfigDirectory,
+		File:      step.ConfigFile,
+		Raw:       mergedConfig,
+		TestStepConfigRequest: config.TestStepConfigRequest{
+			StepNumber: stepIndex + 1,
+			TestName:   t.Name(),
+		},
+	}.Exec()
+
+	testStepConfig := teststep.Configuration(confRequest)
+
+	err := wd.SetConfig(ctx, testStepConfig, step.ConfigVariables)
 	if err != nil {
 		return fmt.Errorf("Error setting config: %w", err)
 	}
@@ -112,7 +167,6 @@ func testStepNewConfig(ctx context.Context, t testing.T, c TestCase, wd *plugint
 		if step.Check != nil {
 			logging.HelperResourceTrace(ctx, "Using TestStep Check")
 
-			state.IsBinaryDrivenTest = true
 			if step.Destroy {
 				if err := step.Check(stateBeforeApplication); err != nil {
 					return fmt.Errorf("Check failed: %w", err)
@@ -244,6 +298,7 @@ func testStepNewConfig(ctx context.Context, t testing.T, c TestCase, wd *plugint
 			return err
 		}
 
+		//nolint:staticcheck // legacy usage
 		if state.Empty() {
 			return nil
 		}
@@ -268,7 +323,7 @@ func testStepNewConfig(ctx context.Context, t testing.T, c TestCase, wd *plugint
 		// this fails. If refresh isn't read-only, then this will have
 		// caught a different bug.
 		if idRefreshCheck != nil {
-			if err := testIDRefresh(ctx, t, c, wd, step, idRefreshCheck, providers); err != nil {
+			if err := testIDRefresh(ctx, t, c, wd, step, idRefreshCheck, providers, stepIndex); err != nil {
 				return fmt.Errorf(
 					"[ERROR] Test: ID-only test failed: %s", err)
 			}
