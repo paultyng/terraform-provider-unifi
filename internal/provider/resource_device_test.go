@@ -262,7 +262,7 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 				Config: testAccDeviceConfig_withPortOverrides(device.MAC),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "port_override.#", "3"),
+					resource.TestCheckResourceAttr(resourceName, "port_override.#", "4"),
 
 					// TODO: Why are these out of order?
 					resource.TestCheckResourceAttr(resourceName, "port_override.0.number", "3"),
@@ -280,6 +280,9 @@ func TestAccDevice_switch_portOverrides(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "port_override.2.name", "Port 2"),
 					//resource.TestCheckResourceAttr(resourceName, "port_override.2.port_profile_id", ""),
 					//resource.TestCheckResourceAttr(resourceName, "port_override.2.op_mode", "switch"),
+
+					resource.TestCheckResourceAttr(resourceName, "port_override.3.number", "4"),
+					resource.TestCheckResourceAttr(resourceName, "port_override.3.poe_mode", "pasv24"),
 				),
 			},
 			{
@@ -339,6 +342,11 @@ resource "unifi_device" "test" {
 		number              = 3
 		op_mode             = "aggregate"
 		aggregate_num_ports = 2
+	}
+
+	port_override {
+		number   = 4
+		poe_mode = "pasv24"
 	}
 }
 `, mac)
