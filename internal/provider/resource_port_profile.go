@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -18,7 +20,7 @@ func resourcePortProfile() *schema.Resource {
 		UpdateContext: resourcePortProfileUpdate,
 		DeleteContext: resourcePortProfileDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: importSiteAndID,
+			StateContext: importPortProfile,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -417,4 +419,60 @@ func resourcePortProfileDelete(ctx context.Context, d *schema.ResourceData, meta
 
 	err := c.c.DeletePortProfile(ctx, site, id)
 	return diag.FromErr(err)
+}
+
+func importPortProfile(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	c := meta.(*client)
+	id := d.Id()
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	if strings.Contains(id, ":") {
+		importParts := strings.SplitN(id, ":", 2)
+		site = importParts[0]
+		id = importParts[1]
+	}
+
+	if strings.HasPrefix(id, "name=") {
+		targetName := strings.TrimPrefix(id, "name=")
+		var err error
+		if id, err = getPortProfileIDByName(ctx, c.c, targetName, site); err != nil {
+			return nil, err
+		}
+	}
+
+	if id != "" {
+		d.SetId(id)
+	}
+	if site != "" {
+		d.Set("site", site)
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func getPortProfileIDByName(ctx context.Context, client unifiClient, portProfileName, site string) (string, error) {
+	portProfiles, err := client.ListPortProfile(ctx, site)
+	if err != nil {
+		return "", err
+	}
+
+	idMatchingName := ""
+	allNames := []string{}
+	for _, portProfile := range portProfiles {
+		allNames = append(allNames, portProfile.Name)
+		if portProfile.Name != portProfileName {
+			continue
+		}
+		if idMatchingName != "" {
+			return "", fmt.Errorf("Found multiple port profiles with name '%s'", portProfileName)
+		}
+		idMatchingName = portProfile.ID
+	}
+	if idMatchingName == "" {
+		return "", fmt.Errorf("Found no port profiles with name '%s', found: %s", portProfileName, strings.Join(allNames, ", "))
+	}
+	return idMatchingName, nil
 }
