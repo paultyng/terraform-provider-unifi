@@ -45,14 +45,17 @@ var transformIncludeConfig TransformerFunc = func(data interface{}) (interface{}
 	}
 }
 
-func loadInclude(ctx context.Context, configDetails types.ConfigDetails, model *types.Config, options *Options, loaded []string) (*types.Config, error) {
+func loadInclude(ctx context.Context, filename string, configDetails types.ConfigDetails, model *types.Config, options *Options, loaded []string) (*types.Config, map[string][]types.IncludeConfig, error) {
+	included := make(map[string][]types.IncludeConfig)
 	for _, r := range model.Include {
+		included[filename] = append(included[filename], r)
+
 		for i, p := range r.Path {
 			for _, loader := range options.ResourceLoaders {
 				if loader.Accept(p) {
 					path, err := loader.Load(ctx, p)
 					if err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 					p = path
 					break
@@ -70,15 +73,15 @@ func loadInclude(ctx context.Context, configDetails types.ConfigDetails, model *
 		loadOptions.SkipNormalization = true
 		loadOptions.SkipConsistencyCheck = true
 
-		env, err := dotenv.GetEnvFromFile(configDetails.Environment, r.ProjectDirectory, r.EnvFile)
+		envFromFile, err := dotenv.GetEnvFromFile(configDetails.Environment, r.ProjectDirectory, r.EnvFile)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		config := types.ConfigDetails{
 			WorkingDir:  r.ProjectDirectory,
 			ConfigFiles: types.ToConfigFiles(r.Path),
-			Environment: env,
+			Environment: configDetails.Environment.Clone().Merge(envFromFile),
 		}
 		loadOptions.Interpolate = &interp.Options{
 			Substitute:      options.Interpolate.Substitute,
@@ -87,22 +90,31 @@ func loadInclude(ctx context.Context, configDetails types.ConfigDetails, model *
 		}
 		imported, err := load(ctx, config, loadOptions, loaded)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
+		}
+		for k, v := range imported.IncludeReferences {
+			included[k] = append(included[k], v...)
 		}
 
 		err = importResources(model, imported, r.Path)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	model.Include = nil
-	return model, nil
+	return model, included, nil
 }
 
 // importResources import into model all resources defined by imported, and report error on conflict
 func importResources(model *types.Config, imported *types.Project, path []string) error {
 	services := mapByName(model.Services)
 	for _, service := range imported.Services {
+		if _, ok := services[service.Name]; ok {
+			return fmt.Errorf("imported compose file %s defines conflicting service %s", path, service.Name)
+		}
+		model.Services = append(model.Services, service)
+	}
+	for _, service := range imported.DisabledServices {
 		if _, ok := services[service.Name]; ok {
 			return fmt.Errorf("imported compose file %s defines conflicting service %s", path, service.Name)
 		}
