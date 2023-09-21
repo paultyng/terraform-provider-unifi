@@ -17,8 +17,10 @@
 package loader
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	paths "path"
 	"path/filepath"
@@ -166,7 +168,9 @@ func WithProfiles(profiles []string) func(*Options) {
 // ParseYAML reads the bytes from a file, parses the bytes into a mapping
 // structure, and returns it.
 func ParseYAML(source []byte) (map[string]interface{}, error) {
-	m, _, err := parseYAML(source)
+	r := bytes.NewReader(source)
+	decoder := yaml.NewDecoder(r)
+	m, _, err := parseYAML(decoder)
 	return m, err
 }
 
@@ -179,11 +183,11 @@ type PostProcessor interface {
 	Apply(config *types.Config) error
 }
 
-func parseYAML(source []byte) (map[string]interface{}, PostProcessor, error) {
+func parseYAML(decoder *yaml.Decoder) (map[string]interface{}, PostProcessor, error) {
 	var cfg interface{}
 	processor := ResetProcessor{target: &cfg}
 
-	if err := yaml.Unmarshal(source, &processor); err != nil {
+	if err := decoder.Decode(&processor); err != nil {
 		return nil, nil, err
 	}
 	stringMap, ok := cfg.(map[string]interface{})
@@ -250,9 +254,56 @@ func load(ctx context.Context, configDetails types.ConfigDetails, opts *Options,
 	}
 	loaded = append(loaded, mainFile)
 
-	for i, file := range configDetails.ConfigFiles {
+	includeRefs := make(map[string][]types.IncludeConfig)
+	first := true
+	for _, file := range configDetails.ConfigFiles {
 		var postProcessor PostProcessor
 		configDict := file.Config
+
+		processYaml := func() error {
+			if !opts.SkipValidation {
+				if err := schema.Validate(configDict); err != nil {
+					return fmt.Errorf("validating %s: %w", file.Filename, err)
+				}
+			}
+
+			configDict = groupXFieldsIntoExtensions(configDict)
+
+			cfg, err := loadSections(ctx, file.Filename, configDict, configDetails, opts)
+			if err != nil {
+				return err
+			}
+
+			if !opts.SkipInclude {
+				var included map[string][]types.IncludeConfig
+				cfg, included, err = loadInclude(ctx, file.Filename, configDetails, cfg, opts, loaded)
+				if err != nil {
+					return err
+				}
+				for k, v := range included {
+					includeRefs[k] = append(includeRefs[k], v...)
+				}
+			}
+
+			if first {
+				first = false
+				model = cfg
+				return nil
+			}
+			merged, err := merge([]*types.Config{model, cfg})
+			if err != nil {
+				return err
+			}
+			if postProcessor != nil {
+				err = postProcessor.Apply(merged)
+				if err != nil {
+					return err
+				}
+			}
+			model = merged
+			return nil
+		}
+
 		if configDict == nil {
 			if len(file.Content) == 0 {
 				content, err := os.ReadFile(file.Filename)
@@ -261,52 +312,29 @@ func load(ctx context.Context, configDetails types.ConfigDetails, opts *Options,
 				}
 				file.Content = content
 			}
-			dict, p, err := parseConfig(file.Content, opts)
-			if err != nil {
-				return nil, fmt.Errorf("parsing %s: %w", file.Filename, err)
+
+			r := bytes.NewReader(file.Content)
+			decoder := yaml.NewDecoder(r)
+			for {
+				dict, p, err := parseConfig(decoder, opts)
+				if err != nil {
+					if err != io.EOF {
+						return nil, fmt.Errorf("parsing %s: %w", file.Filename, err)
+					}
+					break
+				}
+				configDict = dict
+				postProcessor = p
+
+				if err := processYaml(); err != nil {
+					return nil, err
+				}
 			}
-			configDict = dict
-			file.Config = dict
-			configDetails.ConfigFiles[i] = file
-			postProcessor = p
-		}
-
-		if !opts.SkipValidation {
-			if err := schema.Validate(configDict); err != nil {
-				return nil, fmt.Errorf("validating %s: %w", file.Filename, err)
-			}
-		}
-
-		configDict = groupXFieldsIntoExtensions(configDict)
-
-		cfg, err := loadSections(ctx, file.Filename, configDict, configDetails, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		if !opts.SkipInclude {
-			cfg, err = loadInclude(ctx, configDetails, cfg, opts, loaded)
-			if err != nil {
+		} else {
+			if err := processYaml(); err != nil {
 				return nil, err
 			}
 		}
-
-		if i == 0 {
-			model = cfg
-			continue
-		}
-
-		merged, err := merge([]*types.Config{model, cfg})
-		if err != nil {
-			return nil, err
-		}
-		if postProcessor != nil {
-			err = postProcessor.Apply(merged)
-			if err != nil {
-				return nil, err
-			}
-		}
-		model = merged
 	}
 
 	project := &types.Project{
@@ -319,6 +347,10 @@ func load(ctx context.Context, configDetails types.ConfigDetails, opts *Options,
 		Configs:     model.Configs,
 		Environment: configDetails.Environment,
 		Extensions:  model.Extensions,
+	}
+
+	if len(includeRefs) != 0 {
+		project.IncludeReferences = includeRefs
 	}
 
 	if !opts.SkipNormalization {
@@ -351,9 +383,6 @@ func load(ctx context.Context, configDetails types.ConfigDetails, opts *Options,
 		}
 	}
 
-	if profiles, ok := project.Environment[consts.ComposeProfiles]; ok && len(opts.Profiles) == 0 {
-		opts.Profiles = strings.Split(profiles, ",")
-	}
 	project.ApplyProfiles(opts.Profiles)
 
 	err := project.ResolveServicesEnvironment(opts.discardEnvFiles)
@@ -440,8 +469,8 @@ func NormalizeProjectName(s string) string {
 	return strings.TrimLeft(s, "_-")
 }
 
-func parseConfig(b []byte, opts *Options) (map[string]interface{}, PostProcessor, error) {
-	yml, postProcessor, err := parseYAML(b)
+func parseConfig(decoder *yaml.Decoder, opts *Options) (map[string]interface{}, PostProcessor, error) {
+	yml, postProcessor, err := parseYAML(decoder)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -748,7 +777,10 @@ func loadServiceWithExtends(ctx context.Context, filename, name string, services
 				return nil, err
 			}
 
-			baseFile, _, err := parseConfig(b, opts)
+			r := bytes.NewReader(b)
+			decoder := yaml.NewDecoder(r)
+
+			baseFile, _, err := parseConfig(decoder, opts)
 			if err != nil {
 				return nil, err
 			}
