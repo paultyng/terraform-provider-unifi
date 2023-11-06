@@ -17,8 +17,10 @@
 package loader
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	paths "path"
 	"path/filepath"
@@ -26,15 +28,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/compose-spec/compose-go/consts"
 	interp "github.com/compose-spec/compose-go/interpolation"
 	"github.com/compose-spec/compose-go/schema"
 	"github.com/compose-spec/compose-go/template"
 	"github.com/compose-spec/compose-go/types"
-	"github.com/docker/go-units"
-	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -59,6 +58,8 @@ type Options struct {
 	SkipExtends bool
 	// SkipInclude will ignore `include` and only load model from file(s) set by ConfigDetails
 	SkipInclude bool
+	// SkipResolveEnvironment will ignore computing `environment` for services
+	SkipResolveEnvironment bool
 	// Interpolation options
 	Interpolate *interp.Options
 	// Discard 'env_file' entries after resolving to 'environment' section
@@ -166,7 +167,9 @@ func WithProfiles(profiles []string) func(*Options) {
 // ParseYAML reads the bytes from a file, parses the bytes into a mapping
 // structure, and returns it.
 func ParseYAML(source []byte) (map[string]interface{}, error) {
-	m, _, err := parseYAML(source)
+	r := bytes.NewReader(source)
+	decoder := yaml.NewDecoder(r)
+	m, _, err := parseYAML(decoder)
 	return m, err
 }
 
@@ -179,11 +182,11 @@ type PostProcessor interface {
 	Apply(config *types.Config) error
 }
 
-func parseYAML(source []byte) (map[string]interface{}, PostProcessor, error) {
+func parseYAML(decoder *yaml.Decoder) (map[string]interface{}, PostProcessor, error) {
 	var cfg interface{}
 	processor := ResetProcessor{target: &cfg}
 
-	if err := yaml.Unmarshal(source, &processor); err != nil {
+	if err := decoder.Decode(&processor); err != nil {
 		return nil, nil, err
 	}
 	stringMap, ok := cfg.(map[string]interface{})
@@ -235,6 +238,15 @@ func LoadWithContext(ctx context.Context, configDetails types.ConfigDetails, opt
 		return nil, err
 	}
 	opts.projectName = projectName
+
+	// TODO(milas): this should probably ALWAYS set (overriding any existing)
+	if _, ok := configDetails.Environment[consts.ComposeProjectName]; !ok && projectName != "" {
+		if configDetails.Environment == nil {
+			configDetails.Environment = map[string]string{}
+		}
+		configDetails.Environment[consts.ComposeProjectName] = projectName
+	}
+
 	return load(ctx, configDetails, opts, nil)
 }
 
@@ -250,9 +262,54 @@ func load(ctx context.Context, configDetails types.ConfigDetails, opts *Options,
 	}
 	loaded = append(loaded, mainFile)
 
-	for i, file := range configDetails.ConfigFiles {
+	includeRefs := make(map[string][]types.IncludeConfig)
+	for _, file := range configDetails.ConfigFiles {
 		var postProcessor PostProcessor
 		configDict := file.Config
+
+		processYaml := func() error {
+			if !opts.SkipValidation {
+				if err := schema.Validate(configDict); err != nil {
+					return fmt.Errorf("validating %s: %w", file.Filename, err)
+				}
+			}
+
+			configDict = groupXFieldsIntoExtensions(configDict)
+
+			cfg, err := loadSections(ctx, file.Filename, configDict, configDetails, opts)
+			if err != nil {
+				return err
+			}
+
+			if !opts.SkipInclude {
+				var included map[string][]types.IncludeConfig
+				cfg, included, err = loadInclude(ctx, file.Filename, configDetails, cfg, opts, loaded)
+				if err != nil {
+					return err
+				}
+				for k, v := range included {
+					includeRefs[k] = append(includeRefs[k], v...)
+				}
+			}
+
+			if model == nil {
+				model = cfg
+			} else {
+				merged, err := merge([]*types.Config{model, cfg})
+				if err != nil {
+					return err
+				}
+				model = merged
+			}
+			if postProcessor != nil {
+				err = postProcessor.Apply(model)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+
 		if configDict == nil {
 			if len(file.Content) == 0 {
 				content, err := os.ReadFile(file.Filename)
@@ -261,52 +318,33 @@ func load(ctx context.Context, configDetails types.ConfigDetails, opts *Options,
 				}
 				file.Content = content
 			}
-			dict, p, err := parseConfig(file.Content, opts)
-			if err != nil {
-				return nil, fmt.Errorf("parsing %s: %w", file.Filename, err)
+
+			r := bytes.NewReader(file.Content)
+			decoder := yaml.NewDecoder(r)
+			for {
+				dict, p, err := parseConfig(decoder, opts)
+				if err != nil {
+					if err != io.EOF {
+						return nil, fmt.Errorf("parsing %s: %w", file.Filename, err)
+					}
+					break
+				}
+				configDict = dict
+				postProcessor = p
+
+				if err := processYaml(); err != nil {
+					return nil, err
+				}
 			}
-			configDict = dict
-			file.Config = dict
-			configDetails.ConfigFiles[i] = file
-			postProcessor = p
-		}
-
-		if !opts.SkipValidation {
-			if err := schema.Validate(configDict); err != nil {
-				return nil, fmt.Errorf("validating %s: %w", file.Filename, err)
-			}
-		}
-
-		configDict = groupXFieldsIntoExtensions(configDict)
-
-		cfg, err := loadSections(ctx, file.Filename, configDict, configDetails, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		if !opts.SkipInclude {
-			cfg, err = loadInclude(ctx, configDetails, cfg, opts, loaded)
-			if err != nil {
+		} else {
+			if err := processYaml(); err != nil {
 				return nil, err
 			}
 		}
+	}
 
-		if i == 0 {
-			model = cfg
-			continue
-		}
-
-		merged, err := merge([]*types.Config{model, cfg})
-		if err != nil {
-			return nil, err
-		}
-		if postProcessor != nil {
-			err = postProcessor.Apply(merged)
-			if err != nil {
-				return nil, err
-			}
-		}
-		model = merged
+	if model == nil {
+		return nil, errors.New("empty compose file")
 	}
 
 	project := &types.Project{
@@ -319,6 +357,10 @@ func load(ctx context.Context, configDetails types.ConfigDetails, opts *Options,
 		Configs:     model.Configs,
 		Environment: configDetails.Environment,
 		Extensions:  model.Extensions,
+	}
+
+	if len(includeRefs) != 0 {
+		project.IncludeReferences = includeRefs
 	}
 
 	if !opts.SkipNormalization {
@@ -351,14 +393,16 @@ func load(ctx context.Context, configDetails types.ConfigDetails, opts *Options,
 		}
 	}
 
-	if profiles, ok := project.Environment[consts.ComposeProfiles]; ok && len(opts.Profiles) == 0 {
-		opts.Profiles = strings.Split(profiles, ",")
-	}
 	project.ApplyProfiles(opts.Profiles)
 
-	err := project.ResolveServicesEnvironment(opts.discardEnvFiles)
+	if !opts.SkipResolveEnvironment {
+		err := project.ResolveServicesEnvironment(opts.discardEnvFiles)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return project, err
+	return project, nil
 }
 
 func InvalidProjectNameErr(v string) error {
@@ -426,10 +470,6 @@ func projectName(details types.ConfigDetails, opts *Options) (string, error) {
 		return "", InvalidProjectNameErr(projectName)
 	}
 
-	// TODO(milas): this should probably ALWAYS set (overriding any existing)
-	if _, ok := details.Environment[consts.ComposeProjectName]; !ok && projectName != "" {
-		details.Environment[consts.ComposeProjectName] = projectName
-	}
 	return projectName, nil
 }
 
@@ -440,8 +480,8 @@ func NormalizeProjectName(s string) string {
 	return strings.TrimLeft(s, "_-")
 }
 
-func parseConfig(b []byte, opts *Options) (map[string]interface{}, PostProcessor, error) {
-	yml, postProcessor, err := parseYAML(b)
+func parseConfig(decoder *yaml.Decoder, opts *Options) (map[string]interface{}, PostProcessor, error) {
+	yml, postProcessor, err := parseYAML(decoder)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -548,7 +588,7 @@ func Transform(source interface{}, target interface{}, additionalTransformers ..
 	config := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			createTransformHook(additionalTransformers...),
-			mapstructure.StringToTimeDurationHookFunc()),
+			decoderHook),
 		Result:   target,
 		TagName:  "yaml",
 		Metadata: &data,
@@ -572,28 +612,20 @@ type Transformer struct {
 func createTransformHook(additionalTransformers ...Transformer) mapstructure.DecodeHookFuncType {
 	transforms := map[reflect.Type]func(interface{}) (interface{}, error){
 		reflect.TypeOf(types.External{}):                         transformExternal,
-		reflect.TypeOf(types.HealthCheckTest{}):                  transformHealthCheckTest,
-		reflect.TypeOf(types.ShellCommand{}):                     transformShellCommand,
-		reflect.TypeOf(types.StringList{}):                       transformStringList,
-		reflect.TypeOf(map[string]string{}):                      transformMapStringString,
+		reflect.TypeOf(types.Options{}):                          transformOptions,
 		reflect.TypeOf(types.UlimitsConfig{}):                    transformUlimits,
-		reflect.TypeOf(types.UnitBytes(0)):                       transformSize,
 		reflect.TypeOf([]types.ServicePortConfig{}):              transformServicePort,
 		reflect.TypeOf(types.ServiceSecretConfig{}):              transformFileReferenceConfig,
 		reflect.TypeOf(types.ServiceConfigObjConfig{}):           transformFileReferenceConfig,
-		reflect.TypeOf(types.StringOrNumberList{}):               transformStringOrNumberList,
 		reflect.TypeOf(map[string]*types.ServiceNetworkConfig{}): transformServiceNetworkMap,
 		reflect.TypeOf(types.Mapping{}):                          transformMappingOrListFunc("=", false),
 		reflect.TypeOf(types.MappingWithEquals{}):                transformMappingOrListFunc("=", true),
-		reflect.TypeOf(types.Labels{}):                           transformMappingOrListFunc("=", false),
 		reflect.TypeOf(types.MappingWithColon{}):                 transformMappingOrListFunc(":", false),
 		reflect.TypeOf(types.HostsList{}):                        transformMappingOrListFunc(":", false),
 		reflect.TypeOf(types.ServiceVolumeConfig{}):              transformServiceVolumeConfig,
 		reflect.TypeOf(types.BuildConfig{}):                      transformBuildConfig,
-		reflect.TypeOf(types.Duration(0)):                        transformStringToDuration,
 		reflect.TypeOf(types.DependsOnConfig{}):                  transformDependsOnConfig,
 		reflect.TypeOf(types.ExtendsConfig{}):                    transformExtendsConfig,
-		reflect.TypeOf(types.DeviceRequest{}):                    transformServiceDeviceRequest,
 		reflect.TypeOf(types.SSHConfig{}):                        transformSSHConfig,
 		reflect.TypeOf(types.IncludeConfig{}):                    transformIncludeConfig,
 	}
@@ -748,7 +780,10 @@ func loadServiceWithExtends(ctx context.Context, filename, name string, services
 				return nil, err
 			}
 
-			baseFile, _, err := parseConfig(b, opts)
+			r := bytes.NewReader(b)
+			decoder := yaml.NewDecoder(r)
+
+			baseFile, _, err := parseConfig(decoder, opts)
 			if err != nil {
 				return nil, err
 			}
@@ -990,7 +1025,7 @@ func loadFileObjectConfig(name string, objType string, obj types.FileObjectConfi
 	return obj, nil
 }
 
-var transformMapStringString TransformerFunc = func(data interface{}) (interface{}, error) {
+var transformOptions TransformerFunc = func(data interface{}) (interface{}, error) {
 	switch value := data.(type) {
 	case map[string]interface{}:
 		return toMapStringString(value, false), nil
@@ -1050,35 +1085,6 @@ var transformServicePort TransformerFunc = func(data interface{}) (interface{}, 
 		return ports, nil
 	default:
 		return data, errors.Errorf("invalid type %T for port", entries)
-	}
-}
-
-var transformServiceDeviceRequest TransformerFunc = func(data interface{}) (interface{}, error) {
-	switch value := data.(type) {
-	case map[string]interface{}:
-		count, ok := value["count"]
-		if ok {
-			switch val := count.(type) {
-			case int:
-				return value, nil
-			case string:
-				if strings.ToLower(val) == "all" {
-					value["count"] = -1
-					return value, nil
-				}
-				i, err := strconv.ParseInt(val, 10, 64)
-				if err == nil {
-					value["count"] = i
-					return value, nil
-				}
-				return data, errors.Errorf("invalid string value for 'count' (the only value allowed is 'all' or a number)")
-			default:
-				return data, errors.Errorf("invalid type %T for device count", val)
-			}
-		}
-		return data, nil
-	default:
-		return data, errors.Errorf("invalid type %T for resource reservation", value)
 	}
 }
 
@@ -1217,26 +1223,6 @@ func ParseShortSSHSyntax(value string) ([]types.SSHKey, error) {
 	return result, nil
 }
 
-var transformStringOrNumberList TransformerFunc = func(value interface{}) (interface{}, error) {
-	list := value.([]interface{})
-	result := make([]string, len(list))
-	for i, item := range list {
-		result[i] = fmt.Sprint(item)
-	}
-	return result, nil
-}
-
-var transformStringList TransformerFunc = func(data interface{}) (interface{}, error) {
-	switch value := data.(type) {
-	case string:
-		return []string{value}, nil
-	case []interface{}:
-		return value, nil
-	default:
-		return data, errors.Errorf("invalid type %T for string list", value)
-	}
-}
-
 func transformMappingOrListFunc(sep string, allowNil bool) TransformerFunc {
 	return func(data interface{}) (interface{}, error) {
 		return transformMappingOrList(data, sep, allowNil)
@@ -1268,52 +1254,6 @@ func transformValueToMapEntry(value string, separator string, allowNil bool) (st
 		return key, ""
 	default:
 		return key, parts[1]
-	}
-}
-
-var transformShellCommand TransformerFunc = func(value interface{}) (interface{}, error) {
-	if str, ok := value.(string); ok {
-		return shellwords.Parse(str)
-	}
-	return value, nil
-}
-
-var transformHealthCheckTest TransformerFunc = func(data interface{}) (interface{}, error) {
-	switch value := data.(type) {
-	case string:
-		return append([]string{"CMD-SHELL"}, value), nil
-	case []interface{}:
-		return value, nil
-	default:
-		return value, errors.Errorf("invalid type %T for healthcheck.test", value)
-	}
-}
-
-var transformSize TransformerFunc = func(value interface{}) (interface{}, error) {
-	switch value := value.(type) {
-	case int:
-		return int64(value), nil
-	case int64, types.UnitBytes:
-		return value, nil
-	case string:
-		return units.RAMInBytes(value)
-	default:
-		return value, errors.Errorf("invalid type for size %T", value)
-	}
-}
-
-var transformStringToDuration TransformerFunc = func(value interface{}) (interface{}, error) {
-	switch value := value.(type) {
-	case string:
-		d, err := time.ParseDuration(value)
-		if err != nil {
-			return value, err
-		}
-		return types.Duration(d), nil
-	case types.Duration:
-		return value, nil
-	default:
-		return value, errors.Errorf("invalid type %T for duration", value)
 	}
 }
 

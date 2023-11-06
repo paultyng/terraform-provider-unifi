@@ -216,6 +216,9 @@ func (d *dockerCompose) Up(ctx context.Context, opts ...StackUpOption) (err erro
 
 	err = d.composeService.Up(ctx, d.project, api.UpOptions{
 		Create: api.CreateOptions{
+			Build: &api.BuildOptions{
+				Services: upOptions.Services,
+			},
 			Services:             upOptions.Services,
 			Recreate:             upOptions.Recreate,
 			RecreateDependencies: upOptions.RecreateDependencies,
@@ -375,7 +378,7 @@ func withEnv(env map[string]string) func(*cli.ProjectOptions) error {
 }
 
 func makeClient(*command.DockerCli) (client.APIClient, error) {
-	dockerClient, err := testcontainers.NewDockerClient()
+	dockerClient, err := testcontainers.NewDockerClientWithOpts(context.Background())
 	if err != nil {
 		return nil, err
 	}

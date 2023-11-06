@@ -60,6 +60,9 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
+# github.com/Microsoft/hcsshim v0.11.1
+## explicit; go 1.18
+github.com/Microsoft/hcsshim/osversion
 # github.com/OpenPeeDeeP/depguard/v2 v2.1.0
 ## explicit; go 1.20
 github.com/OpenPeeDeeP/depguard/v2
@@ -256,7 +259,7 @@ github.com/cloudflare/circl/math/mlsbset
 github.com/cloudflare/circl/sign
 github.com/cloudflare/circl/sign/ed25519
 github.com/cloudflare/circl/sign/ed448
-# github.com/compose-spec/compose-go v1.18.1
+# github.com/compose-spec/compose-go v1.20.0
 ## explicit; go 1.19
 github.com/compose-spec/compose-go/cli
 github.com/compose-spec/compose-go/consts
@@ -272,7 +275,7 @@ github.com/compose-spec/compose-go/utils
 # github.com/containerd/console v1.0.3
 ## explicit; go 1.13
 github.com/containerd/console
-# github.com/containerd/containerd v1.7.3
+# github.com/containerd/containerd v1.7.7
 ## explicit; go 1.19
 github.com/containerd/containerd/api/services/content/v1
 github.com/containerd/containerd/archive/compression
@@ -300,10 +303,13 @@ github.com/containerd/containerd/remotes/errors
 github.com/containerd/containerd/services/content/contentserver
 github.com/containerd/containerd/tracing
 github.com/containerd/containerd/version
-# github.com/containerd/continuity v0.4.1
+# github.com/containerd/continuity v0.4.2
 ## explicit; go 1.19
 github.com/containerd/continuity/fs
 github.com/containerd/continuity/sysx
+# github.com/containerd/log v0.1.0
+## explicit; go 1.20
+github.com/containerd/log
 # github.com/containerd/typeurl/v2 v2.1.1
 ## explicit; go 1.13
 github.com/containerd/typeurl/v2
@@ -334,10 +340,9 @@ github.com/deckarep/golang-set/v2
 # github.com/denis-tingaikin/go-header v0.4.3
 ## explicit; go 1.17
 github.com/denis-tingaikin/go-header
-# github.com/distribution/distribution/v3 v3.0.0-20230814232445-f1529a778201
-## explicit; go 1.18
-github.com/distribution/distribution/v3/reference
-github.com/distribution/distribution/v3/uuid
+# github.com/distribution/reference v0.5.0
+## explicit; go 1.20
+github.com/distribution/reference
 # github.com/docker/buildx v0.11.2
 ## explicit; go 1.20
 github.com/docker/buildx/build
@@ -368,7 +373,7 @@ github.com/docker/buildx/util/platformutil
 github.com/docker/buildx/util/progress
 github.com/docker/buildx/util/resolver
 github.com/docker/buildx/util/waitmap
-# github.com/docker/cli v24.0.5+incompatible
+# github.com/docker/cli v24.0.6+incompatible
 ## explicit
 github.com/docker/cli/cli
 github.com/docker/cli/cli-plugins/manager
@@ -397,6 +402,7 @@ github.com/docker/cli/cli/context/docker
 github.com/docker/cli/cli/context/store
 github.com/docker/cli/cli/debug
 github.com/docker/cli/cli/flags
+github.com/docker/cli/cli/hints
 github.com/docker/cli/cli/manifest/store
 github.com/docker/cli/cli/manifest/types
 github.com/docker/cli/cli/registry/client
@@ -405,7 +411,7 @@ github.com/docker/cli/cli/trust
 github.com/docker/cli/cli/version
 github.com/docker/cli/opts
 github.com/docker/cli/templates
-# github.com/docker/compose/v2 v2.20.3
+# github.com/docker/compose/v2 v2.23.0
 ## explicit; go 1.21
 github.com/docker/compose/v2/internal
 github.com/docker/compose/v2/internal/sync
@@ -435,7 +441,7 @@ github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
 github.com/docker/distribution/uuid
-# github.com/docker/docker v24.0.5+incompatible
+# github.com/docker/docker v24.0.6+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -539,6 +545,10 @@ github.com/go-logr/logr/funcr
 # github.com/go-logr/stdr v1.2.2
 ## explicit; go 1.16
 github.com/go-logr/stdr
+# github.com/go-ole/go-ole v1.2.6
+## explicit; go 1.12
+github.com/go-ole/go-ole
+github.com/go-ole/go-ole/oleutil
 # github.com/go-openapi/jsonpointer v0.20.0
 ## explicit; go 1.18
 github.com/go-openapi/jsonpointer
@@ -680,7 +690,7 @@ github.com/google/gnostic/extensions
 github.com/google/gnostic/jsonschema
 github.com/google/gnostic/openapiv2
 github.com/google/gnostic/openapiv3
-# github.com/google/go-cmp v0.5.9
+# github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
@@ -694,7 +704,7 @@ github.com/google/gofuzz/bytesource
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13
 github.com/google/shlex
-# github.com/google/uuid v1.3.0
+# github.com/google/uuid v1.3.1
 ## explicit
 github.com/google/uuid
 # github.com/gordonklaus/ineffassign v0.0.0-20230610083614-0e73809eb601
@@ -967,6 +977,9 @@ github.com/leonklingele/grouper/pkg/analyzer/vars
 # github.com/lufeee/execinquery v1.2.1
 ## explicit; go 1.17
 github.com/lufeee/execinquery
+# github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0
+## explicit; go 1.16
+github.com/lufia/plan9stats
 # github.com/magiconair/properties v1.8.7
 ## explicit; go 1.19
 github.com/magiconair/properties
@@ -1036,7 +1049,7 @@ github.com/mitchellh/mapstructure
 # github.com/mitchellh/reflectwalk v1.0.2
 ## explicit
 github.com/mitchellh/reflectwalk
-# github.com/moby/buildkit v0.12.1
+# github.com/moby/buildkit v0.12.2
 ## explicit; go 1.20
 github.com/moby/buildkit/api/services/control
 github.com/moby/buildkit/api/types
@@ -1051,7 +1064,6 @@ github.com/moby/buildkit/client/ociindex
 github.com/moby/buildkit/cmd/buildkitd/config
 github.com/moby/buildkit/exporter/containerimage/exptypes
 github.com/moby/buildkit/exporter/exptypes
-github.com/moby/buildkit/frontend/dockerfile/dockerignore
 github.com/moby/buildkit/frontend/gateway/client
 github.com/moby/buildkit/frontend/gateway/grpcclient
 github.com/moby/buildkit/frontend/gateway/pb
@@ -1100,9 +1112,10 @@ github.com/moby/buildkit/version
 # github.com/moby/locker v1.0.1
 ## explicit; go 1.13
 github.com/moby/locker
-# github.com/moby/patternmatcher v0.5.0
+# github.com/moby/patternmatcher v0.6.0
 ## explicit; go 1.19
 github.com/moby/patternmatcher
+github.com/moby/patternmatcher/ignorefile
 # github.com/moby/spdystream v0.2.0
 ## explicit; go 1.13
 github.com/moby/spdystream
@@ -1176,7 +1189,7 @@ github.com/olekukonko/tablewriter
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.1.0-rc4
+# github.com/opencontainers/image-spec v1.1.0-rc5
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
@@ -1210,6 +1223,9 @@ github.com/polyfloyd/go-errorlint/errorlint
 github.com/posener/complete
 github.com/posener/complete/cmd
 github.com/posener/complete/cmd/install
+# github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c
+## explicit; go 1.14
+github.com/power-devops/perfstat
 # github.com/prometheus/client_golang v1.16.0
 ## explicit; go 1.17
 github.com/prometheus/client_golang/prometheus
@@ -1300,6 +1316,17 @@ github.com/shazow/go-diff/difflib
 # github.com/shibumi/go-pathspec v1.3.0
 ## explicit; go 1.17
 github.com/shibumi/go-pathspec
+# github.com/shirou/gopsutil/v3 v3.23.9
+## explicit; go 1.15
+github.com/shirou/gopsutil/v3/common
+github.com/shirou/gopsutil/v3/cpu
+github.com/shirou/gopsutil/v3/internal/common
+github.com/shirou/gopsutil/v3/mem
+github.com/shirou/gopsutil/v3/net
+github.com/shirou/gopsutil/v3/process
+# github.com/shoenig/go-m1cpu v0.1.6
+## explicit; go 1.20
+github.com/shoenig/go-m1cpu
 # github.com/shopspring/decimal v1.3.1
 ## explicit; go 1.13
 github.com/shopspring/decimal
@@ -1374,7 +1401,7 @@ github.com/t-yuki/gocover-cobertura
 # github.com/tdakkota/asciicheck v0.2.0
 ## explicit; go 1.18
 github.com/tdakkota/asciicheck
-# github.com/testcontainers/testcontainers-go v0.23.0
+# github.com/testcontainers/testcontainers-go v0.26.0
 ## explicit; go 1.20
 github.com/testcontainers/testcontainers-go
 github.com/testcontainers/testcontainers-go/exec
@@ -1383,8 +1410,8 @@ github.com/testcontainers/testcontainers-go/internal/config
 github.com/testcontainers/testcontainers-go/internal/testcontainersdocker
 github.com/testcontainers/testcontainers-go/internal/testcontainerssession
 github.com/testcontainers/testcontainers-go/wait
-# github.com/testcontainers/testcontainers-go/modules/compose v0.23.0
-## explicit; go 1.20
+# github.com/testcontainers/testcontainers-go/modules/compose v0.26.0
+## explicit; go 1.21
 github.com/testcontainers/testcontainers-go/modules/compose
 # github.com/tetafro/godot v1.4.11
 ## explicit; go 1.16
@@ -1420,6 +1447,12 @@ github.com/timonwong/loggercheck/internal/checkers/printf
 github.com/timonwong/loggercheck/internal/rules
 github.com/timonwong/loggercheck/internal/sets
 github.com/timonwong/loggercheck/internal/stringutil
+# github.com/tklauser/go-sysconf v0.3.12
+## explicit; go 1.13
+github.com/tklauser/go-sysconf
+# github.com/tklauser/numcpus v0.6.1
+## explicit; go 1.13
+github.com/tklauser/numcpus
 # github.com/tomarrell/wrapcheck/v2 v2.8.1
 ## explicit; go 1.18
 github.com/tomarrell/wrapcheck/v2/wrapcheck
@@ -1460,8 +1493,6 @@ github.com/vmihailenco/msgpack/v5/msgpcode
 github.com/vmihailenco/tagparser/v2
 github.com/vmihailenco/tagparser/v2/internal
 github.com/vmihailenco/tagparser/v2/internal/parser
-# github.com/weppos/publicsuffix-go v0.30.1
-## explicit; go 1.16
 # github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
 ## explicit
 github.com/xeipuuv/gojsonpointer
@@ -1485,6 +1516,9 @@ github.com/yeya24/promlinter
 # github.com/ykadowak/zerologlint v0.1.2
 ## explicit; go 1.19
 github.com/ykadowak/zerologlint
+# github.com/yusufpapurcu/wmi v1.2.3
+## explicit; go 1.16
+github.com/yusufpapurcu/wmi
 # github.com/zclconf/go-cty v1.14.0
 ## explicit; go 1.18
 github.com/zclconf/go-cty/cty
@@ -1630,7 +1664,7 @@ golang.org/x/net/trace
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.3.0
+# golang.org/x/sync v0.4.0
 ## explicit; go 1.17
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
@@ -1752,18 +1786,18 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20230814215434-ca7cfce7776a
+# google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d
 ## explicit; go 1.19
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/genproto/googleapis/api v0.0.0-20230814215434-ca7cfce7776a
+# google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20230814215434-ca7cfce7776a
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.57.1
-## explicit; go 1.17
+# google.golang.org/grpc v1.59.0
+## explicit; go 1.19
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
@@ -1796,6 +1830,7 @@ google.golang.org/grpc/internal/grpclog
 google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/grpcutil
+google.golang.org/grpc/internal/idle
 google.golang.org/grpc/internal/metadata
 google.golang.org/grpc/internal/pretty
 google.golang.org/grpc/internal/resolver

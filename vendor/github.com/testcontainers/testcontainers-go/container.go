@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -14,6 +16,9 @@ import (
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/nat"
+	"github.com/google/uuid"
+	"github.com/moby/patternmatcher/ignorefile"
+
 	tcexec "github.com/testcontainers/testcontainers-go/exec"
 	"github.com/testcontainers/testcontainers-go/internal/testcontainersdocker"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -62,6 +67,8 @@ type Container interface {
 type ImageBuildInfo interface {
 	GetContext() (io.Reader, error)                 // the path to the build context
 	GetDockerfile() string                          // the relative path to the Dockerfile, including the fileitself
+	GetRepo() string                                // get repo label for image
+	GetTag() string                                 // get tag label for image
 	ShouldPrintBuildLog() bool                      // allow build log to be printed to stdout
 	ShouldBuildImage() bool                         // return true if the image needs to be built
 	GetBuildArgs() map[string]*string               // return the environment args used to build the from Dockerfile
@@ -71,12 +78,18 @@ type ImageBuildInfo interface {
 // FromDockerfile represents the parameters needed to build an image from a Dockerfile
 // rather than using a pre-built one
 type FromDockerfile struct {
-	Context        string                         // the path to the context of of the docker build
+	Context        string                         // the path to the context of the docker build
 	ContextArchive io.Reader                      // the tar archive file to send to docker that contains the build context
 	Dockerfile     string                         // the path from the context to the Dockerfile for the image, defaults to "Dockerfile"
+	Repo           string                         // the repo label for image, defaults to UUID
+	Tag            string                         // the tag label for image, defaults to UUID
 	BuildArgs      map[string]*string             // enable user to pass build args to docker daemon
 	PrintBuildLog  bool                           // enable user to print build log
 	AuthConfigs    map[string]registry.AuthConfig // Deprecated. Testcontainers will detect registry credentials automatically. Enable auth configs to be able to pull from an authenticated docker registry
+	// KeepImage describes whether DockerContainer.Terminate should not delete the
+	// container image. Useful for images that are built from a Dockerfile and take a
+	// long time to build. Keeping the image also Docker to reuse it.
+	KeepImage bool
 }
 
 type ContainerFile struct {
@@ -89,6 +102,7 @@ type ContainerFile struct {
 type ContainerRequest struct {
 	FromDockerfile
 	Image                   string
+	ImageSubstitutors       []ImageSubstitutor
 	Entrypoint              []string
 	Env                     map[string]string
 	ExposedPorts            []string // allow specifying protocol info
@@ -181,12 +195,30 @@ func (c *ContainerRequest) GetContext() (io.Reader, error) {
 	}
 	c.Context = abs
 
-	buildContext, err := archive.TarWithOptions(c.Context, &archive.TarOptions{})
+	excluded, err := parseDockerIgnore(abs)
+	if err != nil {
+		return nil, err
+	}
+	buildContext, err := archive.TarWithOptions(c.Context, &archive.TarOptions{ExcludePatterns: excluded})
 	if err != nil {
 		return nil, err
 	}
 
 	return buildContext, nil
+}
+
+func parseDockerIgnore(targetDir string) ([]string, error) {
+	// based on https://github.com/docker/cli/blob/master/cli/command/image/build/dockerignore.go#L14
+	fileLocation := filepath.Join(targetDir, ".dockerignore")
+	var excluded []string
+	if f, openErr := os.Open(fileLocation); openErr == nil {
+		var err error
+		excluded, err = ignorefile.ReadAll(f)
+		if err != nil {
+			return excluded, fmt.Errorf("error reading .dockerignore: %w", err)
+		}
+	}
+	return excluded, nil
 }
 
 // GetBuildArgs returns the env args to be used when creating from Dockerfile
@@ -202,6 +234,26 @@ func (c *ContainerRequest) GetDockerfile() string {
 	}
 
 	return f
+}
+
+// GetRepo returns the Repo label for image from the ContainerRequest, defaults to UUID
+func (c *ContainerRequest) GetRepo() string {
+	r := c.FromDockerfile.Repo
+	if r == "" {
+		return uuid.NewString()
+	}
+
+	return strings.ToLower(r)
+}
+
+// GetTag returns the Tag label for image from the ContainerRequest, defaults to UUID
+func (c *ContainerRequest) GetTag() string {
+	t := c.FromDockerfile.Tag
+	if t == "" {
+		return uuid.NewString()
+	}
+
+	return strings.ToLower(t)
 }
 
 // GetAuthConfigs returns the auth configs to be able to pull from an authenticated docker registry
@@ -226,6 +278,10 @@ func (c *ContainerRequest) GetAuthConfigs() map[string]registry.AuthConfig {
 
 func (c *ContainerRequest) ShouldBuildImage() bool {
 	return c.FromDockerfile.Context != "" || c.FromDockerfile.ContextArchive != nil
+}
+
+func (c *ContainerRequest) ShouldKeepBuiltImage() bool {
+	return c.FromDockerfile.KeepImage
 }
 
 func (c *ContainerRequest) ShouldPrintBuildLog() bool {
