@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 
-	"github.com/paultyng/terraform-provider-unifi/internal/provider"
+	"github.com/akerl/terraform-provider-unifi/internal/provider"
 )
 
 // Generate docs for website
