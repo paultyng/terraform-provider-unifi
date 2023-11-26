@@ -162,7 +162,7 @@ func runSweepers(regions []string, sweepers map[string]*Sweeper, allowFailures b
 		log.Printf("Sweeper Tests for region (%s) ran successfully:\n", region)
 		for sweeper, sweeperErr := range regionSweeperRunList {
 			if sweeperErr == nil {
-				fmt.Printf("\t- %s\n", sweeper)
+				log.Printf("\t- %s\n", sweeper)
 			} else {
 				regionSweeperErrorFound = true
 			}
@@ -173,7 +173,7 @@ func runSweepers(regions []string, sweepers map[string]*Sweeper, allowFailures b
 			log.Printf("Sweeper Tests for region (%s) ran unsuccessfully:\n", region)
 			for sweeper, sweeperErr := range regionSweeperRunList {
 				if sweeperErr != nil {
-					fmt.Printf("\t- %s: %s\n", sweeper, sweeperErr)
+					log.Printf("\t- %s: %s\n", sweeper, sweeperErr)
 				}
 			}
 		}

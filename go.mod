@@ -7,14 +7,15 @@ go 1.20
 // replace github.com/hashicorp/terraform-plugin-sdk/v2 => ../../hashicorp/terraform-plugin-sdk
 
 require (
+	github.com/akerl/terraform-provider-unifi v0.41.8
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/golangci/golangci-lint v1.53.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
-	github.com/hashicorp/terraform-plugin-testing v1.3.0
-	github.com/paultyng/go-unifi v1.32.0
+	github.com/hashicorp/terraform-plugin-testing v1.4.0
+	github.com/paultyng/go-unifi v1.33.0
 	github.com/testcontainers/testcontainers-go v0.23.0
 	github.com/testcontainers/testcontainers-go/modules/compose v0.23.0
 )
@@ -324,7 +325,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.tmz.dev/musttag v0.7.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/multierr v1.8.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect

@@ -73,7 +73,6 @@ type WLAN struct {
 	Priority                    string                     `json:"priority,omitempty"`   // medium|high|low
 	ProxyArp                    bool                       `json:"proxy_arp"`
 	RADIUSDasEnabled            bool                       `json:"radius_das_enabled"`
-	RADIUSFilterIDEnabled       bool                       `json:"radius_filter_id_enabled"`
 	RADIUSMACAuthEnabled        bool                       `json:"radius_mac_auth_enabled"`
 	RADIUSMACaclEmptyPassword   bool                       `json:"radius_macacl_empty_password"`
 	RADIUSMACaclFormat          string                     `json:"radius_macacl_format,omitempty"` // none_lower|hyphen_lower|colon_lower|none_upper|hyphen_upper|colon_upper

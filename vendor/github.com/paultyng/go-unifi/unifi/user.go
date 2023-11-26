@@ -131,6 +131,19 @@ func (c *Client) DeleteUserByMAC(ctx context.Context, site, mac string) error {
 	return nil
 }
 
+func (c *Client) KickUserByMAC(ctx context.Context, site, mac string) error {
+	users, err := c.stamgr(ctx, site, "kick-sta", map[string]interface{}{
+		"mac": mac,
+	})
+	if err != nil {
+		return err
+	}
+	if len(users) != 1 {
+		return &NotFoundError{}
+	}
+	return nil
+}
+
 func (c *Client) OverrideUserFingerprint(ctx context.Context, site, mac string, devIdOveride int) error {
 	reqBody := map[string]interface{}{
 		"mac":             mac,
