@@ -108,9 +108,6 @@ github.com/acarl005/stripansi
 # github.com/agext/levenshtein v1.2.3
 ## explicit
 github.com/agext/levenshtein
-# github.com/akerl/terraform-provider-unifi v0.41.8
-## explicit; go 1.20
-github.com/akerl/terraform-provider-unifi/internal/provider
 # github.com/alecthomas/go-check-sumtype v0.3.1
 ## explicit; go 1.22.0
 github.com/alecthomas/go-check-sumtype
