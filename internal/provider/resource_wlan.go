@@ -249,6 +249,9 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 	case "open":
 		passphrase = ""
 	}
+	if passphrase == "skip" {
+		passphrase = ""
+	}
 
 	pmf := d.Get("pmf_mode").(string)
 	wpa3 := d.Get("wpa3_support").(bool)
@@ -385,6 +388,11 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	case "wpapsk":
 		wpa3 = resp.WPA3Support
 		wpa3Transition = resp.WPA3Transition
+	}
+
+	inputPassphrase := d.Get("passphrase").(string)
+	if inputPassphrase == "skip" {
+		passphrase = "skip"
 	}
 
 	macFilterEnabled := resp.MACFilterEnabled

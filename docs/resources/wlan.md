@@ -75,7 +75,7 @@ resource "unifi_wlan" "wifi" {
 - `multicast_enhance` (Boolean) Indicates whether or not Multicast Enhance is turned of for the network.
 - `network_id` (String) ID of the network for this SSID
 - `no2ghz_oui` (Boolean) Connect high performance clients to 5 GHz only. Defaults to `true`.
-- `passphrase` (String, Sensitive) The passphrase for the network, this is only required if `security` is not set to `open`.
+- `passphrase` (String, Sensitive) The passphrase for the network, this is only required if `security` is not set to `open`. If you use the static string "skip", the provider will not modify the passphrase or store it in the state file.
 - `pmf_mode` (String) Enable Protected Management Frames. This cannot be disabled if using WPA 3. Valid values are `required`, `optional` and `disabled`. Defaults to `disabled`.
 - `proxy_arp` (Boolean) Reduces airtime usage by allowing APs to "proxy" common broadcast frames as unicast. Defaults to `false`.
 - `radius_profile_id` (String) ID of the RADIUS profile to use when security `wpaeap`. You can query this via the `unifi_radius_profile` data source.
