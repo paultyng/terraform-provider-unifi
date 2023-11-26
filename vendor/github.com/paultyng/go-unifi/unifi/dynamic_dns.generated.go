@@ -31,7 +31,7 @@ type DynamicDNS struct {
 	Login         string   `json:"login,omitempty"`          // ^[^"' ]+$
 	Options       []string `json:"options,omitempty"`        // ^[^"' ]+$
 	Server        string   `json:"server"`                   // ^[^"' ]+$|^$
-	Service       string   `json:"service,omitempty"`        // afraid|changeip|cloudflare|dnspark|dslreports|dyndns|easydns|googledomains|namecheap|noip|sitelutions|zoneedit|custom
+	Service       string   `json:"service,omitempty"`        // afraid|changeip|cloudflare|cloudxns|ddnss|dhis|dnsexit|dnsomatic|dnspark|dnspod|dslreports|dtdns|duckdns|duiadns|dyn|dyndns|dynv6|easydns|freemyip|googledomains|loopia|namecheap|noip|nsupdate|ovh|sitelutions|spdyn|strato|tunnelbroker|zoneedit|custom
 	XPassword     string   `json:"x_password,omitempty"`     // ^[^"' ]+$
 }
 
