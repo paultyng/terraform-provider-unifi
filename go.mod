@@ -1,4 +1,4 @@
-module github.com/paultyng/terraform-provider-unifi
+module github.com/akerl/terraform-provider-unifi
 
 go 1.23.0
 
