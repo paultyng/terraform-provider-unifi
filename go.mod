@@ -7,7 +7,6 @@ go 1.20
 // replace github.com/hashicorp/terraform-plugin-sdk/v2 => ../../hashicorp/terraform-plugin-sdk
 
 require (
-	github.com/akerl/terraform-provider-unifi v0.41.8
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/golangci/golangci-lint v1.53.3
