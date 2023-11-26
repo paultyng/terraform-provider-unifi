@@ -69,7 +69,6 @@ resource "unifi_network" "wan" {
 - `domain_name` (String) The domain name of this network.
 - `igmp_snooping` (Boolean) Specifies whether IGMP snooping is enabled or not.
 - `internet_access_enabled` (Boolean) Specifies whether this network should be allowed to access the internet or not. Defaults to `true`.
-- `intra_network_access_enabled` (Boolean) Specifies whether this network should be allowed to access other local networks or not. Defaults to `true`.
 - `ipv6_interface_type` (String) Specifies which type of IPv6 connection to use. Must be one of either `static`, `pd`, or `none`. Defaults to `none`.
 - `ipv6_pd_interface` (String) Specifies which WAN interface to use for IPv6 PD. Must be one of either `wan` or `wan2`.
 - `ipv6_pd_prefixid` (String) Specifies the IPv6 Prefix ID.
@@ -82,6 +81,7 @@ resource "unifi_network" "wan" {
 - `ipv6_static_subnet` (String) Specifies the static IPv6 subnet when `ipv6_interface_type` is 'static'.
 - `multicast_dns` (Boolean) Specifies whether Multicast DNS (mDNS) is enabled or not on the network (Controller >=v7).
 - `network_group` (String) The group of the network. Defaults to `LAN`.
+- `network_isolation_enabled`: (Boolean) Specifies whether this network should be not allowed to access other local networks. Defaults to `false`.
 - `site` (String) The name of the site to associate the network with.
 - `subnet` (String) The subnet of the network. Must be a valid CIDR address.
 - `vlan_id` (Number) The VLAN ID of the network.
