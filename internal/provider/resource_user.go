@@ -181,7 +181,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceUserGetResourceData(d *schema.ResourceData) (*unifi.User, error) {
-    fixedIP := d.Get("fixed_ip").(string)
+	fixedIP := d.Get("fixed_ip").(string)
 	localDnsRecord := d.Get("local_dns_record").(string)
 
 	return &unifi.User{
