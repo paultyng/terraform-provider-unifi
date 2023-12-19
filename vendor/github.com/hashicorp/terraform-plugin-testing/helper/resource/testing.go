@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
@@ -23,6 +22,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfversion"
@@ -108,7 +108,7 @@ func AddTestSweepers(name string, s *Sweeper) {
 // Sweeper flags added to the "go test" command:
 //
 //	-sweep: Comma-separated list of locations/regions to run available sweepers.
-//	-sweep-allow-failues: Enable to allow other sweepers to run after failures.
+//	-sweep-allow-failures: Enable to allow other sweepers to run after failures.
 //	-sweep-run: Comma-separated list of resource type sweepers to run. Defaults
 //	        to all sweepers.
 //
@@ -162,7 +162,7 @@ func runSweepers(regions []string, sweepers map[string]*Sweeper, allowFailures b
 		log.Printf("Sweeper Tests for region (%s) ran successfully:\n", region)
 		for sweeper, sweeperErr := range regionSweeperRunList {
 			if sweeperErr == nil {
-				fmt.Printf("\t- %s\n", sweeper)
+				log.Printf("\t- %s\n", sweeper)
 			} else {
 				regionSweeperErrorFound = true
 			}
@@ -173,7 +173,7 @@ func runSweepers(regions []string, sweepers map[string]*Sweeper, allowFailures b
 			log.Printf("Sweeper Tests for region (%s) ran unsuccessfully:\n", region)
 			for sweeper, sweeperErr := range regionSweeperRunList {
 				if sweeperErr != nil {
-					fmt.Printf("\t- %s: %s\n", sweeper, sweeperErr)
+					log.Printf("\t- %s: %s\n", sweeper, sweeperErr)
 				}
 			}
 		}
@@ -490,11 +490,59 @@ type TestStep struct {
 
 	// Config a string of the configuration to give to Terraform. If this
 	// is set, then the TestCase will execute this step with the same logic
-	// as a `terraform apply`.
+	// as a `terraform apply`. If both Config and ConfigDirectory are set
+	// an error will be returned.
 	//
 	// JSON Configuration Syntax can be used and is assumed whenever Config
 	// contains valid JSON.
+	//
+	// Only one of Config, ConfigDirectory or ConfigFile can be set
+	// otherwise an error will be returned.
 	Config string
+
+	// ConfigDirectory is a function which returns a function that
+	// accepts config.TestStepProviderConfig and returns a string
+	// representing a directory that contains Terraform
+	// configuration files.
+	//
+	// There are helper functions in the [config] package that can be used,
+	// such as:
+	//
+	//   - [config.StaticDirectory]
+	//   - [config.TestNameDirectory]
+	//   - [config.TestStepDirectory]
+	//
+	// When running Terraform operations for the test, Terraform will
+	// be executed with copies of the files of this directory as its
+	// working directory. Only one of Config, ConfigDirectory or
+	// ConfigFile can be set otherwise an error will be returned.
+	ConfigDirectory config.TestStepConfigFunc
+
+	// ConfigFile is a function which returns a function that
+	// accepts config.TestStepProviderConfig and returns a string
+	// representing a file that contains Terraform configuration.
+	//
+	// There are helper functions in the [config] package that can be used,
+	// such as:
+	//
+	//   - [config.StaticFile]
+	//   - [config.TestNameFile]
+	//   - [config.TestStepFile]
+	//
+	// When running Terraform operations for the test, Terraform will
+	// be executed with a copy of the file as its working directory.
+	// Only one of Config, ConfigDirectory or ConfigFile can be set
+	// otherwise an error will be returned.
+	ConfigFile config.TestStepConfigFunc
+
+	// ConfigVariables is a map defining variables for use in conjunction
+	// with Terraform configuration. If this map is populated then it
+	// will be used to assemble an *.auto.tfvars.json which will be
+	// written into the working directory. Any variables that are
+	// defined within the Terraform configuration that have a matching
+	// variable definition in *.auto.tfvars.json will have their value
+	// substituted when the acceptance test is executed.
+	ConfigVariables config.Variables
 
 	// Check is called after the Config is applied. Use this step to
 	// make your own API calls to check the status of things, and to
@@ -604,10 +652,24 @@ type TestStep struct {
 	// IDs returned by the Import.  Note that this checks for strict equality
 	// and does not respect DiffSuppressFunc or CustomizeDiff.
 	//
+	// By default, the prior resource state and import resource state are
+	// matched by the "id" attribute. If the "id" attribute is not implemented
+	// or another attribute more uniquely identifies the resource, set the
+	// ImportStateVerifyIdentifierAttribute field to adjust the attribute for
+	// matching.
+	//
+	// If certain attributes cannot be correctly imported, set the
+	// ImportStateVerifyIgnore field.
+	ImportStateVerify bool
+
+	// ImportStateVerifyIdentifierAttribute is the resource attribute for
+	// matching the prior resource state and import resource state during import
+	// verification. By default, the "id" attribute is used.
+	ImportStateVerifyIdentifierAttribute string
+
 	// ImportStateVerifyIgnore is a list of prefixes of fields that should
 	// not be verified to be equal. These can be set to ephemeral fields or
 	// fields that can't be refreshed and don't matter.
-	ImportStateVerify       bool
 	ImportStateVerifyIgnore []string
 
 	// ImportStatePersist, if true, will update the persisted state with the
@@ -774,7 +836,7 @@ func Test(t testing.T, c TestCase) {
 	ctx := context.Background()
 	ctx = logging.InitTestContext(ctx, t)
 
-	err := c.validate(ctx)
+	err := c.validate(ctx, t)
 
 	if err != nil {
 		logging.HelperResourceError(ctx,
@@ -884,7 +946,7 @@ func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 	return func(s *terraform.State) error {
 		for i, f := range fs {
 			if err := f(s); err != nil {
-				return fmt.Errorf("Check %d/%d error: %s", i+1, len(fs), err)
+				return fmt.Errorf("Check %d/%d error: %w", i+1, len(fs), err)
 			}
 		}
 
@@ -902,15 +964,15 @@ func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 // TestCheckFuncs and aggregates failures.
 func ComposeAggregateTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 	return func(s *terraform.State) error {
-		var result *multierror.Error
+		var result []error
 
 		for i, f := range fs {
 			if err := f(s); err != nil {
-				result = multierror.Append(result, fmt.Errorf("Check %d/%d error: %s", i+1, len(fs), err))
+				result = append(result, fmt.Errorf("Check %d/%d error: %w", i+1, len(fs), err))
 			}
 		}
 
-		return result.ErrorOrNil()
+		return errors.Join(result...)
 	}
 }
 
@@ -1596,7 +1658,7 @@ func modulePrimaryInstanceState(ms *terraform.ModuleState, name string) (*terraf
 // modulePathPrimaryInstanceState returns the primary instance state for the
 // given resource name in a given module path.
 func modulePathPrimaryInstanceState(s *terraform.State, mp addrs.ModuleInstance, name string) (*terraform.InstanceState, error) {
-	ms := s.ModuleByPath(mp)
+	ms := s.ModuleByPath(mp) //nolint:staticcheck // legacy usage
 	if ms == nil {
 		return nil, fmt.Errorf("No module found at: %s", mp)
 	}
@@ -1607,7 +1669,7 @@ func modulePathPrimaryInstanceState(s *terraform.State, mp addrs.ModuleInstance,
 // primaryInstanceState returns the primary instance state for the given
 // resource name in the root module.
 func primaryInstanceState(s *terraform.State, name string) (*terraform.InstanceState, error) {
-	ms := s.RootModule()
+	ms := s.RootModule() //nolint:staticcheck // legacy usage
 	return modulePrimaryInstanceState(ms, name)
 }
 
@@ -1626,7 +1688,7 @@ func indexesIntoTypeSet(key string) bool {
 func checkIfIndexesIntoTypeSet(key string, f TestCheckFunc) TestCheckFunc {
 	return func(s *terraform.State) error {
 		err := f(s)
-		if err != nil && s.IsBinaryDrivenTest && indexesIntoTypeSet(key) {
+		if err != nil && indexesIntoTypeSet(key) {
 			return fmt.Errorf("Error in test check: %s\nTest check address %q likely indexes into TypeSet\nThis is currently not possible in the SDK", err, key)
 		}
 		return err
@@ -1636,7 +1698,7 @@ func checkIfIndexesIntoTypeSet(key string, f TestCheckFunc) TestCheckFunc {
 func checkIfIndexesIntoTypeSetPair(keyFirst, keySecond string, f TestCheckFunc) TestCheckFunc {
 	return func(s *terraform.State) error {
 		err := f(s)
-		if err != nil && s.IsBinaryDrivenTest && (indexesIntoTypeSet(keyFirst) || indexesIntoTypeSet(keySecond)) {
+		if err != nil && (indexesIntoTypeSet(keyFirst) || indexesIntoTypeSet(keySecond)) {
 			return fmt.Errorf("Error in test check: %s\nTest check address %q or %q likely indexes into TypeSet\nThis is currently not possible in the SDK", err, keyFirst, keySecond)
 		}
 		return err
