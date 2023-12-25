@@ -77,6 +77,9 @@ message BuildOptions {
   bool ExportPush = 26;
   bool ExportLoad = 27;
   moby.buildkit.v1.sourcepolicy.Policy SourcePolicy = 28;
+  string Ref = 29;
+  string GroupRef = 30;
+  repeated string Annotations = 31;
 }
 
 message ExportEntry {
@@ -192,6 +195,7 @@ message InitMessage {
 message InvokeConfig {
   repeated string Entrypoint = 1;
   repeated string Cmd = 2;
+  bool NoCmd = 11; // Do not set cmd but use the image's default
   repeated string Env = 3;
   string User = 4;
   bool NoUser = 5; // Do not set user but use the image's default

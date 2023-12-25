@@ -17,11 +17,13 @@ import (
 	"github.com/docker/buildx/util/confutil"
 	"github.com/docker/buildx/util/imagetools"
 	"github.com/docker/buildx/util/progress"
+	"github.com/docker/cli/opts"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	dockerclient "github.com/docker/docker/client"
+	"github.com/docker/docker/errdefs"
 	dockerarchive "github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -31,14 +33,25 @@ import (
 )
 
 const (
-	volumeStateSuffix = "_state"
+	volumeStateSuffix   = "_state"
+	buildkitdConfigFile = "buildkitd.toml"
 )
 
 type Driver struct {
 	driver.InitConfig
-	factory      driver.Factory
+	factory driver.Factory
+
+	// if you add fields, remember to update docs:
+	// https://github.com/docker/docs/blob/main/content/build/drivers/docker-container.md
 	netMode      string
 	image        string
+	memory       opts.MemBytes
+	memorySwap   opts.MemSwapBytes
+	cpuQuota     int64
+	cpuPeriod    int64
+	cpuShares    int64
+	cpusetCpus   string
+	cpusetMems   string
 	cgroupParent string
 	env          []string
 }
@@ -64,10 +77,7 @@ func (d *Driver) Bootstrap(ctx context.Context, l progress.Logger) error {
 			if err := d.start(ctx, sub); err != nil {
 				return err
 			}
-			if err := d.wait(ctx, sub); err != nil {
-				return err
-			}
-			return nil
+			return d.wait(ctx, sub)
 		})
 	})
 }
@@ -105,12 +115,10 @@ func (d *Driver) create(ctx context.Context, l progress.SubLogger) error {
 		Image: imageName,
 		Env:   d.env,
 	}
-	if d.InitConfig.BuildkitFlags != nil {
-		cfg.Cmd = d.InitConfig.BuildkitFlags
-	}
+	cfg.Cmd = getBuildkitFlags(d.InitConfig)
 
 	useInit := true // let it cleanup exited processes created by BuildKit's container API
-	if err := l.Wrap("creating container "+d.Name, func() error {
+	return l.Wrap("creating container "+d.Name, func() error {
 		hc := &container.HostConfig{
 			Privileged: true,
 			Mounts: []mount.Mount{
@@ -124,6 +132,27 @@ func (d *Driver) create(ctx context.Context, l progress.SubLogger) error {
 		}
 		if d.netMode != "" {
 			hc.NetworkMode = container.NetworkMode(d.netMode)
+		}
+		if d.memory != 0 {
+			hc.Resources.Memory = int64(d.memory)
+		}
+		if d.memorySwap != 0 {
+			hc.Resources.MemorySwap = int64(d.memorySwap)
+		}
+		if d.cpuQuota != 0 {
+			hc.Resources.CPUQuota = d.cpuQuota
+		}
+		if d.cpuPeriod != 0 {
+			hc.Resources.CPUPeriod = d.cpuPeriod
+		}
+		if d.cpuShares != 0 {
+			hc.Resources.CPUShares = d.cpuShares
+		}
+		if d.cpusetCpus != "" {
+			hc.Resources.CpusetCpus = d.cpusetCpus
+		}
+		if d.cpusetMems != "" {
+			hc.Resources.CpusetMems = d.cpusetMems
 		}
 		if info, err := d.DockerAPI.Info(ctx); err == nil {
 			if info.CgroupDriver == "cgroupfs" {
@@ -148,23 +177,19 @@ func (d *Driver) create(ctx context.Context, l progress.SubLogger) error {
 
 		}
 		_, err := d.DockerAPI.ContainerCreate(ctx, cfg, hc, &network.NetworkingConfig{}, nil, d.Name)
-		if err != nil {
+		if err != nil && !errdefs.IsConflict(err) {
 			return err
 		}
-		if err := d.copyToContainer(ctx, d.InitConfig.Files); err != nil {
-			return err
+		if err == nil {
+			if err := d.copyToContainer(ctx, d.InitConfig.Files); err != nil {
+				return err
+			}
+			if err := d.start(ctx, l); err != nil {
+				return err
+			}
 		}
-		if err := d.start(ctx, l); err != nil {
-			return err
-		}
-		if err := d.wait(ctx, l); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
+		return d.wait(ctx, l)
+	})
 }
 
 func (d *Driver) wait(ctx context.Context, l progress.SubLogger) error {
@@ -227,7 +252,9 @@ func (d *Driver) copyToContainer(ctx context.Context, files map[string][]byte) e
 		return err
 	}
 	defer srcArchive.Close()
-	return d.DockerAPI.CopyToContainer(ctx, d.Name, "/", srcArchive, dockertypes.CopyToContainerOptions{})
+
+	baseDir := path.Dir(confutil.DefaultBuildKitConfigDir)
+	return d.DockerAPI.CopyToContainer(ctx, d.Name, baseDir, srcArchive, dockertypes.CopyToContainerOptions{})
 }
 
 func (d *Driver) exec(ctx context.Context, cmd []string) (string, net.Conn, error) {
@@ -396,6 +423,10 @@ func (d *Driver) Features(ctx context.Context) map[driver.Feature]bool {
 	}
 }
 
+func (d *Driver) HostGatewayIP(ctx context.Context) (net.IP, error) {
+	return nil, errors.New("host-gateway is not supported by the docker-container driver")
+}
+
 func demuxConn(c net.Conn) net.Conn {
 	pr, pw := io.Pipe()
 	// TODO: rewrite parser with Reader() to avoid goroutine switch
@@ -439,15 +470,34 @@ func writeConfigFiles(m map[string][]byte) (_ string, err error) {
 			os.RemoveAll(tmpDir)
 		}
 	}()
+	configDir := filepath.Base(confutil.DefaultBuildKitConfigDir)
 	for f, dt := range m {
-		f = path.Join(confutil.DefaultBuildKitConfigDir, f)
-		p := filepath.Join(tmpDir, f)
-		if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
+		p := filepath.Join(tmpDir, configDir, f)
+		if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
 			return "", err
 		}
-		if err := os.WriteFile(p, dt, 0600); err != nil {
+		if err := os.WriteFile(p, dt, 0644); err != nil {
 			return "", err
 		}
 	}
 	return tmpDir, nil
+}
+
+func getBuildkitFlags(initConfig driver.InitConfig) []string {
+	flags := initConfig.BuildkitFlags
+	if _, ok := initConfig.Files[buildkitdConfigFile]; ok {
+		// There's no way for us to determine the appropriate default configuration
+		// path and the default path can vary depending on if the image is normal
+		// or rootless.
+		//
+		// In order to ensure that --config works, copy to a specific path and
+		// specify the location.
+		//
+		// This should be appended before the user-specified arguments
+		// so that this option could be overwritten by the user.
+		newFlags := make([]string, 0, len(flags)+2)
+		newFlags = append(newFlags, "--config", path.Join("/etc/buildkit", buildkitdConfigFile))
+		flags = append(newFlags, flags...)
+	}
+	return flags
 }

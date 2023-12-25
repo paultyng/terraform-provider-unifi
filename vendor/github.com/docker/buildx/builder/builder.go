@@ -13,6 +13,7 @@ import (
 	"github.com/docker/buildx/util/imagetools"
 	"github.com/docker/buildx/util/progress"
 	"github.com/docker/cli/cli/command"
+	"github.com/moby/buildkit/util/progress/progressui"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -157,13 +158,14 @@ func (b *Builder) Boot(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	printer, err := progress.NewPrinter(context.TODO(), os.Stderr, os.Stderr, progress.PrinterModeAuto)
+	printer, err := progress.NewPrinter(context.TODO(), os.Stderr, progressui.AutoMode)
 	if err != nil {
 		return false, err
 	}
 
 	baseCtx := ctx
 	eg, _ := errgroup.WithContext(ctx)
+	errCh := make(chan error, len(toBoot))
 	for _, idx := range toBoot {
 		func(idx int) {
 			eg.Go(func() error {
@@ -171,6 +173,7 @@ func (b *Builder) Boot(ctx context.Context) (bool, error) {
 				_, err := driver.Boot(ctx, baseCtx, b.nodes[idx].Driver, pw)
 				if err != nil {
 					b.nodes[idx].Err = err
+					errCh <- err
 				}
 				return nil
 			})
@@ -178,11 +181,15 @@ func (b *Builder) Boot(ctx context.Context) (bool, error) {
 	}
 
 	err = eg.Wait()
+	close(errCh)
 	err1 := printer.Wait()
 	if err == nil {
 		err = err1
 	}
 
+	if err == nil && len(errCh) == len(toBoot) {
+		return false, <-errCh
+	}
 	return true, err
 }
 
@@ -207,7 +214,7 @@ type driverFactory struct {
 }
 
 // Factory returns the driver factory.
-func (b *Builder) Factory(ctx context.Context) (_ driver.Factory, err error) {
+func (b *Builder) Factory(ctx context.Context, dialMeta map[string][]string) (_ driver.Factory, err error) {
 	b.driverFactory.once.Do(func() {
 		if b.Driver != "" {
 			b.driverFactory.Factory, err = driver.GetFactory(b.Driver, true)
@@ -230,7 +237,7 @@ func (b *Builder) Factory(ctx context.Context) (_ driver.Factory, err error) {
 			if _, err = dockerapi.Ping(ctx); err != nil {
 				return
 			}
-			b.driverFactory.Factory, err = driver.GetDefaultFactory(ctx, ep, dockerapi, false)
+			b.driverFactory.Factory, err = driver.GetDefaultFactory(ctx, ep, dockerapi, false, dialMeta)
 			if err != nil {
 				return
 			}

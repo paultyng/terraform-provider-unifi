@@ -66,7 +66,7 @@ type ProjectOptions struct {
 	// NOTE: For security, the loader does not automatically expose any
 	// process environment variables. For convenience, WithOsEnv can be
 	// used if appropriate.
-	Environment map[string]string
+	Environment types.Mapping
 
 	// EnvFiles are file paths to ".env" files with additional environment
 	// variable data.
@@ -194,7 +194,7 @@ func WithEnv(env []string) ProjectOptionsFn {
 	}
 }
 
-// WithDiscardEnvFiles sets discards the `env_file` section after resolving to
+// WithDiscardEnvFile sets discards the `env_file` section after resolving to
 // the `environment` section
 func WithDiscardEnvFile(o *ProjectOptions) error {
 	o.loadOptions = append(o.loadOptions, loader.WithDiscardEnvFiles)
@@ -207,6 +207,15 @@ func WithLoadOptions(loadOptions ...func(*loader.Options)) ProjectOptionsFn {
 		o.loadOptions = append(o.loadOptions, loadOptions...)
 		return nil
 	}
+}
+
+// WithDefaultProfiles uses the provided profiles (if any), and falls back to
+// profiles specified via the COMPOSE_PROFILES environment variable otherwise.
+func WithDefaultProfiles(profile ...string) ProjectOptionsFn {
+	if len(profile) == 0 {
+		profile = strings.Split(os.Getenv(consts.ComposeProfiles), ",")
+	}
+	return WithProfiles(profile)
 }
 
 // WithProfiles sets profiles to be activated
@@ -228,8 +237,9 @@ func WithOsEnv(o *ProjectOptions) error {
 	return nil
 }
 
-// WithEnvFile set an alternate env file
-// deprecated - use WithEnvFiles
+// WithEnvFile sets an alternate env file.
+//
+// Deprecated: use WithEnvFiles instead.
 func WithEnvFile(file string) ProjectOptionsFn {
 	var files []string
 	if file != "" {
@@ -256,11 +266,7 @@ func WithDotEnv(o *ProjectOptions) error {
 	if err != nil {
 		return err
 	}
-	for k, v := range envMap {
-		if _, set := o.Environment[k]; !set {
-			o.Environment[k] = v
-		}
-	}
+	o.Environment.Merge(envMap)
 	return nil
 }
 
@@ -320,6 +326,14 @@ func WithResourceLoader(r loader.ResourceLoader) ProjectOptionsFn {
 		})
 		return nil
 	}
+}
+
+// WithoutEnvironmentResolution disable environment resolution
+func WithoutEnvironmentResolution(o *ProjectOptions) error {
+	o.loadOptions = append(o.loadOptions, func(options *loader.Options) {
+		options.SkipResolveEnvironment = true
+	})
+	return nil
 }
 
 // DefaultFileNames defines the Compose file names for auto-discovery (in order of preference)
