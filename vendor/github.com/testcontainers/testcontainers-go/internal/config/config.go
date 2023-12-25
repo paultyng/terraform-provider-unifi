@@ -6,22 +6,31 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/magiconair/properties"
 )
 
-var tcConfig Config
-var tcConfigOnce *sync.Once = new(sync.Once)
+const ReaperDefaultImage = "testcontainers/ryuk:0.6.0"
+
+var (
+	tcConfig     Config
+	tcConfigOnce *sync.Once = new(sync.Once)
+)
 
 // Config represents the configuration for Testcontainers
 // testcontainersConfig {
 type Config struct {
-	Host               string `properties:"docker.host,default="`
-	TLSVerify          int    `properties:"docker.tls.verify,default=0"`
-	CertPath           string `properties:"docker.cert.path,default="`
-	RyukDisabled       bool   `properties:"ryuk.disabled,default=false"`
-	RyukPrivileged     bool   `properties:"ryuk.container.privileged,default=false"`
-	TestcontainersHost string `properties:"tc.host,default="`
+	Host                    string        `properties:"docker.host,default="`
+	TLSVerify               int           `properties:"docker.tls.verify,default=0"`
+	CertPath                string        `properties:"docker.cert.path,default="`
+	HubImageNamePrefix      string        `properties:"hub.image.name.prefix,default="`
+	RyukDisabled            bool          `properties:"ryuk.disabled,default=false"`
+	RyukPrivileged          bool          `properties:"ryuk.container.privileged,default=false"`
+	RyukReconnectionTimeout time.Duration `properties:"ryuk.reconnection.timeout,default=10s"`
+	RyukConnectionTimeout   time.Duration `properties:"ryuk.connection.timeout,default=1m"`
+	RyukVerbose             bool          `properties:"ryuk.verbose,default=false"`
+	TestcontainersHost      string        `properties:"tc.host,default="`
 }
 
 // }
@@ -62,9 +71,19 @@ func read() Config {
 			config.RyukDisabled = ryukDisabledEnv == "true"
 		}
 
+		hubImageNamePrefix := os.Getenv("TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX")
+		if hubImageNamePrefix != "" {
+			config.HubImageNamePrefix = hubImageNamePrefix
+		}
+
 		ryukPrivilegedEnv := os.Getenv("TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED")
 		if parseBool(ryukPrivilegedEnv) {
 			config.RyukPrivileged = ryukPrivilegedEnv == "true"
+		}
+
+		ryukVerboseEnv := os.Getenv("TESTCONTAINERS_RYUK_VERBOSE")
+		if parseBool(ryukVerboseEnv) {
+			config.RyukVerbose = ryukVerboseEnv == "true"
 		}
 
 		return config
@@ -87,14 +106,10 @@ func read() Config {
 		return applyEnvironmentConfiguration(config)
 	}
 
-	fmt.Printf("Testcontainers properties file has been found: %s\n", tcProp)
-
 	return applyEnvironmentConfiguration(config)
 }
 
 func parseBool(input string) bool {
-	if _, err := strconv.ParseBool(input); err == nil {
-		return true
-	}
-	return false
+	_, err := strconv.ParseBool(input)
+	return err == nil
 }

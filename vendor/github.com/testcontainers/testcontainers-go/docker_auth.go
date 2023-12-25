@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"net/url"
 	"os"
 
 	"github.com/cpuguy83/dockercfg"
 	"github.com/docker/docker/api/types/registry"
+
 	"github.com/testcontainers/testcontainers-go/internal/testcontainersdocker"
 )
 
@@ -23,18 +25,38 @@ func DockerImageAuth(ctx context.Context, image string) (string, registry.AuthCo
 		return reg, registry.AuthConfig{}, err
 	}
 
-	if cfg, ok := cfgs[reg]; ok {
+	if cfg, ok := getRegistryAuth(reg, cfgs); ok {
 		return reg, cfg, nil
 	}
 
 	return reg, registry.AuthConfig{}, dockercfg.ErrCredentialsNotFound
 }
 
+func getRegistryAuth(reg string, cfgs map[string]registry.AuthConfig) (registry.AuthConfig, bool) {
+	if cfg, ok := cfgs[reg]; ok {
+		return cfg, true
+	}
+
+	// fallback match using authentication key host
+	for k, cfg := range cfgs {
+		keyURL, err := url.Parse(k)
+		if err != nil {
+			continue
+		}
+
+		if keyURL.Host == reg {
+			return cfg, true
+		}
+	}
+
+	return registry.AuthConfig{}, false
+}
+
 // defaultRegistry returns the default registry to use when pulling images
 // It will use the docker daemon to get the default registry, returning "https://index.docker.io/v1/" if
 // it fails to get the information from the daemon
 func defaultRegistry(ctx context.Context) string {
-	client, err := testcontainersdocker.NewClient(ctx)
+	client, err := NewDockerClientWithOpts(ctx)
 	if err != nil {
 		return testcontainersdocker.IndexDockerIO
 	}
