@@ -3,6 +3,7 @@ package printers
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/golangci/golangci-lint/pkg/result"
 )
@@ -14,7 +15,7 @@ type github struct {
 const defaultGithubSeverity = "error"
 
 // NewGithub output format outputs issues according to GitHub actions format:
-// https://help.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
+// https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-error-message
 func NewGithub(w io.Writer) Printer {
 	return &github{w: w}
 }
@@ -26,7 +27,12 @@ func formatIssueAsGithub(issue *result.Issue) string {
 		severity = issue.Severity
 	}
 
-	ret := fmt.Sprintf("::%s file=%s,line=%d", severity, issue.FilePath(), issue.Line())
+	// Convert backslashes to forward slashes.
+	// This is needed when running on windows.
+	// Otherwise, GitHub won't be able to show the annotations pointing to the file path with backslashes.
+	file := filepath.ToSlash(issue.FilePath())
+
+	ret := fmt.Sprintf("::%s file=%s,line=%d", severity, file, issue.Line())
 	if issue.Pos.Column != 0 {
 		ret += fmt.Sprintf(",col=%d", issue.Pos.Column)
 	}

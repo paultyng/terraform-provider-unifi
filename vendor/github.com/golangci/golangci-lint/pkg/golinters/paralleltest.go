@@ -9,20 +9,21 @@ import (
 )
 
 func NewParallelTest(settings *config.ParallelTestSettings) *goanalysis.Linter {
-	a := paralleltest.Analyzer
+	a := paralleltest.NewAnalyzer()
 
 	var cfg map[string]map[string]any
 	if settings != nil {
 		cfg = map[string]map[string]any{
 			a.Name: {
-				"i": settings.IgnoreMissing,
+				"i":                     settings.IgnoreMissing,
+				"ignoremissingsubtests": settings.IgnoreMissingSubtests,
 			},
 		}
 	}
 
 	return goanalysis.NewLinter(
-		"paralleltest",
-		"paralleltest detects missing usage of t.Parallel() method in your Go test",
+		a.Name,
+		"Detects missing usage of t.Parallel() method in your Go test",
 		[]*analysis.Analyzer{a},
 		cfg,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)

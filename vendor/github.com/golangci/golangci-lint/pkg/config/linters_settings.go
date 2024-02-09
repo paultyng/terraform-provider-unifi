@@ -74,6 +74,9 @@ var defaultLintersSettings = LintersSettings{
 		MaxDeclLines: 1,
 		MaxDeclChars: 30,
 	},
+	Inamedparam: INamedParamSettings{
+		SkipSingleParam: false,
+	},
 	InterfaceBloat: InterfaceBloatSettings{
 		Max: 10,
 	},
@@ -104,6 +107,12 @@ var defaultLintersSettings = LintersSettings{
 		RequireSpecific:    false,
 		AllowUnused:        false,
 	},
+	PerfSprint: PerfSprintSettings{
+		IntConversion: true,
+		ErrError:      false,
+		ErrorF:        true,
+		SprintF1:      true,
+	},
 	Prealloc: PreallocSettings{
 		Simple:     true,
 		RangeLoops: true,
@@ -113,10 +122,21 @@ var defaultLintersSettings = LintersSettings{
 		Ignore:    "",
 		Qualified: false,
 	},
+	SlogLint: SlogLintSettings{
+		NoMixedArgs:    true,
+		KVOnly:         false,
+		AttrOnly:       false,
+		ContextOnly:    false,
+		StaticMsg:      false,
+		NoRawKeys:      false,
+		KeyNamingCase:  "",
+		ArgsOnSepLines: false,
+	},
 	TagAlign: TagAlignSettings{
-		Align: true,
-		Sort:  true,
-		Order: nil,
+		Align:  true,
+		Sort:   true,
+		Order:  nil,
+		Strict: false,
 	},
 	Testpackage: TestpackageSettings{
 		SkipRegexp:    `(export|internal)_test\.go`,
@@ -124,6 +144,15 @@ var defaultLintersSettings = LintersSettings{
 	},
 	Unparam: UnparamSettings{
 		Algo: "cha",
+	},
+	Unused: UnusedSettings{
+		FieldWritesAreUses:     true,
+		PostStatementsAreReads: false,
+		ExportedIsUsed:         true,
+		ExportedFieldsAreUsed:  true,
+		ParametersAreUsed:      true,
+		LocalVariablesAreUsed:  true,
+		GeneratedIsUsed:        true,
 	},
 	UseStdlibVars: UseStdlibVarsSettings{
 		HTTPMethod:     true,
@@ -190,6 +219,7 @@ type LintersSettings struct {
 	Grouper          GrouperSettings
 	Ifshort          IfshortSettings
 	ImportAs         ImportAsSettings
+	Inamedparam      INamedParamSettings
 	InterfaceBloat   InterfaceBloatSettings
 	Ireturn          IreturnSettings
 	Lll              LllSettings
@@ -206,21 +236,27 @@ type LintersSettings struct {
 	NoLintLint       NoLintLintSettings
 	NoNamedReturns   NoNamedReturnsSettings
 	ParallelTest     ParallelTestSettings
+	PerfSprint       PerfSprintSettings
 	Prealloc         PreallocSettings
 	Predeclared      PredeclaredSettings
 	Promlinter       PromlinterSettings
+	ProtoGetter      ProtoGetterSettings
 	Reassign         ReassignSettings
 	Revive           ReviveSettings
 	RowsErrCheck     RowsErrCheckSettings
+	SlogLint         SlogLintSettings
+	Spancheck        SpancheckSettings
 	Staticcheck      StaticCheckSettings
 	Structcheck      StructCheckSettings
 	Stylecheck       StaticCheckSettings
 	TagAlign         TagAlignSettings
 	Tagliatelle      TagliatelleSettings
 	Tenv             TenvSettings
+	Testifylint      TestifylintSettings
 	Testpackage      TestpackageSettings
 	Thelper          ThelperSettings
 	Unparam          UnparamSettings
+	Unused           UnusedSettings
 	UseStdlibVars    UseStdlibVarsSettings
 	Varcheck         VarCheckSettings
 	Varnamelen       VarnamelenSettings
@@ -260,9 +296,10 @@ type DepGuardSettings struct {
 }
 
 type DepGuardList struct {
-	Files []string       `mapstructure:"files"`
-	Allow []string       `mapstructure:"allow"`
-	Deny  []DepGuardDeny `mapstructure:"deny"`
+	ListMode string         `mapstructure:"list-mode"`
+	Files    []string       `mapstructure:"files"`
+	Allow    []string       `mapstructure:"allow"`
+	Deny     []DepGuardDeny `mapstructure:"deny"`
 }
 
 type DepGuardDeny struct {
@@ -272,7 +309,11 @@ type DepGuardDeny struct {
 
 type DecorderSettings struct {
 	DecOrder                  []string `mapstructure:"dec-order"`
+	IgnoreUnderscoreVars      bool     `mapstructure:"ignore-underscore-vars"`
 	DisableDecNumCheck        bool     `mapstructure:"disable-dec-num-check"`
+	DisableTypeDecNumCheck    bool     `mapstructure:"disable-type-dec-num-check"`
+	DisableConstDecNumCheck   bool     `mapstructure:"disable-const-dec-num-check"`
+	DisableVarDecNumCheck     bool     `mapstructure:"disable-var-dec-num-check"`
 	DisableDecOrderCheck      bool     `mapstructure:"disable-dec-order-check"`
 	DisableInitFuncFirstCheck bool     `mapstructure:"disable-init-func-first-check"`
 }
@@ -287,6 +328,7 @@ type DuplSettings struct {
 
 type DupWordSettings struct {
 	Keywords []string `mapstructure:"keywords"`
+	Ignore   []string `mapstructure:"ignore"`
 }
 
 type ErrcheckSettings struct {
@@ -321,6 +363,7 @@ type ExhaustiveSettings struct {
 	PackageScopeOnly           bool     `mapstructure:"package-scope-only"`
 	ExplicitExhaustiveMap      bool     `mapstructure:"explicit-exhaustive-map"`
 	ExplicitExhaustiveSwitch   bool     `mapstructure:"explicit-exhaustive-switch"`
+	DefaultCaseRequired        bool     `mapstructure:"default-case-required"`
 }
 
 type ExhaustiveStructSettings struct {
@@ -375,8 +418,9 @@ func (p *ForbidigoPattern) MarshalString() ([]byte, error) {
 }
 
 type FunlenSettings struct {
-	Lines      int
-	Statements int
+	Lines          int
+	Statements     int
+	IgnoreComments bool `mapstructure:"ignore-comments"`
 }
 
 type GciSettings struct {
@@ -387,12 +431,14 @@ type GciSettings struct {
 }
 
 type GinkgoLinterSettings struct {
-	SuppressLenAssertion     bool `mapstructure:"suppress-len-assertion"`
-	SuppressNilAssertion     bool `mapstructure:"suppress-nil-assertion"`
-	SuppressErrAssertion     bool `mapstructure:"suppress-err-assertion"`
-	SuppressCompareAssertion bool `mapstructure:"suppress-compare-assertion"`
-	SuppressAsyncAssertion   bool `mapstructure:"suppress-async-assertion"`
-	AllowHaveLenZero         bool `mapstructure:"allow-havelen-zero"`
+	SuppressLenAssertion       bool `mapstructure:"suppress-len-assertion"`
+	SuppressNilAssertion       bool `mapstructure:"suppress-nil-assertion"`
+	SuppressErrAssertion       bool `mapstructure:"suppress-err-assertion"`
+	SuppressCompareAssertion   bool `mapstructure:"suppress-compare-assertion"`
+	SuppressAsyncAssertion     bool `mapstructure:"suppress-async-assertion"`
+	SuppressTypeCompareWarning bool `mapstructure:"suppress-type-compare-assertion"`
+	ForbidFocusContainer       bool `mapstructure:"forbid-focus-container"`
+	AllowHaveLenZero           bool `mapstructure:"allow-havelen-zero"`
 }
 
 type GocognitSettings struct {
@@ -400,14 +446,15 @@ type GocognitSettings struct {
 }
 
 type GoConstSettings struct {
-	IgnoreTests         bool `mapstructure:"ignore-tests"`
-	MatchWithConstants  bool `mapstructure:"match-constant"`
-	MinStringLen        int  `mapstructure:"min-len"`
-	MinOccurrencesCount int  `mapstructure:"min-occurrences"`
-	ParseNumbers        bool `mapstructure:"numbers"`
-	NumberMin           int  `mapstructure:"min"`
-	NumberMax           int  `mapstructure:"max"`
-	IgnoreCalls         bool `mapstructure:"ignore-calls"`
+	IgnoreStrings       string `mapstructure:"ignore-strings"`
+	IgnoreTests         bool   `mapstructure:"ignore-tests"`
+	MatchWithConstants  bool   `mapstructure:"match-constant"`
+	MinStringLen        int    `mapstructure:"min-len"`
+	MinOccurrencesCount int    `mapstructure:"min-occurrences"`
+	ParseNumbers        bool   `mapstructure:"numbers"`
+	NumberMin           int    `mapstructure:"min"`
+	NumberMax           int    `mapstructure:"max"`
+	IgnoreCalls         bool   `mapstructure:"ignore-calls"`
 }
 
 type GoCriticSettings struct {
@@ -572,6 +619,10 @@ type ImportAsAlias struct {
 	Alias string
 }
 
+type INamedParamSettings struct {
+	SkipSingleParam bool `mapstructure:"skip-single-param"`
+}
+
 type InterfaceBloatSettings struct {
 	Max int `mapstructure:"max"`
 }
@@ -609,7 +660,9 @@ type MalignedSettings struct {
 }
 
 type MisspellSettings struct {
-	Locale      string
+	Mode   string `mapstructure:"mode"`
+	Locale string
+	// TODO(ldez): v2 the option must be renamed to `IgnoredRules`.
 	IgnoreWords []string `mapstructure:"ignore-words"`
 }
 
@@ -647,8 +700,17 @@ type NoLintLintSettings struct {
 type NoNamedReturnsSettings struct {
 	ReportErrorInDefer bool `mapstructure:"report-error-in-defer"`
 }
+
 type ParallelTestSettings struct {
-	IgnoreMissing bool `mapstructure:"ignore-missing"`
+	IgnoreMissing         bool `mapstructure:"ignore-missing"`
+	IgnoreMissingSubtests bool `mapstructure:"ignore-missing-subtests"`
+}
+
+type PerfSprintSettings struct {
+	IntConversion bool `mapstructure:"int-conversion"`
+	ErrError      bool `mapstructure:"err-error"`
+	ErrorF        bool `mapstructure:"errorf"`
+	SprintF1      bool `mapstructure:"sprintf1"`
 }
 
 type PreallocSettings struct {
@@ -665,6 +727,13 @@ type PredeclaredSettings struct {
 type PromlinterSettings struct {
 	Strict          bool     `mapstructure:"strict"`
 	DisabledLinters []string `mapstructure:"disabled-linters"`
+}
+
+type ProtoGetterSettings struct {
+	SkipGeneratedBy         []string `mapstructure:"skip-generated-by"`
+	SkipFiles               []string `mapstructure:"skip-files"`
+	SkipAnyGenerated        bool     `mapstructure:"skip-any-generated"`
+	ReplaceFirstArgInAppend bool     `mapstructure:"replace-first-arg-in-append"`
 }
 
 type ReassignSettings struct {
@@ -695,6 +764,22 @@ type RowsErrCheckSettings struct {
 	Packages []string
 }
 
+type SlogLintSettings struct {
+	NoMixedArgs    bool   `mapstructure:"no-mixed-args"`
+	KVOnly         bool   `mapstructure:"kv-only"`
+	AttrOnly       bool   `mapstructure:"attr-only"`
+	ContextOnly    bool   `mapstructure:"context-only"`
+	StaticMsg      bool   `mapstructure:"static-msg"`
+	NoRawKeys      bool   `mapstructure:"no-raw-keys"`
+	KeyNamingCase  string `mapstructure:"key-naming-case"`
+	ArgsOnSepLines bool   `mapstructure:"args-on-sep-lines"`
+}
+
+type SpancheckSettings struct {
+	Checks                []string `mapstructure:"checks"`
+	IgnoreCheckSignatures []string `mapstructure:"ignore-check-signatures"`
+}
+
 type StaticCheckSettings struct {
 	// Deprecated: use the global `run.go` instead.
 	GoVersion string `mapstructure:"go"`
@@ -714,9 +799,10 @@ type StructCheckSettings struct {
 }
 
 type TagAlignSettings struct {
-	Align bool     `mapstructure:"align"`
-	Sort  bool     `mapstructure:"sort"`
-	Order []string `mapstructure:"order"`
+	Align  bool     `mapstructure:"align"`
+	Sort   bool     `mapstructure:"sort"`
+	Order  []string `mapstructure:"order"`
+	Strict bool     `mapstructure:"strict"`
 }
 
 type TagliatelleSettings struct {
@@ -724,6 +810,25 @@ type TagliatelleSettings struct {
 		Rules        map[string]string
 		UseFieldName bool `mapstructure:"use-field-name"`
 	}
+}
+
+type TestifylintSettings struct {
+	EnableAll        bool     `mapstructure:"enable-all"`
+	DisableAll       bool     `mapstructure:"disable-all"`
+	EnabledCheckers  []string `mapstructure:"enable"`
+	DisabledCheckers []string `mapstructure:"disable"`
+
+	ExpectedActual struct {
+		ExpVarPattern string `mapstructure:"pattern"`
+	} `mapstructure:"expected-actual"`
+
+	RequireError struct {
+		FnPattern string `mapstructure:"fn-pattern"`
+	} `mapstructure:"require-error"`
+
+	SuiteExtraAssertCall struct {
+		Mode string `mapstructure:"mode"`
+	} `mapstructure:"suite-extra-assert-call"`
 }
 
 type TestpackageSettings struct {
@@ -766,6 +871,16 @@ type UseStdlibVarsSettings struct {
 type UnparamSettings struct {
 	CheckExported bool `mapstructure:"check-exported"`
 	Algo          string
+}
+
+type UnusedSettings struct {
+	FieldWritesAreUses     bool `mapstructure:"field-writes-are-uses"`
+	PostStatementsAreReads bool `mapstructure:"post-statements-are-reads"`
+	ExportedIsUsed         bool `mapstructure:"exported-is-used"`
+	ExportedFieldsAreUsed  bool `mapstructure:"exported-fields-are-used"`
+	ParametersAreUsed      bool `mapstructure:"parameters-are-used"`
+	LocalVariablesAreUsed  bool `mapstructure:"local-variables-are-used"`
+	GeneratedIsUsed        bool `mapstructure:"generated-is-used"`
 }
 
 type VarCheckSettings struct {
@@ -828,6 +943,9 @@ type CustomLinterSettings struct {
 	Path string
 	// Description describes the purpose of the private linter.
 	Description string
-	// The URL containing the source code for the private linter.
+	// OriginalURL The URL containing the source code for the private linter.
 	OriginalURL string `mapstructure:"original-url"`
+
+	// Settings plugin settings only work with linterdb.PluginConstructor symbol.
+	Settings any
 }

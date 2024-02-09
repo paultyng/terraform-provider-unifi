@@ -119,7 +119,7 @@ func formatMemory(memBytes uint64) string {
 
 func getDefaultConcurrency() int {
 	if os.Getenv(envHelpRun) == "1" {
-		// Make stable concurrency for README help generating builds.
+		// Make stable concurrency for generating help documentation.
 		const prettyConcurrency = 8
 		return prettyConcurrency
 	}
@@ -149,10 +149,10 @@ func (e *Executor) needVersionOption() bool {
 }
 
 func initRootFlagSet(fs *pflag.FlagSet, cfg *config.Config, needVersionOption bool) {
-	fs.BoolVarP(&cfg.Run.IsVerbose, "verbose", "v", false, wh("verbose output"))
+	fs.BoolVarP(&cfg.Run.IsVerbose, "verbose", "v", false, wh("Verbose output"))
 
 	var silent bool
-	fs.BoolVarP(&silent, "silent", "s", false, wh("disables congrats outputs"))
+	fs.BoolVarP(&silent, "silent", "s", false, wh("Disables congrats outputs"))
 	if err := fs.MarkHidden("silent"); err != nil {
 		panic(err)
 	}
@@ -165,7 +165,8 @@ func initRootFlagSet(fs *pflag.FlagSet, cfg *config.Config, needVersionOption bo
 	fs.StringVar(&cfg.Run.CPUProfilePath, "cpu-profile-path", "", wh("Path to CPU profile output file"))
 	fs.StringVar(&cfg.Run.MemProfilePath, "mem-profile-path", "", wh("Path to memory profile output file"))
 	fs.StringVar(&cfg.Run.TracePath, "trace-path", "", wh("Path to trace output file"))
-	fs.IntVarP(&cfg.Run.Concurrency, "concurrency", "j", getDefaultConcurrency(), wh("Concurrency (default NumCPU)"))
+	fs.IntVarP(&cfg.Run.Concurrency, "concurrency", "j", getDefaultConcurrency(),
+		wh("Number of CPUs to use (Default: number of logical CPUs)"))
 	if needVersionOption {
 		fs.BoolVar(&cfg.Run.PrintVersion, "version", false, wh("Print version"))
 	}
