@@ -14,6 +14,8 @@ import (
 	"github.com/paultyng/go-unifi/unifi"
 )
 
+const adoptionTimeout = 5 * time.Minute
+
 func resourceDevice() *schema.Resource {
 	return &schema.Resource{
 		Description: "`unifi_device` manages a device of the network.\n\n" +
@@ -99,7 +101,7 @@ func resourceDevice() *schema.Resource {
 							},
 						},
 						"poe_mode": {
-							Description: "PoE mode of the port; valid values are `auto`, `pasv24`, `passthrough`, and `off`.",
+							Description:  "PoE mode of the port; valid values are `auto`, `pasv24`, `passthrough`, and `off`.",
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validation.StringInSlice([]string{"auto", "pasv24", "passthrough", "off"}, false),
@@ -205,7 +207,7 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 			return diag.FromErr(err)
 		}
 
-		device, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStateConnected, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStatePending, unifi.DeviceStateProvisioning, unifi.DeviceStateUpgrading}, 2*time.Minute)
+		device, err = waitForDeviceState(ctx, d, meta, unifi.DeviceStateConnected, []unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStatePending, unifi.DeviceStateProvisioning, unifi.DeviceStateUpgrading}, adoptionTimeout)
 		if err != nil {
 			return diag.FromErr(err)
 		}
