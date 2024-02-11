@@ -116,10 +116,7 @@ func dataUserRead(ctx context.Context, d *schema.ResourceData, meta interface{})
 	if resp.UseFixedIP {
 		fixedIP = resp.FixedIP
 	}
-	localDnsRecord := ""
-	if resp.LocalDNSRecordEnabled {
-		localDnsRecord = resp.LocalDNSRecord
-	}
+
 	d.SetId(resp.ID)
 	d.Set("site", site)
 	d.Set("mac", resp.MAC)
@@ -132,7 +129,12 @@ func dataUserRead(ctx context.Context, d *schema.ResourceData, meta interface{})
 	d.Set("dev_id_override", resp.DevIdOverride)
 	d.Set("hostname", resp.Hostname)
 	d.Set("ip", resp.IP)
-	d.Set("ip", localDnsRecord)
+
+	localDnsRecord := ""
+	if resp.LocalDNSRecordEnabled {
+		localDnsRecord = resp.LocalDNSRecord
+		d.Set("ip", localDnsRecord)
+	}
 
 	return nil
 }
