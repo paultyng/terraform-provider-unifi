@@ -886,7 +886,7 @@ github.com/hashicorp/terraform-plugin-sdk/v2/internal/tfdiags
 github.com/hashicorp/terraform-plugin-sdk/v2/meta
 github.com/hashicorp/terraform-plugin-sdk/v2/plugin
 github.com/hashicorp/terraform-plugin-sdk/v2/terraform
-# github.com/hashicorp/terraform-plugin-testing v1.3.0
+# github.com/hashicorp/terraform-plugin-testing v1.4.0
 ## explicit; go 1.19
 github.com/hashicorp/terraform-plugin-testing/helper/acctest
 github.com/hashicorp/terraform-plugin-testing/helper/resource
@@ -899,6 +899,7 @@ github.com/hashicorp/terraform-plugin-testing/internal/plugintest
 github.com/hashicorp/terraform-plugin-testing/internal/tfdiags
 github.com/hashicorp/terraform-plugin-testing/plancheck
 github.com/hashicorp/terraform-plugin-testing/terraform
+github.com/hashicorp/terraform-plugin-testing/tfjsonpath
 github.com/hashicorp/terraform-plugin-testing/tfversion
 # github.com/hashicorp/terraform-registry-address v0.2.2
 ## explicit; go 1.19
@@ -1213,7 +1214,7 @@ github.com/opencontainers/image-spec/specs-go/v1
 # github.com/opencontainers/runc v1.1.12
 ## explicit; go 1.17
 github.com/opencontainers/runc/libcontainer/user
-# github.com/paultyng/go-unifi v1.32.0
+# github.com/paultyng/go-unifi v1.33.0
 ## explicit; go 1.18
 github.com/paultyng/go-unifi/unifi
 # github.com/pelletier/go-toml v1.9.5
@@ -1602,8 +1603,8 @@ go.opentelemetry.io/proto/otlp/trace/v1
 # go.uber.org/atomic v1.10.0
 ## explicit; go 1.18
 go.uber.org/atomic
-# go.uber.org/multierr v1.8.0
-## explicit; go 1.14
+# go.uber.org/multierr v1.9.0
+## explicit; go 1.19
 go.uber.org/multierr
 # go.uber.org/zap v1.24.0
 ## explicit; go 1.19

@@ -66,6 +66,12 @@ func resourcePortProfile() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 			},
+			"excluded_networkconf_ids": {
+				Description: "The IDs of networks to block traffic for this port profile.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"forward": {
 				Description:  "The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`.",
 				Type:         schema.TypeString,
@@ -157,6 +163,12 @@ func resourcePortProfile() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.IntBetween(0, 100),
 			},
+			"show_traffic_restriction_as_allowlist": {
+				Description: "Show the Traffic Restriction as allow list. This only affect to the UI, the list need to be configured on `excluded_networkconf_ids` as black list.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 			"speed": {
 				Description:  "The link speed to set for the port profile. Can be one of `10`, `100`, `1000`, `2500`, `5000`, `10000`, `20000`, `25000`, `40000`, `50000` or `100000`",
 				Type:         schema.TypeInt,
@@ -232,13 +244,6 @@ func resourcePortProfile() *schema.Resource {
 				Optional:    true,
 				Default:     true,
 			},
-			// TODO: renamed to tagged_network_ids
-			"tagged_networkconf_ids": {
-				Description: "The IDs of networks to tag traffic with for the port profile.",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
 			// TODO: rename to voice_network_id
 			"voice_networkconf_id": {
 				Description: "The ID of network to use as the voice network on the port profile.",
@@ -277,46 +282,47 @@ func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProf
 		return nil, err
 	}
 
-	taggedNetworkconfIds, err := setToStringSlice(d.Get("tagged_networkconf_ids").(*schema.Set))
+	excludedNetworkIds, err := setToStringSlice(d.Get("excluded_networkconf_ids").(*schema.Set))
 	if err != nil {
 		return nil, err
 	}
 
 	return &unifi.PortProfile{
-		Autoneg:                      d.Get("autoneg").(bool),
-		Dot1XCtrl:                    d.Get("dot1x_ctrl").(string),
-		Dot1XIDleTimeout:             d.Get("dot1x_idle_timeout").(int),
-		EgressRateLimitKbps:          d.Get("egress_rate_limit_kbps").(int),
-		EgressRateLimitKbpsEnabled:   d.Get("egress_rate_limit_kbps_enabled").(bool),
-		Forward:                      d.Get("forward").(string),
-		FullDuplex:                   d.Get("full_duplex").(bool),
-		Isolation:                    d.Get("isolation").(bool),
-		LldpmedEnabled:               d.Get("lldpmed_enabled").(bool),
-		LldpmedNotifyEnabled:         d.Get("lldpmed_notify_enabled").(bool),
-		NATiveNetworkID:              d.Get("native_networkconf_id").(string),
-		Name:                         d.Get("name").(string),
-		OpMode:                       d.Get("op_mode").(string),
-		PoeMode:                      d.Get("poe_mode").(string),
-		PortSecurityEnabled:          d.Get("port_security_enabled").(bool),
-		PortSecurityMACAddress:       portSecurityMacAddress,
-		PriorityQueue1Level:          d.Get("priority_queue1_level").(int),
-		PriorityQueue2Level:          d.Get("priority_queue2_level").(int),
-		PriorityQueue3Level:          d.Get("priority_queue3_level").(int),
-		PriorityQueue4Level:          d.Get("priority_queue4_level").(int),
-		Speed:                        d.Get("speed").(int),
-		StormctrlBroadcastastEnabled: d.Get("stormctrl_bcast_enabled").(bool),
-		StormctrlBroadcastastLevel:   d.Get("stormctrl_bcast_level").(int),
-		StormctrlBroadcastastRate:    d.Get("stormctrl_bcast_rate").(int),
-		StormctrlMcastEnabled:        d.Get("stormctrl_mcast_enabled").(bool),
-		StormctrlMcastLevel:          d.Get("stormctrl_mcast_level").(int),
-		StormctrlMcastRate:           d.Get("stormctrl_mcast_rate").(int),
-		StormctrlType:                d.Get("stormctrl_type").(string),
-		StormctrlUcastEnabled:        d.Get("stormctrl_ucast_enabled").(bool),
-		StormctrlUcastLevel:          d.Get("stormctrl_ucast_level").(int),
-		StormctrlUcastRate:           d.Get("stormctrl_ucast_rate").(int),
-		StpPortMode:                  d.Get("stp_port_mode").(bool),
-		TaggedNetworkIDs:             taggedNetworkconfIds,
-		VoiceNetworkID:               d.Get("voice_networkconf_id").(string),
+		Autoneg:                           d.Get("autoneg").(bool),
+		Dot1XCtrl:                         d.Get("dot1x_ctrl").(string),
+		Dot1XIDleTimeout:                  d.Get("dot1x_idle_timeout").(int),
+		EgressRateLimitKbps:               d.Get("egress_rate_limit_kbps").(int),
+		EgressRateLimitKbpsEnabled:        d.Get("egress_rate_limit_kbps_enabled").(bool),
+		Forward:                           d.Get("forward").(string),
+		ExcludedNetworkIDs:                excludedNetworkIds,
+		FullDuplex:                        d.Get("full_duplex").(bool),
+		Isolation:                         d.Get("isolation").(bool),
+		LldpmedEnabled:                    d.Get("lldpmed_enabled").(bool),
+		LldpmedNotifyEnabled:              d.Get("lldpmed_notify_enabled").(bool),
+		NATiveNetworkID:                   d.Get("native_networkconf_id").(string),
+		Name:                              d.Get("name").(string),
+		OpMode:                            d.Get("op_mode").(string),
+		PoeMode:                           d.Get("poe_mode").(string),
+		PortSecurityEnabled:               d.Get("port_security_enabled").(bool),
+		PortSecurityMACAddress:            portSecurityMacAddress,
+		PriorityQueue1Level:               d.Get("priority_queue1_level").(int),
+		PriorityQueue2Level:               d.Get("priority_queue2_level").(int),
+		PriorityQueue3Level:               d.Get("priority_queue3_level").(int),
+		PriorityQueue4Level:               d.Get("priority_queue4_level").(int),
+		ShowTrafficRestrictionAsAllowlist: d.Get("show_traffic_restriction_as_allowlist").(bool),
+		Speed:                             d.Get("speed").(int),
+		StormctrlBroadcastastEnabled:      d.Get("stormctrl_bcast_enabled").(bool),
+		StormctrlBroadcastastLevel:        d.Get("stormctrl_bcast_level").(int),
+		StormctrlBroadcastastRate:         d.Get("stormctrl_bcast_rate").(int),
+		StormctrlMcastEnabled:             d.Get("stormctrl_mcast_enabled").(bool),
+		StormctrlMcastLevel:               d.Get("stormctrl_mcast_level").(int),
+		StormctrlMcastRate:                d.Get("stormctrl_mcast_rate").(int),
+		StormctrlType:                     d.Get("stormctrl_type").(string),
+		StormctrlUcastEnabled:             d.Get("stormctrl_ucast_enabled").(bool),
+		StormctrlUcastLevel:               d.Get("stormctrl_ucast_level").(int),
+		StormctrlUcastRate:                d.Get("stormctrl_ucast_rate").(int),
+		StpPortMode:                       d.Get("stp_port_mode").(bool),
+		VoiceNetworkID:                    d.Get("voice_networkconf_id").(string),
 	}, nil
 }
 
@@ -328,6 +334,7 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	d.Set("egress_rate_limit_kbps", resp.EgressRateLimitKbps)
 	d.Set("egress_rate_limit_kbps_enabled", resp.EgressRateLimitKbpsEnabled)
 	d.Set("forward", resp.Forward)
+	d.Set("excluded_networkconf_ids", stringSliceToSet(resp.ExcludedNetworkIDs))
 	d.Set("full_duplex", resp.FullDuplex)
 	d.Set("isolation", resp.Isolation)
 	d.Set("lldpmed_enabled", resp.LldpmedEnabled)
@@ -342,6 +349,7 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	d.Set("priority_queue2_level", resp.PriorityQueue2Level)
 	d.Set("priority_queue3_level", resp.PriorityQueue3Level)
 	d.Set("priority_queue4_level", resp.PriorityQueue4Level)
+	d.Set("show_traffic_restriction_as_allowlist", resp.ShowTrafficRestrictionAsAllowlist)
 	d.Set("speed", resp.Speed)
 	d.Set("stormctrl_bcast_enabled", resp.StormctrlBroadcastastEnabled)
 	d.Set("stormctrl_bcast_level", resp.StormctrlBroadcastastLevel)
@@ -354,7 +362,6 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	d.Set("stormctrl_ucast_level", resp.StormctrlUcastLevel)
 	d.Set("stormctrl_ucast_rate", resp.StormctrlUcastRate)
 	d.Set("stp_port_mode", resp.StpPortMode)
-	d.Set("tagged_networkconf_ids", stringSliceToSet(resp.TaggedNetworkIDs))
 	d.Set("voice_networkconf_id", resp.VoiceNetworkID)
 
 	return nil
