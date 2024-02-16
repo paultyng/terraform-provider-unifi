@@ -20,7 +20,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/compose-spec/compose-go/types"
+	"github.com/docker/compose/v2/pkg/utils"
+
+	"github.com/compose-spec/compose-go/v2/types"
 	moby "github.com/docker/docker/api/types"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -56,23 +58,19 @@ func ProjectOptions(proj *types.Project) SpanOptions {
 		return nil
 	}
 
-	disabledServiceNames := make([]string, len(proj.DisabledServices))
-	for i := range proj.DisabledServices {
-		disabledServiceNames[i] = proj.DisabledServices[i].Name
-	}
-
 	attrs := []attribute.KeyValue{
 		attribute.String("project.name", proj.Name),
 		attribute.String("project.dir", proj.WorkingDir),
 		attribute.StringSlice("project.compose_files", proj.ComposeFiles),
 		attribute.StringSlice("project.services.active", proj.ServiceNames()),
-		attribute.StringSlice("project.services.disabled", disabledServiceNames),
+		attribute.StringSlice("project.services.disabled", proj.DisabledServiceNames()),
 		attribute.StringSlice("project.profiles", proj.Profiles),
 		attribute.StringSlice("project.volumes", proj.VolumeNames()),
 		attribute.StringSlice("project.networks", proj.NetworkNames()),
 		attribute.StringSlice("project.secrets", proj.SecretNames()),
 		attribute.StringSlice("project.configs", proj.ConfigNames()),
 		attribute.StringSlice("project.extensions", keys(proj.Extensions)),
+		attribute.StringSlice("project.includes", flattenIncludeReferences(proj.IncludeReferences)),
 	}
 	return []trace.SpanStartEventOption{
 		trace.WithAttributes(attrs...),
@@ -149,4 +147,14 @@ func timeAttr(key string, value time.Time) attribute.KeyValue {
 
 func unixTimeAttr(key string, value int64) attribute.KeyValue {
 	return timeAttr(key, time.Unix(value, 0).UTC())
+}
+
+func flattenIncludeReferences(includeRefs map[string][]types.IncludeConfig) []string {
+	ret := utils.NewSet[string]()
+	for _, included := range includeRefs {
+		for i := range included {
+			ret.AddAll(included[i].Path...)
+		}
+	}
+	return ret.Elements()
 }
