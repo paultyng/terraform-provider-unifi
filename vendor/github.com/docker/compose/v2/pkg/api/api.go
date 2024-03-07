@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/compose-spec/compose-go/types"
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/utils"
 )
 
@@ -62,6 +62,8 @@ type Service interface {
 	Remove(ctx context.Context, projectName string, options RemoveOptions) error
 	// Exec executes a command in a running service container
 	Exec(ctx context.Context, projectName string, options RunOptions) (int, error)
+	// Attach STDIN,STDOUT,STDERR to a running service container
+	Attach(ctx context.Context, projectName string, options AttachOptions) error
 	// Copy copies a file/folder between a service container and the local filesystem
 	Copy(ctx context.Context, projectName string, options CopyOptions) error
 	// Pause executes the equivalent to a `compose pause`
@@ -74,6 +76,8 @@ type Service interface {
 	Events(ctx context.Context, projectName string, options EventsOptions) error
 	// Port executes the equivalent to a `compose port`
 	Port(ctx context.Context, projectName string, service string, port uint16, options PortOptions) (string, int, error)
+	// Publish executes the equivalent to a `compose publish`
+	Publish(ctx context.Context, project *types.Project, repository string, options PublishOptions) error
 	// Images executes the equivalent of a `compose images`
 	Images(ctx context.Context, projectName string, options ImagesOptions) ([]ImageSummary, error)
 	// MaxConcurrency defines upper limit for concurrent operations against engine API
@@ -86,6 +90,12 @@ type Service interface {
 	Viz(ctx context.Context, project *types.Project, options VizOptions) (string, error)
 	// Wait blocks until at least one of the services' container exits
 	Wait(ctx context.Context, projectName string, options WaitOptions) (int64, error)
+	// Scale manages numbers of container instances running per service
+	Scale(ctx context.Context, project *types.Project, options ScaleOptions) error
+}
+
+type ScaleOptions struct {
+	Services []string
 }
 
 type WaitOptions struct {
@@ -108,6 +118,7 @@ type VizOptions struct {
 
 // WatchOptions group options of the Watch API
 type WatchOptions struct {
+	Build BuildOptions
 }
 
 // BuildOptions group options of the Build API
@@ -126,6 +137,8 @@ type BuildOptions struct {
 	Quiet bool
 	// Services passed in the command line to be built
 	Services []string
+	// Deps also build selected services dependencies
+	Deps bool
 	// Ssh authentications passed in the command line
 	SSHs []types.SSHKey
 	// Memory limit for the build container
@@ -137,9 +150,9 @@ type BuildOptions struct {
 // Apply mutates project according to build options
 func (o BuildOptions) Apply(project *types.Project) error {
 	platform := project.Environment["DOCKER_DEFAULT_PLATFORM"]
-	for i, service := range project.Services {
+	for name, service := range project.Services {
 		if service.Image == "" && service.Build == nil {
-			return fmt.Errorf("invalid service %q. Must specify either image or build", service.Name)
+			return fmt.Errorf("invalid service %q. Must specify either image or build", name)
 		}
 
 		if service.Build == nil {
@@ -147,26 +160,27 @@ func (o BuildOptions) Apply(project *types.Project) error {
 		}
 		if platform != "" {
 			if len(service.Build.Platforms) > 0 && !utils.StringContains(service.Build.Platforms, platform) {
-				return fmt.Errorf("service %q build.platforms does not support value set by DOCKER_DEFAULT_PLATFORM: %s", service.Name, platform)
+				return fmt.Errorf("service %q build.platforms does not support value set by DOCKER_DEFAULT_PLATFORM: %s", name, platform)
 			}
 			service.Platform = platform
 		}
 		if service.Platform != "" {
 			if len(service.Build.Platforms) > 0 && !utils.StringContains(service.Build.Platforms, service.Platform) {
-				return fmt.Errorf("service %q build configuration does not support platform: %s", service.Name, service.Platform)
+				return fmt.Errorf("service %q build configuration does not support platform: %s", name, service.Platform)
 			}
 		}
 
 		service.Build.Pull = service.Build.Pull || o.Pull
 		service.Build.NoCache = service.Build.NoCache || o.NoCache
 
-		project.Services[i] = service
+		project.Services[name] = service
 	}
 	return nil
 }
 
 // CreateOptions group options of the Create API
 type CreateOptions struct {
+	Build *BuildOptions
 	// Services defines the services user interacts with
 	Services []string
 	// Remove legacy containers for services that are not defined in the project
@@ -212,6 +226,8 @@ type RestartOptions struct {
 	Timeout *time.Duration
 	// Services passed in the command line to be restarted
 	Services []string
+	// NoDeps ignores services dependencies
+	NoDeps bool
 }
 
 // StopOptions group options of the Stop API
@@ -302,6 +318,7 @@ type RemoveOptions struct {
 
 // RunOptions group options of the Run API
 type RunOptions struct {
+	Build *BuildOptions
 	// Project is the compose project used to define this app. Might be nil if user ran command just with project name
 	Project           *types.Project
 	Name              string
@@ -327,6 +344,16 @@ type RunOptions struct {
 	Index int
 }
 
+// AttachOptions group options of the Attach API
+type AttachOptions struct {
+	Project    *types.Project
+	Service    string
+	Index      int
+	DetachKeys string
+	NoStdin    bool
+	Proxy      bool
+}
+
 // EventsOptions group options of the Events API
 type EventsOptions struct {
 	Services []string
@@ -346,6 +373,30 @@ type Event struct {
 type PortOptions struct {
 	Protocol string
 	Index    int
+}
+
+// OCIVersion controls manifest generation to ensure compatibility
+// with different registries.
+//
+// Currently, this is not exposed as an option to the user – Compose uses
+// OCI 1.0 mode automatically for ECR registries based on domain and OCI 1.1
+// for all other registries.
+//
+// There are likely other popular registries that do not support the OCI 1.1
+// format, so it might make sense to expose this as a CLI flag or see if
+// there's a way to generically probe the registry for support level.
+type OCIVersion string
+
+const (
+	OCIVersion1_0 OCIVersion = "1.0"
+	OCIVersion1_1 OCIVersion = "1.1"
+)
+
+// PublishOptions group options of the Publish API
+type PublishOptions struct {
+	ResolveImageDigests bool
+
+	OCIVersion OCIVersion
 }
 
 func (e Event) String() string {
@@ -390,18 +441,25 @@ type PortPublisher struct {
 
 // ContainerSummary hold high-level description of a container
 type ContainerSummary struct {
-	ID         string
-	Name       string
-	Image      any
-	Command    string
-	Project    string
-	Service    string
-	Created    int64
-	State      string
-	Status     string
-	Health     string
-	ExitCode   int
-	Publishers PortPublishers
+	ID           string
+	Name         string
+	Names        []string
+	Image        string
+	Command      string
+	Project      string
+	Service      string
+	Created      int64
+	State        string
+	Status       string
+	Health       string
+	ExitCode     int
+	Publishers   PortPublishers
+	Labels       map[string]string
+	SizeRw       int64 `json:",omitempty"`
+	SizeRootFs   int64 `json:",omitempty"`
+	Mounts       []string
+	Networks     []string
+	LocalVolumes int
 }
 
 // PortPublishers is a slice of PortPublisher
@@ -463,6 +521,7 @@ type ServiceStatus struct {
 // LogOptions defines optional parameters for the `Log` API
 type LogOptions struct {
 	Project    *types.Project
+	Index      int
 	Services   []string
 	Tail       string
 	Since      string

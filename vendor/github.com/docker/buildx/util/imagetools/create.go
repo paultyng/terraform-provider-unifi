@@ -12,7 +12,9 @@ import (
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/platforms"
 	"github.com/containerd/containerd/remotes"
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
+	"github.com/docker/buildx/util/buildflags"
+	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	"github.com/moby/buildkit/util/contentutil"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
@@ -26,7 +28,7 @@ type Source struct {
 	Ref  reference.Named
 }
 
-func (r *Resolver) Combine(ctx context.Context, srcs []*Source) ([]byte, ocispec.Descriptor, error) {
+func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann []string) ([]byte, ocispec.Descriptor, error) {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	dts := make([][]byte, len(srcs))
@@ -75,7 +77,7 @@ func (r *Resolver) Combine(ctx context.Context, srcs []*Source) ([]byte, ocispec
 	}
 
 	// on single source, return original bytes
-	if len(srcs) == 1 {
+	if len(srcs) == 1 && len(ann) == 0 {
 		if mt := srcs[0].Desc.MediaType; mt == images.MediaTypeDockerSchema2ManifestList || mt == ocispec.MediaTypeImageIndex {
 			return dts[0], srcs[0].Desc, nil
 		}
@@ -138,12 +140,41 @@ func (r *Resolver) Combine(ctx context.Context, srcs []*Source) ([]byte, ocispec
 		mt = ocispec.MediaTypeImageIndex
 	}
 
+	// annotations are only allowed on OCI indexes
+	indexAnnotation := make(map[string]string)
+	if mt == ocispec.MediaTypeImageIndex {
+		annotations, err := buildflags.ParseAnnotations(ann)
+		if err != nil {
+			return nil, ocispec.Descriptor{}, err
+		}
+		for k, v := range annotations {
+			switch k.Type {
+			case exptypes.AnnotationIndex:
+				indexAnnotation[k.Key] = v
+			case exptypes.AnnotationManifestDescriptor:
+				for i := 0; i < len(newDescs); i++ {
+					if newDescs[i].Annotations == nil {
+						newDescs[i].Annotations = map[string]string{}
+					}
+					if k.Platform == nil || k.PlatformString() == platforms.Format(*newDescs[i].Platform) {
+						newDescs[i].Annotations[k.Key] = v
+					}
+				}
+			case exptypes.AnnotationManifest, "":
+				return nil, ocispec.Descriptor{}, errors.Errorf("%q annotations are not supported yet", k.Type)
+			case exptypes.AnnotationIndexDescriptor:
+				return nil, ocispec.Descriptor{}, errors.Errorf("%q annotations are invalid while creating an image", k.Type)
+			}
+		}
+	}
+
 	idxBytes, err := json.MarshalIndent(ocispec.Index{
 		MediaType: mt,
 		Versioned: specs.Versioned{
 			SchemaVersion: 2,
 		},
-		Manifests: newDescs,
+		Manifests:   newDescs,
+		Annotations: indexAnnotation,
 	}, "", "  ")
 	if err != nil {
 		return nil, ocispec.Descriptor{}, errors.Wrap(err, "failed to marshal index")

@@ -11,31 +11,35 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/docker/go-connections/nat"
 )
 
 // Implement interface
-var _ Strategy = (*HTTPStrategy)(nil)
-var _ StrategyTimeout = (*HTTPStrategy)(nil)
+var (
+	_ Strategy        = (*HTTPStrategy)(nil)
+	_ StrategyTimeout = (*HTTPStrategy)(nil)
+)
 
 type HTTPStrategy struct {
 	// all Strategies should have a startupTimeout to avoid waiting infinitely
 	timeout *time.Duration
 
 	// additional properties
-	Port              nat.Port
-	Path              string
-	StatusCodeMatcher func(status int) bool
-	ResponseMatcher   func(body io.Reader) bool
-	UseTLS            bool
-	AllowInsecure     bool
-	TLSConfig         *tls.Config // TLS config for HTTPS
-	Method            string      // http method
-	Body              io.Reader   // http request body
-	PollInterval      time.Duration
-	UserInfo          *url.Userinfo
+	Port               nat.Port
+	Path               string
+	StatusCodeMatcher  func(status int) bool
+	ResponseMatcher    func(body io.Reader) bool
+	UseTLS             bool
+	AllowInsecure      bool
+	TLSConfig          *tls.Config // TLS config for HTTPS
+	Method             string      // http method
+	Body               io.Reader   // http request body
+	PollInterval       time.Duration
+	UserInfo           *url.Userinfo
+	ForceIPv4LocalHost bool
 }
 
 // NewHTTPStrategy constructs a HTTP strategy waiting on port 80 and status code 200
@@ -117,6 +121,13 @@ func (ws *HTTPStrategy) WithPollInterval(pollInterval time.Duration) *HTTPStrate
 	return ws
 }
 
+// WithForcedIPv4LocalHost forces usage of localhost to be ipv4 127.0.0.1
+// to avoid ipv6 docker bugs https://github.com/moby/moby/issues/42442 https://github.com/moby/moby/issues/42375
+func (ws *HTTPStrategy) WithForcedIPv4LocalHost() *HTTPStrategy {
+	ws.ForceIPv4LocalHost = true
+	return ws
+}
+
 // ForHTTP is a convenience method similar to Wait.java
 // https://github.com/testcontainers/testcontainers-java/blob/1d85a3834bd937f80aad3a4cec249c027f31aeb4/core/src/main/java/org/testcontainers/containers/wait/strategy/Wait.java
 func ForHTTP(path string) *HTTPStrategy {
@@ -128,7 +139,7 @@ func (ws *HTTPStrategy) Timeout() *time.Duration {
 }
 
 // WaitUntilReady implements Strategy.WaitUntilReady
-func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) (err error) {
+func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) error {
 	timeout := defaultStartupTimeout()
 	if ws.timeout != nil {
 		timeout = *ws.timeout
@@ -139,16 +150,22 @@ func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarge
 
 	ipAddress, err := target.Host(ctx)
 	if err != nil {
-		return
+		return err
+	}
+	// to avoid ipv6 docker bugs https://github.com/moby/moby/issues/42442 https://github.com/moby/moby/issues/42375
+	if ws.ForceIPv4LocalHost {
+		ipAddress = strings.Replace(ipAddress, "localhost", "127.0.0.1", 1)
 	}
 
 	var mappedPort nat.Port
 	if ws.Port == "" {
-		ports, err := target.Ports(ctx)
-		for err != nil {
+		var err error
+		var ports nat.PortMap
+		// we wait one polling interval before we grab the ports otherwise they might not be bound yet on startup
+		for err != nil || ports == nil {
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("%s:%w", ctx.Err(), err)
+				return fmt.Errorf("%w: %w", ctx.Err(), err)
 			case <-time.After(ws.PollInterval):
 				if err := checkTarget(ctx, target); err != nil {
 					return err
@@ -175,7 +192,7 @@ func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarge
 		for mappedPort == "" {
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("%s:%w", ctx.Err(), err)
+				return fmt.Errorf("%w: %w", ctx.Err(), err)
 			case <-time.After(ws.PollInterval):
 				if err := checkTarget(ctx, target); err != nil {
 					return err
@@ -248,7 +265,7 @@ func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarge
 	if ws.Body != nil {
 		body, err = io.ReadAll(ws.Body)
 		if err != nil {
-			return
+			return err
 		}
 	}
 

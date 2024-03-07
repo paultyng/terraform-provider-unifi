@@ -117,7 +117,7 @@ func NewResultHandle(ctx context.Context, cc *client.Client, opt client.SolveOpt
 						gwClient: c,
 						gwCtx:    ctx,
 					}
-					respErr = se
+					respErr = err // return original error to preserve stacktrace
 					close(done)
 
 					// Block until the caller closes the ResultHandle.
@@ -388,7 +388,7 @@ func populateProcessConfigFromResult(req *gateway.StartRequest, res *gateway.Res
 	} else if img != nil {
 		args = append(args, img.Config.Entrypoint...)
 	}
-	if cfg.Cmd != nil {
+	if !cfg.NoCmd {
 		args = append(args, cfg.Cmd...)
 	} else if img != nil {
 		args = append(args, img.Config.Cmd...)

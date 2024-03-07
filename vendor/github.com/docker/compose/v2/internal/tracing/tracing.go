@@ -37,7 +37,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.19.0"
 )
 
 func init() {
@@ -111,15 +111,13 @@ func InitProvider(dockerCli command.Cli) (ShutdownFunc, error) {
 		),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create resource: %v", err)
+		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
 	muxExporter := MuxExporter{exporters: exporters}
-	sp := sdktrace.NewSimpleSpanProcessor(muxExporter)
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithResource(res),
-		sdktrace.WithSpanProcessor(sp),
+		sdktrace.WithBatcher(muxExporter),
 	)
 	otel.SetTracerProvider(tracerProvider)
 

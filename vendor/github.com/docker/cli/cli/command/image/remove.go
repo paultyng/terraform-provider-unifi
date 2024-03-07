@@ -8,7 +8,7 @@ import (
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/docker/api/types"
-	apiclient "github.com/docker/docker/client"
+	"github.com/docker/docker/errdefs"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +27,7 @@ func NewRemoveCommand(dockerCli command.Cli) *cobra.Command {
 		Short: "Remove one or more images",
 		Args:  cli.RequiresMinArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runRemove(dockerCli, opts, args)
+			return runRemove(cmd.Context(), dockerCli, opts, args)
 		},
 		Annotations: map[string]string{
 			"aliases": "docker image rm, docker image remove, docker rmi",
@@ -49,9 +49,8 @@ func newRemoveCommand(dockerCli command.Cli) *cobra.Command {
 	return &cmd
 }
 
-func runRemove(dockerCli command.Cli, opts removeOptions, images []string) error {
+func runRemove(ctx context.Context, dockerCli command.Cli, opts removeOptions, images []string) error {
 	client := dockerCli.Client()
-	ctx := context.Background()
 
 	options := types.ImageRemoveOptions{
 		Force:         opts.force,
@@ -63,7 +62,7 @@ func runRemove(dockerCli command.Cli, opts removeOptions, images []string) error
 	for _, img := range images {
 		dels, err := client.ImageRemove(ctx, img, options)
 		if err != nil {
-			if !apiclient.IsErrNotFound(err) {
+			if !errdefs.IsNotFound(err) {
 				fatalErr = true
 			}
 			errs = append(errs, err.Error())

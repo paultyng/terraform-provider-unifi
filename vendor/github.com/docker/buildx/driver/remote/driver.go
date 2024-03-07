@@ -2,16 +2,22 @@ package remote
 
 import (
 	"context"
+	"errors"
+	"net"
 	"time"
 
 	"github.com/docker/buildx/driver"
 	"github.com/docker/buildx/util/progress"
 	"github.com/moby/buildkit/client"
+	"github.com/moby/buildkit/util/tracing/detect"
 )
 
 type Driver struct {
 	factory driver.Factory
 	driver.InitConfig
+
+	// if you add fields, remember to update docs:
+	// https://github.com/docker/docs/blob/main/content/build/drivers/remote.md
 	*tlsOpts
 }
 
@@ -23,25 +29,15 @@ type tlsOpts struct {
 }
 
 func (d *Driver) Bootstrap(ctx context.Context, l progress.Logger) error {
-	for i := 0; ; i++ {
-		info, err := d.Info(ctx)
-		if err != nil {
-			return err
-		}
-		if info.Status != driver.Inactive {
-			return nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			if i > 10 {
-				i = 10
-			}
-			time.Sleep(time.Duration(i) * time.Second)
-		}
+	c, err := d.Client(ctx)
+	if err != nil {
+		return err
 	}
+	return progress.Wrap("[internal] waiting for connection", l, func(_ progress.SubLogger) error {
+		ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+		defer cancel()
+		return c.Wait(ctx)
+	})
 }
 
 func (d *Driver) Info(ctx context.Context) (*driver.Info, error) {
@@ -77,6 +73,15 @@ func (d *Driver) Rm(ctx context.Context, force, rmVolume, rmDaemon bool) error {
 
 func (d *Driver) Client(ctx context.Context) (*client.Client, error) {
 	opts := []client.ClientOpt{}
+
+	exp, _, err := detect.Exporter()
+	if err != nil {
+		return nil, err
+	}
+	if td, ok := exp.(client.TracerDelegate); ok {
+		opts = append(opts, client.WithTracerDelegate(td))
+	}
+
 	if d.tlsOpts != nil {
 		opts = append(opts, []client.ClientOpt{
 			client.WithServerConfig(d.tlsOpts.serverName, d.tlsOpts.caCert),
@@ -94,6 +99,10 @@ func (d *Driver) Features(ctx context.Context) map[driver.Feature]bool {
 		driver.CacheExport:    true,
 		driver.MultiPlatform:  true,
 	}
+}
+
+func (d *Driver) HostGatewayIP(ctx context.Context) (net.IP, error) {
+	return nil, errors.New("host-gateway is not supported by the remote driver")
 }
 
 func (d *Driver) Factory() driver.Factory {

@@ -18,20 +18,21 @@ package compose
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	containerType "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/errdefs"
 
 	"github.com/docker/compose/v2/pkg/api"
 	"github.com/docker/compose/v2/pkg/progress"
 	"github.com/docker/compose/v2/pkg/utils"
 
-	"github.com/compose-spec/compose-go/types"
+	"github.com/compose-spec/compose-go/v2/types"
 	moby "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -56,17 +57,48 @@ func (s *composeService) start(ctx context.Context, projectName string, options 
 		}
 	}
 
-	eg, ctx := errgroup.WithContext(ctx)
+	// use an independent context tied to the errgroup for background attach operations
+	// the primary context is still used for other operations
+	// this means that once any attach operation fails, all other attaches are cancelled,
+	// but an attach failing won't interfere with the rest of the start
+	eg, attachCtx := errgroup.WithContext(ctx)
 	if listener != nil {
-		attached, err := s.attach(ctx, project, listener, options.AttachTo)
+		_, err := s.attach(attachCtx, project, listener, options.AttachTo)
 		if err != nil {
 			return err
 		}
 
 		eg.Go(func() error {
-			return s.watchContainers(context.Background(), project.Name, options.AttachTo, options.Services, listener, attached,
+			// it's possible to have a required service whose log output is not desired
+			// (i.e. it's not in the attach set), so watch everything and then filter
+			// calls to attach; this ensures that `watchContainers` blocks until all
+			// required containers have exited, even if their output is not being shown
+			attachTo := utils.NewSet[string](options.AttachTo...)
+			required := utils.NewSet[string](options.Services...)
+			toWatch := attachTo.Union(required).Elements()
+
+			containers, err := s.getContainers(ctx, projectName, oneOffExclude, true, toWatch...)
+			if err != nil {
+				return err
+			}
+
+			// N.B. this uses the parent context (instead of attachCtx) so that the watch itself can
+			// continue even if one of the log streams fails
+			return s.watchContainers(ctx, project.Name, toWatch, required.Elements(), listener, containers,
 				func(container moby.Container, _ time.Time) error {
-					return s.attachContainer(ctx, container, listener)
+					svc := container.Labels[api.ServiceLabel]
+					if attachTo.Has(svc) {
+						return s.attachContainer(attachCtx, container, listener)
+					}
+
+					// HACK: simulate an "attach" event
+					listener(api.ContainerEvent{
+						Type:      api.ContainerEventAttach,
+						Container: getContainerNameWithoutProject(container),
+						ID:        container.ID,
+						Service:   svc,
+					})
+					return nil
 				}, func(container moby.Container, _ time.Time) error {
 					listener(api.ContainerEvent{
 						Type:      api.ContainerEventAttach,
@@ -80,7 +112,7 @@ func (s *composeService) start(ctx context.Context, projectName string, options 
 	}
 
 	var containers Containers
-	containers, err := s.apiClient().ContainerList(ctx, moby.ContainerListOptions{
+	containers, err := s.apiClient().ContainerList(ctx, containerType.ListOptions{
 		Filters: filters.NewArgs(
 			projectFilter(project.Name),
 			oneOffFilter(false),
@@ -97,7 +129,7 @@ func (s *composeService) start(ctx context.Context, projectName string, options 
 			return err
 		}
 
-		return s.startService(ctx, project, service, containers)
+		return s.startService(ctx, project, service, containers, options.Wait)
 	})
 	if err != nil {
 		return err
@@ -117,9 +149,9 @@ func (s *composeService) start(ctx context.Context, projectName string, options 
 			defer cancel()
 		}
 
-		err = s.waitDependencies(ctx, project, depends, containers)
+		err = s.waitDependencies(ctx, project, project.Name, depends, containers)
 		if err != nil {
-			if ctx.Err() == context.DeadlineExceeded {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				return fmt.Errorf("application not healthy after %s", options.WaitTimeout)
 			}
 			return err
@@ -156,6 +188,13 @@ func (s *composeService) watchContainers(ctx context.Context, //nolint:gocyclo
 		required = services
 	}
 
+	unexpected := utils.NewSet[string](required...).Diff(utils.NewSet[string](services...))
+	if len(unexpected) != 0 {
+		return fmt.Errorf(`required service(s) "%s" not present in watched service(s) "%s"`,
+			strings.Join(unexpected.Elements(), ", "),
+			strings.Join(services, ", "))
+	}
+
 	// predicate to tell if a container we receive event for should be considered or ignored
 	ofInterest := func(c moby.Container) bool {
 		if len(services) > 0 {
@@ -190,6 +229,12 @@ func (s *composeService) watchContainers(ctx context.Context, //nolint:gocyclo
 	err := s.Events(ctx, projectName, api.EventsOptions{
 		Services: services,
 		Consumer: func(event api.Event) error {
+			defer func() {
+				// after consuming each event, check to see if we're done
+				if len(expected) == 0 {
+					stop()
+				}
+			}()
 			inspected, err := s.apiClient().ContainerInspect(ctx, event.Container)
 			if err != nil {
 				if errdefs.IsNotFound(err) {
@@ -290,9 +335,6 @@ func (s *composeService) watchContainers(ctx context.Context, //nolint:gocyclo
 						expected = append(expected, container.ID)
 					}
 				}
-			}
-			if len(expected) == 0 {
-				stop()
 			}
 			return nil
 		},
