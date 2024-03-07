@@ -25,8 +25,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/compose-spec/compose-go/types"
-	"github.com/distribution/distribution/v3/reference"
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/distribution/reference"
 	"github.com/docker/buildx/driver"
 	moby "github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -63,11 +63,11 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 		imagesBeingPulled = map[string]string{}
 	)
 
-	for i, service := range project.Services {
-		i, service := i, service
+	i := 0
+	for name, service := range project.Services {
 		if service.Image == "" {
 			w.Event(progress.Event{
-				ID:     service.Name,
+				ID:     name,
 				Status: progress.Done,
 				Text:   "Skipped - No image to be pulled",
 			})
@@ -77,7 +77,7 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 		switch service.PullPolicy {
 		case types.PullPolicyNever, types.PullPolicyBuild:
 			w.Event(progress.Event{
-				ID:     service.Name,
+				ID:     name,
 				Status: progress.Done,
 				Text:   "Skipped",
 			})
@@ -85,7 +85,7 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 		case types.PullPolicyMissing, types.PullPolicyIfNotPresent:
 			if imageAlreadyPresent(service.Image, images) {
 				w.Event(progress.Event{
-					ID:     service.Name,
+					ID:     name,
 					Status: progress.Done,
 					Text:   "Skipped - Image is already present locally",
 				})
@@ -95,7 +95,7 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 
 		if service.Build != nil && opts.IgnoreBuildable {
 			w.Event(progress.Event{
-				ID:     service.Name,
+				ID:     name,
 				Status: progress.Done,
 				Text:   "Skipped - Image can be built",
 			})
@@ -104,7 +104,7 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 
 		if s, ok := imagesBeingPulled[service.Image]; ok {
 			w.Event(progress.Event{
-				ID:     service.Name,
+				ID:     name,
 				Status: progress.Done,
 				Text:   fmt.Sprintf("Skipped - Image is already being pulled by %v", s),
 			})
@@ -113,17 +113,18 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 
 		imagesBeingPulled[service.Image] = service.Name
 
+		idx, name, service := i, name, service
 		eg.Go(func() error {
 			_, err := s.pullServiceImage(ctx, service, s.configFile(), w, false, project.Environment["DOCKER_DEFAULT_PLATFORM"])
 			if err != nil {
-				pullErrors[i] = err
+				pullErrors[idx] = err
 				if service.Build != nil {
 					mustBuild = append(mustBuild, service.Name)
 				}
 				if !opts.IgnoreFailures && service.Build == nil {
 					if s.dryRun {
 						w.Event(progress.Event{
-							ID:     service.Name,
+							ID:     name,
 							Status: progress.Error,
 							Text:   fmt.Sprintf(" - Pull error for image: %s", service.Image),
 						})
@@ -134,6 +135,7 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 			}
 			return nil
 		})
+		i++
 	}
 
 	err = eg.Wait()
@@ -215,7 +217,7 @@ func (s *composeService) pullServiceImage(ctx context.Context, service types.Ser
 	for {
 		var jm jsonmessage.JSONMessage
 		if err := dec.Decode(&jm); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return "", WrapCategorisedComposeError(err, PullFailure)
@@ -308,7 +310,7 @@ func (s *composeService) pullRequiredImages(ctx context.Context, project *types.
 	}, s.stdinfo())
 }
 
-func isServiceImageToBuild(service types.ServiceConfig, services []types.ServiceConfig) bool {
+func isServiceImageToBuild(service types.ServiceConfig, services types.Services) bool {
 	if service.Build != nil {
 		return true
 	}

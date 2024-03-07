@@ -20,16 +20,18 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"strings"
 
-	"github.com/compose-spec/compose-go/types"
-	"github.com/distribution/distribution/v3/reference"
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/distribution/reference"
 	"github.com/docker/buildx/driver"
 	moby "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/registry"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/docker/compose/v2/pkg/api"
@@ -68,22 +70,30 @@ func (s *composeService) push(ctx context.Context, project *types.Project, optio
 			continue
 		}
 		service := service
-		eg.Go(func() error {
-			err := s.pushServiceImage(ctx, service, info, s.configFile(), w, options.Quiet)
-			if err != nil {
-				if !options.IgnoreFailures {
-					return err
+		tags := []string{service.Image}
+		if service.Build != nil {
+			tags = append(tags, service.Build.Tags...)
+		}
+
+		for _, tag := range tags {
+			tag := tag
+			eg.Go(func() error {
+				err := s.pushServiceImage(ctx, tag, info, s.configFile(), w, options.Quiet)
+				if err != nil {
+					if !options.IgnoreFailures {
+						return err
+					}
+					w.TailMsgf("Pushing %s: %s", service.Name, err.Error())
 				}
-				w.TailMsgf("Pushing %s: %s", service.Name, err.Error())
-			}
-			return nil
-		})
+				return nil
+			})
+		}
 	}
 	return eg.Wait()
 }
 
-func (s *composeService) pushServiceImage(ctx context.Context, service types.ServiceConfig, info moby.Info, configFile driver.Auth, w progress.Writer, quietPush bool) error {
-	ref, err := reference.ParseNormalizedNamed(service.Image)
+func (s *composeService) pushServiceImage(ctx context.Context, tag string, info system.Info, configFile driver.Auth, w progress.Writer, quietPush bool) error {
+	ref, err := reference.ParseNormalizedNamed(tag)
 	if err != nil {
 		return err
 	}
@@ -107,7 +117,7 @@ func (s *composeService) pushServiceImage(ctx context.Context, service types.Ser
 		return err
 	}
 
-	stream, err := s.apiClient().ImagePush(ctx, service.Image, moby.ImagePushOptions{
+	stream, err := s.apiClient().ImagePush(ctx, tag, moby.ImagePushOptions{
 		RegistryAuth: base64.URLEncoding.EncodeToString(buf),
 	})
 	if err != nil {
@@ -117,7 +127,7 @@ func (s *composeService) pushServiceImage(ctx context.Context, service types.Ser
 	for {
 		var jm jsonmessage.JSONMessage
 		if err := dec.Decode(&jm); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return err
@@ -127,9 +137,10 @@ func (s *composeService) pushServiceImage(ctx context.Context, service types.Ser
 		}
 
 		if !quietPush {
-			toPushProgressEvent(service.Name, jm, w)
+			toPushProgressEvent(tag, jm, w)
 		}
 	}
+
 	return nil
 }
 
@@ -145,7 +156,7 @@ func toPushProgressEvent(prefix string, jm jsonmessage.JSONMessage, w progress.W
 		current int64
 		percent int
 	)
-	if jm.Status == "Pushed" || jm.Status == "Already exists" {
+	if isDone(jm) {
 		status = progress.Done
 		percent = 100
 	}
@@ -173,4 +184,14 @@ func toPushProgressEvent(prefix string, jm jsonmessage.JSONMessage, w progress.W
 		Percent:    percent,
 		StatusText: text,
 	})
+}
+
+func isDone(msg jsonmessage.JSONMessage) bool {
+	// TODO there should be a better way to detect push is done than such a status message check
+	switch strings.ToLower(msg.Status) {
+	case "pushed", "layer already exists":
+		return true
+	default:
+		return false
+	}
 }

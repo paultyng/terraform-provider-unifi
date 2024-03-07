@@ -2,9 +2,8 @@ package testcontainers
 
 import (
 	"context"
+	"fmt"
 	"testing"
-
-	"github.com/testcontainers/testcontainers-go/internal/testcontainersdocker"
 )
 
 // SkipIfProviderIsNotHealthy is a utility function capable of skipping tests
@@ -26,7 +25,7 @@ func SkipIfProviderIsNotHealthy(t *testing.T) {
 // SkipIfDockerDesktop is a utility function capable of skipping tests
 // if tests are run using Docker Desktop.
 func SkipIfDockerDesktop(t *testing.T, ctx context.Context) {
-	cli, err := testcontainersdocker.NewClient(ctx)
+	cli, err := NewDockerClientWithOpts(ctx)
 	if err != nil {
 		t.Fatalf("failed to create docker client: %s", err)
 	}
@@ -40,3 +39,15 @@ func SkipIfDockerDesktop(t *testing.T, ctx context.Context) {
 		t.Skip("Skipping test that requires host network access when running in Docker Desktop")
 	}
 }
+
+// exampleLogConsumer {
+
+// StdoutLogConsumer is a LogConsumer that prints the log to stdout
+type StdoutLogConsumer struct{}
+
+// Accept prints the log to stdout
+func (lc *StdoutLogConsumer) Accept(l Log) {
+	fmt.Print(string(l.Content))
+}
+
+// }

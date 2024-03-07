@@ -22,10 +22,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/compose-spec/compose-go/types"
-	"github.com/distribution/distribution/v3/reference"
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/distribution/reference"
 	moby "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
 	"golang.org/x/sync/errgroup"
@@ -149,7 +150,7 @@ func (p *ImagePruner) namedImages(ctx context.Context) ([]string, error) {
 //
 // The image name could either have been defined by the user or implicitly
 // created from the project + service name.
-func (p *ImagePruner) labeledLocalImages(ctx context.Context) ([]moby.ImageSummary, error) {
+func (p *ImagePruner) labeledLocalImages(ctx context.Context) ([]image.Summary, error) {
 	imageListOpts := moby.ImageListOptions{
 		Filters: filters.NewArgs(
 			projectFilter(p.project.Name),

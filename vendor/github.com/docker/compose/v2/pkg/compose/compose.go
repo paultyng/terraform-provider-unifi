@@ -18,7 +18,6 @@ package compose
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -30,21 +29,18 @@ import (
 
 	"github.com/docker/docker/api/types/volume"
 
-	"github.com/compose-spec/compose-go/types"
-	"github.com/distribution/distribution/v3/reference"
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/distribution/reference"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/flags"
 	"github.com/docker/cli/cli/streams"
+	"github.com/docker/compose/v2/pkg/api"
 	moby "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-
-	"github.com/docker/compose/v2/pkg/api"
 )
 
 var stdioToStdout bool
@@ -140,18 +136,20 @@ func getCanonicalContainerName(c moby.Container) string {
 }
 
 func getContainerNameWithoutProject(c moby.Container) string {
-	name := getCanonicalContainerName(c)
 	project := c.Labels[api.ProjectLabel]
-	prefix := fmt.Sprintf("%s_%s_", project, c.Labels[api.ServiceLabel])
-	if strings.HasPrefix(name, prefix) {
-		return name[len(project)+1:]
+	defaultName := getDefaultContainerName(project, c.Labels[api.ServiceLabel], c.Labels[api.ContainerNumberLabel])
+	name := getCanonicalContainerName(c)
+	if name != defaultName {
+		// service declares a custom container_name
+		return name
 	}
-	return name
+	return name[len(project)+1:]
 }
 
 func (s *composeService) Config(ctx context.Context, project *types.Project, options api.ConfigOptions) ([]byte, error) {
 	if options.ResolveImageDigests {
-		err := project.ResolveImages(func(named reference.Named) (digest.Digest, error) {
+		var err error
+		project, err = project.WithImagesResolved(func(named reference.Named) (digest.Digest, error) {
 			auth, err := encodedAuth(named, s.configFile())
 			if err != nil {
 				return "", err
@@ -169,9 +167,9 @@ func (s *composeService) Config(ctx context.Context, project *types.Project, opt
 
 	switch options.Format {
 	case "json":
-		return json.MarshalIndent(project, "", "  ")
+		return project.MarshalJSON()
 	case "yaml":
-		return yaml.Marshal(project)
+		return project.MarshalYAML()
 	default:
 		return nil, fmt.Errorf("unsupported format %q", options.Format)
 	}
@@ -180,25 +178,28 @@ func (s *composeService) Config(ctx context.Context, project *types.Project, opt
 // projectFromName builds a types.Project based on actual resources with compose labels set
 func (s *composeService) projectFromName(containers Containers, projectName string, services ...string) (*types.Project, error) {
 	project := &types.Project{
-		Name: projectName,
+		Name:     projectName,
+		Services: types.Services{},
 	}
 	if len(containers) == 0 {
-		return project, errors.Wrap(api.ErrNotFound, fmt.Sprintf("no container found for project %q", projectName))
+		return project, fmt.Errorf("no container found for project %q: %w", projectName, api.ErrNotFound)
 	}
-	set := map[string]*types.ServiceConfig{}
+	set := types.Services{}
 	for _, c := range containers {
 		serviceLabel := c.Labels[api.ServiceLabel]
-		_, ok := set[serviceLabel]
+		service, ok := set[serviceLabel]
 		if !ok {
-			set[serviceLabel] = &types.ServiceConfig{
+			service = types.ServiceConfig{
 				Name:   serviceLabel,
 				Image:  c.Image,
 				Labels: c.Labels,
 			}
+
 		}
-		set[serviceLabel].Scale++
+		service.Scale = increment(service.Scale)
+		set[serviceLabel] = service
 	}
-	for _, service := range set {
+	for name, service := range set {
 		dependencies := service.Labels[api.DependenciesLabel]
 		if len(dependencies) > 0 {
 			service.DependsOn = types.DependsOnConfig{}
@@ -219,9 +220,11 @@ func (s *composeService) projectFromName(containers Containers, projectName stri
 				}
 				service.DependsOn[dependency] = types.ServiceDependency{Condition: condition, Restart: restart, Required: required}
 			}
+			set[name] = service
 		}
-		project.Services = append(project.Services, *service)
 	}
+	project.Services = set
+
 SERVICES:
 	for _, qs := range services {
 		for _, es := range project.Services {
@@ -229,14 +232,22 @@ SERVICES:
 				continue SERVICES
 			}
 		}
-		return project, errors.Wrapf(api.ErrNotFound, "no such service: %q", qs)
+		return project, fmt.Errorf("no such service: %q: %w", qs, api.ErrNotFound)
 	}
-	err := project.ForServices(services)
+	project, err := project.WithSelectedServices(services)
 	if err != nil {
 		return project, err
 	}
 
 	return project, nil
+}
+
+func increment(scale *int) *int {
+	i := 1
+	if scale != nil {
+		i = *scale + 1
+	}
+	return &i
 }
 
 func (s *composeService) actualVolumes(ctx context.Context, projectName string) (types.Volumes, error) {
@@ -298,5 +309,22 @@ func (s *composeService) isSWarmEnabled(ctx context.Context) (bool, error) {
 		}
 	})
 	return swarmEnabled.val, swarmEnabled.err
+}
+
+var runtimeVersion = struct {
+	once sync.Once
+	val  string
+	err  error
+}{}
+
+func (s *composeService) RuntimeVersion(ctx context.Context) (string, error) {
+	runtimeVersion.once.Do(func() {
+		version, err := s.dockerCli.Client().ServerVersion(ctx)
+		if err != nil {
+			runtimeVersion.err = err
+		}
+		runtimeVersion.val = version.APIVersion
+	})
+	return runtimeVersion.val, runtimeVersion.err
 
 }
