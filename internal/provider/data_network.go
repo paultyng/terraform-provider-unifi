@@ -76,7 +76,19 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeInt,
 				Computed:    true,
 			},
-
+			"dhcpguard_enabled": {
+				Description: "Whether DHCP guarding is enabled or not on this network.",
+				Type:        schema.TypeBool,
+				Computed:    true,
+			},
+			"dhcp_server_ips": {
+				Description: "IPv4 addresses of the DHCP servers on this network",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"dhcp_dns": {
 				Description: "IPv4 addresses for the DNS server to be returned from the DHCP " +
 					"server.",
@@ -86,7 +98,6 @@ func dataNetwork() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-
 			"dhcpd_boot_enabled": {
 				Description: "Toggles on the DHCP boot options. will be set to true if you have dhcpd_boot_filename, and dhcpd_boot_server set.",
 				Type:        schema.TypeBool,
@@ -176,7 +187,7 @@ func dataNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
-			"ipv6_ra_enable": {
+			"ipv6_ra_enabled": {
 				Description: "Specifies whether to enable router advertisements or not.",
 				Type:        schema.TypeBool,
 				Computed:    true,
@@ -321,14 +332,27 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 				}
 				wanDNS = append(wanDNS, dns)
 			}
+			dhcpdIPs := []string{}
+			for _, dhcpIP := range []string{
+				n.DHCPDIP1,
+				n.DHCPDIP2,
+				n.DHCPDIP3,
+			} {
+				if dhcpIP == "" {
+					continue
+				}
+				dhcpdIPs = append(dhcpdIPs, dhcpIP)
+			}
 
 			d.SetId(n.ID)
 			d.Set("site", site)
 			d.Set("name", n.Name)
 			d.Set("purpose", n.Purpose)
 			d.Set("vlan_id", n.VLAN)
-			d.Set("subnet", cidrZeroBased(n.IPSubnet))
+			d.Set("subnet", n.IPSubnet)
 			d.Set("network_group", n.NetworkGroup)
+			d.Set("dhcpguard_enabled", n.DHCPguardEnabled)
+			d.Set("dhcp_server_ips", dhcpdIPs)
 			d.Set("dhcp_dns", dhcpDNS)
 			d.Set("dhcp_start", n.DHCPDStart)
 			d.Set("dhcp_stop", n.DHCPDStop)
@@ -343,7 +367,7 @@ func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface
 			d.Set("ipv6_static_subnet", n.IPV6Subnet)
 			d.Set("ipv6_pd_interface", n.IPV6PDInterface)
 			d.Set("ipv6_pd_prefixid", n.IPV6PDPrefixid)
-			d.Set("ipv6_ra_enable", n.IPV6RaEnabled)
+			d.Set("ipv6_ra_enabled", n.IPV6RaEnabled)
 			d.Set("multicast_dns", n.MdnsEnabled)
 			d.Set("wan_ip", n.WANIP)
 			d.Set("wan_netmask", n.WANNetmask)
