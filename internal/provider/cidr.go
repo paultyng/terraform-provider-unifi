@@ -43,14 +43,3 @@ func cidrZeroBased(cidr string) string {
 
 	return cidrNet.String()
 }
-
-func cidrOneBased(cidr string) string {
-	_, cidrNet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return ""
-	}
-
-	cidrNet.IP[3]++
-
-	return cidrNet.String()
-}

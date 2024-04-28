@@ -516,7 +516,7 @@ resource "unifi_network" "test" {
 
 	ipv6_interface_type = "%[4]s"
 	ipv6_static_subnet  = "%[5]s"
-	ipv6_ra_enable      = true
+	ipv6_ra_enabled     = true
 }
 `, name, subnet, vlan, ipv6Type, ipv6Subnet)
 }
