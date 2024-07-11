@@ -1,6 +1,6 @@
-module github.com/paultyng/terraform-provider-unifi
+module github.com/sayedh/terraform-provider-unifi
 
-go 1.20
+go 1.22
 
 // replace github.com/paultyng/go-unifi => ../go-unifi
 // replace github.com/hashicorp/terraform-plugin-docs => ../../hashicorp/terraform-plugin-docs

@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 
-	"github.com/paultyng/terraform-provider-unifi/internal/provider"
+	"github.com/sayedh/terraform-provider-unifi/internal/provider"
 )
 
 // Generate docs for website
@@ -30,7 +30,7 @@ func main() {
 
 	if debugMode {
 		opts.Debug = true
-		opts.ProviderAddr = "registry.terraform.io/paultyng/unifi"
+		opts.ProviderAddr = "registry.terraform.io/sayedh/unifi"
 	}
 
 	plugin.Serve(opts)
