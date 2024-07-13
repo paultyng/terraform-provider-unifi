@@ -233,11 +233,10 @@ func resourcePortProfile() *schema.Resource {
 				Default:     true,
 			},
 			// TODO: renamed to tagged_network_ids
-			"tagged_networkconf_ids": {
+			"tagged_vlan_mgmt": {
 				Description: "The IDs of networks to tag traffic with for the port profile.",
-				Type:        schema.TypeSet,
+				Type:        schema.TypeString,
 				Optional:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			// TODO: rename to voice_network_id
 			"voice_networkconf_id": {
@@ -277,11 +276,6 @@ func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProf
 		return nil, err
 	}
 
-	taggedNetworkconfIds, err := setToStringSlice(d.Get("tagged_networkconf_ids").(*schema.Set))
-	if err != nil {
-		return nil, err
-	}
-
 	return &unifi.PortProfile{
 		Autoneg:                      d.Get("autoneg").(bool),
 		Dot1XCtrl:                    d.Get("dot1x_ctrl").(string),
@@ -315,7 +309,7 @@ func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProf
 		StormctrlUcastLevel:          d.Get("stormctrl_ucast_level").(int),
 		StormctrlUcastRate:           d.Get("stormctrl_ucast_rate").(int),
 		StpPortMode:                  d.Get("stp_port_mode").(bool),
-		TaggedNetworkIDs:             taggedNetworkconfIds,
+		TaggedVLANMgmt:               d.Get("tagged_vlan_mgmt").(string),
 		VoiceNetworkID:               d.Get("voice_networkconf_id").(string),
 	}, nil
 }
@@ -354,7 +348,7 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	d.Set("stormctrl_ucast_level", resp.StormctrlUcastLevel)
 	d.Set("stormctrl_ucast_rate", resp.StormctrlUcastRate)
 	d.Set("stp_port_mode", resp.StpPortMode)
-	d.Set("tagged_networkconf_ids", stringSliceToSet(resp.TaggedNetworkIDs))
+	d.Set("tagged_vlan_mgmt", resp.TaggedVLANMgmt)
 	d.Set("voice_networkconf_id", resp.VoiceNetworkID)
 
 	return nil
