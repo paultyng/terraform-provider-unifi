@@ -70,6 +70,7 @@ func New(version string) func() *schema.Provider {
 			},
 			DataSourcesMap: map[string]*schema.Resource{
 				"unifi_ap_group":       dataAPGroup(),
+				"unifi_dns_record":     dataDNSRecord(),
 				"unifi_network":        dataNetwork(),
 				"unifi_port_profile":   dataPortProfile(),
 				"unifi_radius_profile": dataRADIUSProfile(),
@@ -221,6 +222,12 @@ type unifiClient interface {
 	DeleteDynamicDNS(ctx context.Context, site, id string) error
 	CreateDynamicDNS(ctx context.Context, site string, d *unifi.DynamicDNS) (*unifi.DynamicDNS, error)
 	UpdateDynamicDNS(ctx context.Context, site string, d *unifi.DynamicDNS) (*unifi.DynamicDNS, error)
+
+	ListDNSRecord(ctx context.Context, site string) ([]unifi.DNSRecord, error)
+	GetDNSRecord(ctx context.Context, site string, id string) (*unifi.DNSRecord, error)
+	DeleteDNSRecord(ctx context.Context, site, id string) error
+	CreateDNSRecord(ctx context.Context, site string, d *unifi.DNSRecord) (*unifi.DNSRecord, error)
+	UpdateDNSRecord(ctx context.Context, site string, d *unifi.DNSRecord) (*unifi.DNSRecord, error)
 
 	GetSettingMgmt(ctx context.Context, id string) (*unifi.SettingMgmt, error)
 	GetSettingUsg(ctx context.Context, id string) (*unifi.SettingUsg, error)

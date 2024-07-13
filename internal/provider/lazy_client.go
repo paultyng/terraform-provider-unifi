@@ -519,6 +519,41 @@ func (c *lazyClient) UpdateRouting(ctx context.Context, site string, d *unifi.Ro
 	return c.inner.UpdateRouting(ctx, site, d)
 }
 
+func (c *lazyClient) ListDNSRecord(ctx context.Context, site string) ([]unifi.DNSRecord, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.ListDNSRecord(ctx, site)
+}
+
+func (c *lazyClient) GetDNSRecord(ctx context.Context, site string, id string) (*unifi.DNSRecord, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.GetDNSRecord(ctx, site, id)
+}
+
+func (c *lazyClient) DeleteDNSRecord(ctx context.Context, site, id string) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.DeleteDNSRecord(ctx, site, id)
+}
+
+func (c *lazyClient) CreateDNSRecord(ctx context.Context, site string, d *unifi.DNSRecord) (*unifi.DNSRecord, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.CreateDNSRecord(ctx, site, d)
+}
+
+func (c *lazyClient) UpdateDNSRecord(ctx context.Context, site string, d *unifi.DNSRecord) (*unifi.DNSRecord, error) {
+	if err := c.init(ctx); err != nil {
+		return nil, err
+	}
+	return c.inner.UpdateDNSRecord(ctx, site, d)
+}
+
 func (c *lazyClient) ListDynamicDNS(ctx context.Context, site string) ([]unifi.DynamicDNS, error) {
 	if err := c.init(ctx); err != nil {
 		return nil, err
