@@ -41,5 +41,3 @@ NOTE: MAC-based authentication accounts can only be used for wireless and wired 
 ### Read-Only
 
 - `id` (String) The ID of the account.
-
-

@@ -28,5 +28,3 @@ data "unifi_ap_group" "default" {
 ### Read-Only
 
 - `id` (String) The ID of this AP group.
-
-

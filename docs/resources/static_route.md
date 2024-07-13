@@ -56,5 +56,3 @@ resource "unifi_static_route" "interface" {
 ### Read-Only
 
 - `id` (String) The ID of the static route.
-
-

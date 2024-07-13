@@ -41,5 +41,3 @@ resource "unifi_firewall_group" "can_print" {
 ### Read-Only
 
 - `id` (String) The ID of the firewall group.
-
-

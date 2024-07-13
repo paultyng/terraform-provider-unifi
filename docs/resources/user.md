@@ -52,5 +52,3 @@ resource "unifi_user" "test" {
 - `hostname` (String) The hostname of the user.
 - `id` (String) The ID of the user.
 - `ip` (String) The IP address of the user.
-
-

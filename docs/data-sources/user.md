@@ -42,5 +42,3 @@ data "unifi_user" "client" {
 - `network_id` (String) The network ID for this user.
 - `note` (String) A note with additional information for the user.
 - `user_group_id` (String) The user group ID for the user.
-
-

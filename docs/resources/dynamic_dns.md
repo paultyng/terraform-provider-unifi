@@ -43,5 +43,3 @@ resource "unifi_dynamic_dns" "test" {
 ### Read-Only
 
 - `id` (String) The ID of the dynamic DNS.
-
-

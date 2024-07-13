@@ -90,6 +90,5 @@ Optional:
 - `aggregate_num_ports` (Number) Number of ports in the aggregate.
 - `name` (String) Human-readable name of the port.
 - `op_mode` (String) Operating mode of the port, valid values are `switch`, `mirror`, and `aggregate`. Defaults to `switch`.
+- `poe_mode` (String) PoE mode of the port; valid values are `auto`, `pasv24`, `passthrough`, and `off`.
 - `port_profile_id` (String) ID of the Port Profile used on this port.
-
-

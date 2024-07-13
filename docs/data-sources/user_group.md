@@ -25,5 +25,3 @@ description: |-
 - `id` (String) The ID of this AP group.
 - `qos_rate_max_down` (Number)
 - `qos_rate_max_up` (Number)
-
-

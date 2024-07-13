@@ -28,5 +28,3 @@ data "unifi_port_profile" "all" {
 ### Read-Only
 
 - `id` (String) The ID of this port profile.
-
-

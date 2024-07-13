@@ -83,5 +83,3 @@ data "unifi_network" "my_network" {
 - `wan_type_v6` (String) Specifies the IPV6 WAN connection type. Must be one of either `disabled`, `static`, or `dhcpv6`.
 - `wan_username` (String) Specifies the IPV4 WAN username.
 - `x_wan_password` (String) Specifies the IPV4 WAN password.
-
-

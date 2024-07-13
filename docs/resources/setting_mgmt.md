@@ -49,5 +49,3 @@ Optional:
 
 - `comment` (String) Comment.
 - `key` (String) Public SSH key.
-
-

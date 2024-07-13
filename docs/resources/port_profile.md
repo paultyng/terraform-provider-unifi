@@ -74,11 +74,9 @@ resource "unifi_port_profile" "poe_disabled" {
 - `stormctrl_ucast_level` (Number) The unknown unicast Storm Control level for the port profile. Can be between 0 and 100.
 - `stormctrl_ucast_rate` (Number) The unknown unicast Storm Control rate for the port profile. Can be between 0 and 14880000.
 - `stp_port_mode` (Boolean) Enable spanning tree protocol on the port profile. Defaults to `true`.
-- `tagged_networkconf_ids` (Set of String) The IDs of networks to tag traffic with for the port profile.
+- `tagged_vlan_mgmt` (String) The IDs of networks to tag traffic with for the port profile.
 - `voice_networkconf_id` (String) The ID of network to use as the voice network on the port profile.
 
 ### Read-Only
 
 - `id` (String) The ID of the port profile.
-
-

@@ -60,5 +60,3 @@ Required:
 Optional:
 
 - `port` (Number) Port of authentication service. Defaults to `1812`.
-
-
