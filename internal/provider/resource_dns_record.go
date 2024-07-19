@@ -121,7 +121,7 @@ func resourceDNSRecordGetResourceData(d *schema.ResourceData) (*unifi.DNSRecord,
 func resourceDNSRecordSetResourceData(resp *unifi.DNSRecord, d *schema.ResourceData, site string) diag.Diagnostics {
 	d.Set("enabled", resp.Enabled)
 	d.Set("name", resp.Key)
-	d.Set("port", resp.Port
+	d.Set("port", resp.Port)
 	d.Set("priority", resp.Priority)
 	d.Set("record_time", resp.RecordType)
 	d.Set("ttl", resp.Ttl)
