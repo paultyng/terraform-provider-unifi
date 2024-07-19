@@ -1,10 +1,10 @@
-module github.com/paultyng/terraform-provider-unifi
+module github.com/ubiquiti-community/terraform-provider-unifi
 
 go 1.22.4
 
 toolchain go1.22.5
 
-// replace github.com/paultyng/go-unifi => ../go-unifi
+// replace github.com/ubiquiti-community/go-unifi => ../go-unifi
 // replace github.com/hashicorp/terraform-plugin-docs => ../../hashicorp/terraform-plugin-docs
 // replace github.com/hashicorp/terraform-plugin-sdk/v2 => ../../hashicorp/terraform-plugin-sdk
 
@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
 	github.com/hashicorp/terraform-plugin-testing v1.3.0
-	github.com/paultyng/go-unifi v1.32.0
+	github.com/ubiquiti-community/go-unifi v1.32.0
 	github.com/testcontainers/testcontainers-go v0.32.0
 	github.com/testcontainers/testcontainers-go/modules/compose v0.32.0
 )

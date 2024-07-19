@@ -1,11 +1,11 @@
-package main // import "github.com/paultyng/terraform-provider-unifi"
+package main // import "github.com/ubiquiti-community/terraform-provider-unifi"
 
 import (
 	"flag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 
-	"github.com/paultyng/terraform-provider-unifi/internal/provider"
+	"github.com/ubiquiti-community/terraform-provider-unifi/internal/provider"
 )
 
 // Generate docs for website
