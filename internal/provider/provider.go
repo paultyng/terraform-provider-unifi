@@ -81,6 +81,7 @@ func New(version string) func() *schema.Provider {
 			ResourcesMap: map[string]*schema.Resource{
 				// TODO: "unifi_ap_group"
 				"unifi_device":         resourceDevice(),
+				"unifi_dns_record":     resourceDNSRecord(),
 				"unifi_dynamic_dns":    resourceDynamicDNS(),
 				"unifi_firewall_group": resourceFirewallGroup(),
 				"unifi_firewall_rule":  resourceFirewallRule(),
