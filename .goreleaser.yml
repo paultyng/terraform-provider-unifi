@@ -17,7 +17,7 @@ builds:
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
       post: 
-        - cmd: chmod +x ./dist/terraform-provider-unifi_linux_amd64_v1/terraform-provider-unifi_v24.7.16
+        - cmd: chmod +x ./dist/terraform-provider-unifi_linux_amd64_v1/terraform-provider-unifi_v24.7.19
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
