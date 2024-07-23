@@ -20,7 +20,7 @@ builds:
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
       post: 
-        - cmd: chmod +x ./dist/{{ .ProjectName }}_{{ .Os }}_ .Arch }}/{{ .ProjectName }}_v{{ .Version }}
+        - cmd: chmod +x ./dist/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}/{{ .ProjectName }}_v{{ .Version }}
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
