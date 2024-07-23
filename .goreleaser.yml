@@ -9,7 +9,6 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}}
     goos:
       - freebsd
-      - windows
       - linux
       - darwin
     goarch:
@@ -23,10 +22,7 @@ builds:
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
       post: 
-        - cmd: |
-            if [ "{{ .Os }}" != "windows" ]; then
-              chmod +x ./dist/{{ .Binary }}
-            fi
+        - cmd: chmod +x ./dist/{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
