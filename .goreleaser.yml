@@ -22,8 +22,8 @@ builds:
         goarch: 386
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
-      before_archive:
-        - chmod +x ./dist/{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
+      pre_archive:
+        - cmd: chmod +x ./dist/{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
@@ -41,4 +41,4 @@ signs:
       - --detach-sign
       - '${artifact}'
 changelog:
-  skip: true
+  - skip: true
