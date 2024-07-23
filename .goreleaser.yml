@@ -8,7 +8,6 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}}
     goos:
-      - freebsd
       - linux
       - darwin
     goarch:
@@ -22,7 +21,7 @@ builds:
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
       post: 
-        - cmd: chmod +x ./dist/{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
+        - cmd: chmod +x ./dist/*
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
