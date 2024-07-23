@@ -23,7 +23,10 @@ builds:
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
       post: 
-        - cmd: chmod +x ./dist/{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
+        - cmd: |
+            if [ "{{ .Os }}" != "windows" ]; then
+              chmod +x ./dist/{{ .Binary }}
+            fi
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
