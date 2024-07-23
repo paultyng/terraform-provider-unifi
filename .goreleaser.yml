@@ -21,25 +21,9 @@ builds:
       - goos: darwin
         goarch: '386'
     binary: '{{ .ProjectName }}_v{{ .Version }}'
-    hooks:
-      post:
-        - cmd: |
-            for file in dist/{{ .ProjectName }}_*; do
-              if [[ -f "$file" && ! -x "$file" ]]; then
-                chmod +x "$file"
-              fi
-            done
 archives:
   - format: zip
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- if eq .Os "linux" }}
-        {{- if eq .Arch "amd64" }}linux_amd64_v1
-        {{- else }}{{ .Os }}_{{ .Arch }}
-        {{- end }}
-      {{- else }}
-      {{ .Os }}_{{ .Arch }}
-      {{- end }}
+    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if eq .Arch "amd64" }}_v1{{ end }}'
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
@@ -53,3 +37,5 @@ signs:
       - '${signature}'
       - --detach-sign
       - '${artifact}'
+chmod:
+  - 755
