@@ -21,6 +21,14 @@ builds:
       - goos: darwin
         goarch: '386'
     binary: '{{ .ProjectName }}_v{{ .Version }}'
+    hooks:
+      post:
+        - cmd: |
+            for file in dist/{{ .ProjectName }}_*; do
+              if [[ -f "$file" && ! -x "$file" ]]; then
+                chmod +x "$file"
+              fi
+            done
 archives:
   - format: zip
     name_template: >-
@@ -45,11 +53,3 @@ signs:
       - '${signature}'
       - --detach-sign
       - '${artifact}'
-hooks:
-  post:
-    - cmd: |
-        for file in dist/{{ .ProjectName }}_*; do
-          if [[ -f "$file" && ! -x "$file" ]]; then
-            chmod +x "$file"
-          fi
-        done
