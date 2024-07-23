@@ -22,7 +22,7 @@ builds:
         goarch: 386
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
-      pre_archive:
+      post: 
         - cmd: chmod +x ./dist/{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
 archives:
   - format: zip
