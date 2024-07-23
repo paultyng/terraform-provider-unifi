@@ -8,19 +8,30 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}}
     goos:
+      - freebsd
+      - windows
       - linux
+      - darwin
     goarch:
       - amd64
+      - '386'
+      - arm
+      - arm64
     ignore:
       - goos: darwin
-        goarch: 386
+        goarch: '386'
     binary: '{{ .ProjectName }}_v{{ .Version }}'
-    hooks:
-      post: 
-        - cmd: chmod +x ./dist/terraform-provider-unifi_linux_amd64_v1/terraform-provider-unifi_v24.7.19
 archives:
   - format: zip
-    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- if eq .Os "linux" }}
+        {{- if eq .Arch "amd64" }}linux_amd64_v1
+        {{- else }}{{ .Os }}_{{ .Arch }}
+        {{- end }}
+      {{- else }}
+      {{ .Os }}_{{ .Arch }}
+      {{- end }}
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
@@ -34,3 +45,11 @@ signs:
       - '${signature}'
       - --detach-sign
       - '${artifact}'
+hooks:
+  post:
+    - cmd: |
+        for file in dist/{{ .ProjectName }}_*; do
+          if [[ -f "$file" && ! -x "$file" ]]; then
+            chmod +x "$file"
+          fi
+        done
