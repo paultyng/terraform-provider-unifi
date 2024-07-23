@@ -11,16 +11,13 @@ builds:
       - linux
     goarch:
       - amd64
-      - 386
-      - arm
-      - arm64
     ignore:
       - goos: darwin
         goarch: 386
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
       post: 
-        - cmd: chmod +x ./dist/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}/{{ .ProjectName }}_v{{ .Version }}
+        - cmd: chmod +x ./dist/terraform-provider-unifi_linux_amd64_v1/terraform-provider-unifi_v24.7.16
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
