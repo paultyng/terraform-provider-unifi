@@ -9,7 +9,6 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}}
     goos:
       - linux
-      - darwin
     goarch:
       - amd64
       - 386
@@ -21,7 +20,7 @@ builds:
     binary: '{{ .ProjectName }}_v{{ .Version }}'
     hooks:
       post: 
-        - cmd: chmod +x ./dist/*
+        - cmd: chmod +x ./dist/{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
