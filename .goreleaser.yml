@@ -26,7 +26,7 @@ builds:
         - cmd: chmod 755 "{{ .Path }}"
 archives:
   - format: zip
-    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if eq .Arch "amd64" }}_v1{{ end }}'
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if eq .Arch "amd64" }}_v1{{ end }}'
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
@@ -40,3 +40,5 @@ signs:
       - '${signature}'
       - --detach-sign
       - '${artifact}'
+changelog:
+  skip: true
