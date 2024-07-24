@@ -21,6 +21,9 @@ builds:
       - goos: darwin
         goarch: '386'
     binary: '{{ .ProjectName }}_v{{ .Version }}'
+    hooks:
+      post:
+        - cmd: chmod 755 "{{ .Path }}"
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if eq .Arch "amd64" }}_v1{{ end }}'
@@ -37,5 +40,3 @@ signs:
       - '${signature}'
       - --detach-sign
       - '${artifact}'
-chmod:
-  - 755
