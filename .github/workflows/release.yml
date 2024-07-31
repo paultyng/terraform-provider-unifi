@@ -9,7 +9,7 @@ on:
       tag:
         description: "Tag to release"
         required: false
-        default: "v0.44.3"
+        default: "v0.41.1"
 
 # Releases need permissions to read and write the repository contents.
 # GitHub considers creating releases and uploading assets as writing contents.
