@@ -109,7 +109,7 @@ func resourceDNSRecordGetResourceData(d *schema.ResourceData) (*unifi.DNSRecord,
 		Key:        d.Get("key").(string),
 		Port:       d.Get("port").(int),
 		Priority:   d.Get("priority").(int),
-		RecordType: d.Get("record_time").(string),
+		RecordType: d.Get("record_type").(string),
 		Ttl:        d.Get("ttl").(int),
 		Value:      d.Get("value").(string),
 		Weight:     d.Get("weight").(int),
@@ -123,7 +123,7 @@ func resourceDNSRecordSetResourceData(resp *unifi.DNSRecord, d *schema.ResourceD
 	d.Set("name", resp.Key)
 	d.Set("port", resp.Port)
 	d.Set("priority", resp.Priority)
-	d.Set("record_time", resp.RecordType)
+	d.Set("record_type", resp.RecordType)
 	d.Set("ttl", resp.Ttl)
 	d.Set("value", resp.Value)
 	d.Set("weight", resp.Weight)
