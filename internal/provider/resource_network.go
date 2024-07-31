@@ -39,6 +39,9 @@ var (
 
 	ipV6RAPriorityRegexp   = regexp.MustCompile("high|medium|low")
 	validateIpV6RAPriority = validation.StringMatch(ipV6RAPriorityRegexp, "invalid IPv6 RA priority")
+
+	wireguardClientModeRegexp   = regexp.MustCompile("file|manual")
+	validateWireguardClientMode = validation.StringMatch(wireguardClientModeRegexp, "invalid Wireguard client mode")
 )
 
 func resourceNetwork() *schema.Resource {
@@ -72,11 +75,11 @@ func resourceNetwork() *schema.Resource {
 				Required:    true,
 			},
 			"purpose": {
-				Description:  "The purpose of the network. Must be one of `corporate`, `guest`, `wan`, or `vlan-only`.",
+				Description:  "The purpose of the network. Must be one of `corporate`, `guest`, `wan`, `vlan-only`, or `vpn-client`.",
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "wan", "vlan-only"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"corporate", "guest", "wan", "vlan-only", "vpn-client"}, false),
 			},
 			"vlan_id": {
 				Description:  "The VLAN ID of the network.",
@@ -202,6 +205,12 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"enabled": {
+				Description: "Specifies whether this network is enabled or not.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
 			"igmp_snooping": {
 				Description: "Specifies whether IGMP snooping is enabled or not.",
 				Type:        schema.TypeBool,
@@ -281,6 +290,12 @@ func resourceNetwork() *schema.Resource {
 				Description: "Specifies whether Multicast DNS (mDNS) is enabled or not on the network (Controller >=v7).",
 				Type:        schema.TypeBool,
 				Optional:    true,
+			},
+			"vpn_type": {
+				Description:  "Specifies the VPN type. Must be one of either `auto`, `l2tp`, `openvpn`, or `pptp`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"wireguard-client"}, false),
 			},
 			"wan_ip": {
 				Description:  "The IPv4 address of the WAN.",
@@ -370,6 +385,54 @@ func resourceNetwork() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.IntBetween(1, 128),
 			},
+			"wireguard_client_mode": {
+				Description:  "Specifies the Wireguard client mode. Must be one of either `file` or `manual`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateWireguardClientMode,
+			},
+			"wireguard_client_peer_ip": {
+				Description:  "Specifies the Wireguard client peer IP.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsIPv4Address,
+			},
+			"wireguard_client_peer_port": {
+				Description:  "Specifies the Wireguard client peer port.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IsPortNumber,
+			},
+			"wireguard_client_peer_public_key": {
+				Description: "Specifies the Wireguard client peer public key.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"wireguard_client_preshared_key": {
+				Description: "Specifies the Wireguard client preshared key.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"wireguard_client_preshared_key_enabled": {
+				Description: "Specifies whether the Wireguard client preshared key is enabled or not.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"wireguard_id": {
+				Description: "Specifies the Wireguard ID.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+			},
+			"wireguard_public_key": {
+				Description: "Specifies the Wireguard public key.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"wireguard_private_key": {
+				Description: "Specifies the Wireguard private key.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -431,6 +494,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		DomainName:        d.Get("domain_name").(string),
 		IGMPSnooping:      d.Get("igmp_snooping").(bool),
 		MdnsEnabled:       d.Get("multicast_dns").(bool),
+		Enabled:           d.Get("enabled").(bool),
 
 		DHCPDDNSEnabled: len(dhcpDNS) > 0,
 		// this is kinda hacky but ¯\_(ツ)_/¯
@@ -440,8 +504,6 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		DHCPDDNS4: append(dhcpDNS, "", "", "", "")[3],
 
 		VLANEnabled: vlan != 0 && vlan != 1,
-
-		Enabled: true,
 
 		// Same hackish code as for DHCPv4 ¯\_(ツ)_/¯
 		DHCPDV6DNS1: append(dhcpV6DNS, "")[0],
@@ -488,6 +550,16 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		WANDNS2: append(wanDNS, "", "")[1],
 		WANDNS3: append(wanDNS, "", "", "")[2],
 		WANDNS4: append(wanDNS, "", "", "", "")[3],
+
+		WireguardClientMode:                d.Get("wireguard_client_mode").(string),
+		WireguardClientPeerIP:              d.Get("wireguard_client_peer_ip").(string),
+		WireguardClientPeerPort:            d.Get("wireguard_client_peer_port").(int),
+		WireguardClientPeerPublicKey:       d.Get("wireguard_client_peer_public_key").(string),
+		WireguardClientPresharedKey:        d.Get("wireguard_client_preshared_key").(string),
+		WireguardClientPresharedKeyEnabled: d.Get("wireguard_client_preshared_key_enabled").(bool),
+
+		WireguardPublicKey:   d.Get("wireguard_public_key").(string),
+		XWireguardPrivateKey: d.Get("wireguard_private_key").(string),
 	}, nil
 }
 
@@ -566,6 +638,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("vlan_id", vlan)
 	d.Set("subnet", cidrZeroBased(resp.IPSubnet))
 	d.Set("network_group", resp.NetworkGroup)
+	d.Set("enabled", resp.Enabled)
 
 	d.Set("dhcp_dns", dhcpDNS)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
@@ -610,6 +683,14 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("wan_type", wanType)
 	d.Set("wan_username", resp.WANUsername)
 	d.Set("x_wan_password", resp.XWANPassword)
+	d.Set("wireguard_client_mode", resp.WireguardClientMode)
+	d.Set("wireguard_client_peer_ip", resp.WireguardClientPeerIP)
+	d.Set("wireguard_client_peer_port", resp.WireguardClientPeerPort)
+	d.Set("wireguard_client_peer_public_key", resp.WireguardClientPeerPublicKey)
+	d.Set("wireguard_client_preshared_key", resp.WireguardClientPresharedKey)
+	d.Set("wireguard_client_preshared_key_enabled", resp.WireguardClientPresharedKeyEnabled)
+	d.Set("wireguard_public_key", resp.WireguardPublicKey)
+	d.Set("wireguard_private_key", resp.XWireguardPrivateKey)
 
 	return nil
 }
@@ -722,12 +803,12 @@ func getNetworkIDByName(ctx context.Context, client unifiClient, networkName, si
 			continue
 		}
 		if idMatchingName != "" {
-			return "", fmt.Errorf("Found multiple networks with name '%s'", networkName)
+			return "", fmt.Errorf("found multiple networks with name '%s'", networkName)
 		}
 		idMatchingName = network.ID
 	}
 	if idMatchingName == "" {
-		return "", fmt.Errorf("Found no networks with name '%s', found: %s", networkName, strings.Join(allNames, ", "))
+		return "", fmt.Errorf("found no networks with name '%s', found: %s", networkName, strings.Join(allNames, ", "))
 	}
 	return idMatchingName, nil
 }

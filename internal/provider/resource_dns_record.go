@@ -106,7 +106,7 @@ func resourceDNSRecordCreate(ctx context.Context, d *schema.ResourceData, meta i
 func resourceDNSRecordGetResourceData(d *schema.ResourceData) (*unifi.DNSRecord, error) {
 	r := &unifi.DNSRecord{
 		Enabled:    d.Get("enabled").(bool),
-		Key:        d.Get("key").(string),
+		Key:        d.Get("name").(string),
 		Port:       d.Get("port").(int),
 		Priority:   d.Get("priority").(int),
 		RecordType: d.Get("record_type").(string),
@@ -127,6 +127,7 @@ func resourceDNSRecordSetResourceData(resp *unifi.DNSRecord, d *schema.ResourceD
 	d.Set("ttl", resp.Ttl)
 	d.Set("value", resp.Value)
 	d.Set("weight", resp.Weight)
+	d.Set("site", site)
 
 	return nil
 }

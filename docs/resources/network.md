@@ -47,7 +47,7 @@ resource "unifi_network" "wan" {
 ### Required
 
 - `name` (String) The name of the network.
-- `purpose` (String) The purpose of the network. Must be one of `corporate`, `guest`, `wan`, or `vlan-only`.
+- `purpose` (String) The purpose of the network. Must be one of `corporate`, `guest`, `wan`, `vlan-only`, or `vpn-client`.
 
 ### Optional
 
@@ -67,6 +67,7 @@ resource "unifi_network" "wan" {
 - `dhcpd_boot_filename` (String) Specifies the file to PXE boot from on the dhcpd_boot_server.
 - `dhcpd_boot_server` (String) Specifies the IPv4 address of a TFTP server to network boot from.
 - `domain_name` (String) The domain name of this network.
+- `enabled` (Boolean) Specifies whether this network is enabled or not. Defaults to `true`.
 - `igmp_snooping` (Boolean) Specifies whether IGMP snooping is enabled or not.
 - `internet_access_enabled` (Boolean) Specifies whether this network should be allowed to access the internet or not. Defaults to `true`.
 - `intra_network_access_enabled` (Boolean) Specifies whether this network should be allowed to access other local networks or not. Defaults to `true`.
@@ -85,6 +86,7 @@ resource "unifi_network" "wan" {
 - `site` (String) The name of the site to associate the network with.
 - `subnet` (String) The subnet of the network. Must be a valid CIDR address.
 - `vlan_id` (Number) The VLAN ID of the network.
+- `vpn_type` (String) Specifies the VPN type. Must be one of either `auto`, `l2tp`, `openvpn`, or `pptp`.
 - `wan_dhcp_v6_pd_size` (Number) Specifies the IPv6 prefix size to request from ISP. Must be between 48 and 64.
 - `wan_dns` (List of String) DNS servers IPs of the WAN.
 - `wan_egress_qos` (Number) Specifies the WAN egress quality of service. Defaults to `0`.
@@ -98,6 +100,15 @@ resource "unifi_network" "wan" {
 - `wan_type` (String) Specifies the IPV4 WAN connection type. Must be one of either `disabled`, `static`, `dhcp`, or `pppoe`.
 - `wan_type_v6` (String) Specifies the IPV6 WAN connection type. Must be one of either `disabled`, `static`, or `dhcpv6`.
 - `wan_username` (String) Specifies the IPV4 WAN username.
+- `wireguard_client_mode` (String) Specifies the Wireguard client mode. Must be one of either `file` or `manual`.
+- `wireguard_client_peer_ip` (String) Specifies the Wireguard client peer IP.
+- `wireguard_client_peer_port` (Number) Specifies the Wireguard client peer port.
+- `wireguard_client_peer_public_key` (String) Specifies the Wireguard client peer public key.
+- `wireguard_client_preshared_key` (String) Specifies the Wireguard client preshared key.
+- `wireguard_client_preshared_key_enabled` (Boolean) Specifies whether the Wireguard client preshared key is enabled or not.
+- `wireguard_id` (Number) Specifies the Wireguard ID.
+- `wireguard_private_key` (String) Specifies the Wireguard private key.
+- `wireguard_public_key` (String) Specifies the Wireguard public key.
 - `x_wan_password` (String) Specifies the IPV4 WAN password.
 
 ### Read-Only
