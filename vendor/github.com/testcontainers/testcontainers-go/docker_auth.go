@@ -4,45 +4,76 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"net/url"
 	"os"
 
 	"github.com/cpuguy83/dockercfg"
 	"github.com/docker/docker/api/types/registry"
-	"github.com/testcontainers/testcontainers-go/internal/testcontainersdocker"
+
+	"github.com/testcontainers/testcontainers-go/internal/core"
 )
+
+// defaultRegistryFn is variable overwritten in tests to check for behaviour with different default values.
+var defaultRegistryFn = defaultRegistry
 
 // DockerImageAuth returns the auth config for the given Docker image, extracting first its Docker registry.
 // Finally, it will use the credential helpers to extract the information from the docker config file
 // for that registry, if it exists.
 func DockerImageAuth(ctx context.Context, image string) (string, registry.AuthConfig, error) {
-	defaultRegistry := defaultRegistry(ctx)
-	reg := testcontainersdocker.ExtractRegistry(image, defaultRegistry)
+	defaultRegistry := defaultRegistryFn(ctx)
+	reg := core.ExtractRegistry(image, defaultRegistry)
 
 	cfgs, err := getDockerAuthConfigs()
 	if err != nil {
 		return reg, registry.AuthConfig{}, err
 	}
 
-	if cfg, ok := cfgs[reg]; ok {
+	if cfg, ok := getRegistryAuth(reg, cfgs); ok {
 		return reg, cfg, nil
 	}
 
 	return reg, registry.AuthConfig{}, dockercfg.ErrCredentialsNotFound
 }
 
+func getRegistryAuth(reg string, cfgs map[string]registry.AuthConfig) (registry.AuthConfig, bool) {
+	if cfg, ok := cfgs[reg]; ok {
+		return cfg, true
+	}
+
+	// fallback match using authentication key host
+	for k, cfg := range cfgs {
+		keyURL, err := url.Parse(k)
+		if err != nil {
+			continue
+		}
+
+		host := keyURL.Host
+		if keyURL.Scheme == "" {
+			// url.Parse: The url may be relative (a path, without a host) [...]
+			host = keyURL.Path
+		}
+
+		if host == reg {
+			return cfg, true
+		}
+	}
+
+	return registry.AuthConfig{}, false
+}
+
 // defaultRegistry returns the default registry to use when pulling images
 // It will use the docker daemon to get the default registry, returning "https://index.docker.io/v1/" if
 // it fails to get the information from the daemon
 func defaultRegistry(ctx context.Context) string {
-	client, err := testcontainersdocker.NewClient(ctx)
+	client, err := NewDockerClientWithOpts(ctx)
 	if err != nil {
-		return testcontainersdocker.IndexDockerIO
+		return core.IndexDockerIO
 	}
 	defer client.Close()
 
 	info, err := client.Info(ctx)
 	if err != nil {
-		return testcontainersdocker.IndexDockerIO
+		return core.IndexDockerIO
 	}
 
 	return info.IndexServerAddress

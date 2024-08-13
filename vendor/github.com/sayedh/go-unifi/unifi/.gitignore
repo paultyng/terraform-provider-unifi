@@ -1,0 +1,5 @@
+# Cache
+/fields/v*.*.*/
+
+# goreleaser
+/dist/

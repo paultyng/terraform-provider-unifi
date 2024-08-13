@@ -2,27 +2,41 @@ package completion
 
 import (
 	"os"
+	"strings"
 
-	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/command/formatter"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/volume"
+	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 )
 
 // ValidArgsFn a function to be used by cobra command as `ValidArgsFunction` to offer command line completion
 type ValidArgsFn func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective)
 
+// APIClientProvider provides a method to get an [client.APIClient], initializing
+// it if needed.
+//
+// It's a smaller interface than [command.Cli], and used in situations where an
+// APIClient is needed, but we want to postpone initializing the client until
+// it's used.
+type APIClientProvider interface {
+	Client() client.APIClient
+}
+
 // ImageNames offers completion for images present within the local store
-func ImageNames(dockerCli command.Cli) ValidArgsFn {
+func ImageNames(dockerCLI APIClientProvider) ValidArgsFn {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		list, err := dockerCli.Client().ImageList(cmd.Context(), types.ImageListOptions{})
+		list, err := dockerCLI.Client().ImageList(cmd.Context(), image.ListOptions{})
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveError
 		}
 		var names []string
-		for _, image := range list {
-			names = append(names, image.RepoTags...)
+		for _, img := range list {
+			names = append(names, img.RepoTags...)
 		}
 		return names, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -31,9 +45,9 @@ func ImageNames(dockerCli command.Cli) ValidArgsFn {
 // ContainerNames offers completion for container names and IDs
 // By default, only names are returned.
 // Set DOCKER_COMPLETION_SHOW_CONTAINER_IDS=yes to also complete IDs.
-func ContainerNames(dockerCli command.Cli, all bool, filters ...func(types.Container) bool) ValidArgsFn {
+func ContainerNames(dockerCLI APIClientProvider, all bool, filters ...func(types.Container) bool) ValidArgsFn {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		list, err := dockerCli.Client().ContainerList(cmd.Context(), types.ContainerListOptions{
+		list, err := dockerCLI.Client().ContainerList(cmd.Context(), container.ListOptions{
 			All: all,
 		})
 		if err != nil {
@@ -43,10 +57,10 @@ func ContainerNames(dockerCli command.Cli, all bool, filters ...func(types.Conta
 		showContainerIDs := os.Getenv("DOCKER_COMPLETION_SHOW_CONTAINER_IDS") == "yes"
 
 		var names []string
-		for _, container := range list {
+		for _, ctr := range list {
 			skip := false
 			for _, fn := range filters {
-				if !fn(container) {
+				if !fn(ctr) {
 					skip = true
 					break
 				}
@@ -55,18 +69,18 @@ func ContainerNames(dockerCli command.Cli, all bool, filters ...func(types.Conta
 				continue
 			}
 			if showContainerIDs {
-				names = append(names, container.ID)
+				names = append(names, ctr.ID)
 			}
-			names = append(names, formatter.StripNamePrefix(container.Names)...)
+			names = append(names, formatter.StripNamePrefix(ctr.Names)...)
 		}
 		return names, cobra.ShellCompDirectiveNoFileComp
 	}
 }
 
 // VolumeNames offers completion for volumes
-func VolumeNames(dockerCli command.Cli) ValidArgsFn {
+func VolumeNames(dockerCLI APIClientProvider) ValidArgsFn {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		list, err := dockerCli.Client().VolumeList(cmd.Context(), volume.ListOptions{})
+		list, err := dockerCLI.Client().VolumeList(cmd.Context(), volume.ListOptions{})
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveError
 		}
@@ -79,21 +93,56 @@ func VolumeNames(dockerCli command.Cli) ValidArgsFn {
 }
 
 // NetworkNames offers completion for networks
-func NetworkNames(dockerCli command.Cli) ValidArgsFn {
+func NetworkNames(dockerCLI APIClientProvider) ValidArgsFn {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		list, err := dockerCli.Client().NetworkList(cmd.Context(), types.NetworkListOptions{})
+		list, err := dockerCLI.Client().NetworkList(cmd.Context(), network.ListOptions{})
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveError
 		}
 		var names []string
-		for _, network := range list {
-			names = append(names, network.Name)
+		for _, nw := range list {
+			names = append(names, nw.Name)
 		}
 		return names, cobra.ShellCompDirectiveNoFileComp
 	}
 }
 
+// EnvVarNames offers completion for environment-variable names. This
+// completion can be used for "--env" and "--build-arg" flags, which
+// allow obtaining the value of the given environment-variable if present
+// in the local environment, so we only should complete the names of the
+// environment variables, and not their value. This also prevents the
+// completion script from printing values of environment variables
+// containing sensitive values.
+//
+// For example;
+//
+//	export MY_VAR=hello
+//	docker run --rm --env MY_VAR alpine printenv MY_VAR
+//	hello
+func EnvVarNames(_ *cobra.Command, _ []string, _ string) (names []string, _ cobra.ShellCompDirective) {
+	envs := os.Environ()
+	names = make([]string, 0, len(envs))
+	for _, env := range envs {
+		name, _, _ := strings.Cut(env, "=")
+		names = append(names, name)
+	}
+	return names, cobra.ShellCompDirectiveNoFileComp
+}
+
+// FromList offers completion for the given list of options.
+func FromList(options ...string) ValidArgsFn {
+	return cobra.FixedCompletions(options, cobra.ShellCompDirectiveNoFileComp)
+}
+
+// FileNames is a convenience function to use [cobra.ShellCompDirectiveDefault],
+// which indicates to let the shell perform its default behavior after
+// completions have been provided.
+func FileNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return nil, cobra.ShellCompDirectiveDefault
+}
+
 // NoComplete is used for commands where there's no relevant completion
-func NoComplete(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+func NoComplete(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }

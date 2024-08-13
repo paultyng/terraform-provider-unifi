@@ -12,7 +12,7 @@
 
 // based on https://github.com/golang/go/blob/master/src/text/tabwriter/tabwriter.go Last modified 690ac40 on 31 Jan
 
-//nolint:gocyclo,nakedret,revive,stylecheck,unused // ignore linting errors, so that we can stick close to upstream
+//nolint:gocyclo,nakedret,stylecheck,unused // ignore linting errors, so that we can stick close to upstream
 package tabwriter
 
 import (
@@ -106,7 +106,7 @@ type Writer struct {
 	cell    cell     // current incomplete cell; cell.width is up to buf[pos] excluding ignored sections
 	endChar byte     // terminating char of escaped sequence (Escape for escapes, '>', ';' for HTML tags/entities, or 0)
 	lines   [][]cell // list of lines; each line is a list of cells
-	widths  []int    // list of column widths in runes - re-used during formatting
+	widths  []int    // list of column widths in runes - reused during formatting
 }
 
 // addLine adds a new line.
@@ -115,7 +115,7 @@ type Writer struct {
 func (b *Writer) addLine(flushed bool) {
 	// Grow slice instead of appending,
 	// as that gives us an opportunity
-	// to re-use an existing []cell.
+	// to reuse an existing []cell.
 	if n := len(b.lines) + 1; n <= cap(b.lines) {
 		b.lines = b.lines[:n]
 		b.lines[n-1] = b.lines[n-1][:0]
@@ -159,7 +159,7 @@ func (b *Writer) reset() {
 // - the sizes and widths of processed text are kept in the lines list
 //   which contains a list of cells for each line
 // - the widths list is a temporary list with current widths used during
-//   formatting; it is kept in Writer because it's re-used
+//   formatting; it is kept in Writer because it's reused
 //
 //                    |<---------- size ---------->|
 //                    |                            |
@@ -202,7 +202,7 @@ const (
 //
 //	minwidth	minimal cell width including any padding
 //	tabwidth	width of tab characters (equivalent number of spaces)
-//	padding		padding added to a cell before computing its width
+//	padding		the padding added to a cell before computing its width
 //	padchar		ASCII char used for padding
 //			if padchar == '\t', the Writer will assume that the
 //			width of a '\t' in the formatted output is tabwidth,
@@ -576,18 +576,16 @@ func (b *Writer) Write(buf []byte) (n int, err error) {
 					b.startEscape(ch)
 				}
 			}
-		} else {
+		} else if ch == b.endChar {
 			// inside escape
-			if ch == b.endChar {
-				// end of tag/entity
-				j := i + 1
-				if ch == Escape && b.flags&StripEscape != 0 {
-					j = i // strip Escape
-				}
-				b.append(buf[n:j])
-				n = i + 1 // ch consumed
-				b.endEscape()
+			// end of tag/entity
+			j := i + 1
+			if ch == Escape && b.flags&StripEscape != 0 {
+				j = i // strip Escape
 			}
+			b.append(buf[n:j])
+			n = i + 1 // ch consumed
+			b.endEscape()
 		}
 	}
 

@@ -32,7 +32,7 @@ func NewStopCommand(dockerCli command.Cli) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.containers = args
 			opts.timeoutChanged = cmd.Flags().Changed("time")
-			return runStop(dockerCli, &opts)
+			return runStop(cmd.Context(), dockerCli, &opts)
 		},
 		Annotations: map[string]string{
 			"aliases": "docker container stop, docker stop",
@@ -43,16 +43,19 @@ func NewStopCommand(dockerCli command.Cli) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&opts.signal, "signal", "s", "", "Signal to send to the container")
 	flags.IntVarP(&opts.timeout, "time", "t", 0, "Seconds to wait before killing the container")
+
+	_ = cmd.RegisterFlagCompletionFunc("signal", completeSignals)
+
 	return cmd
 }
 
-func runStop(dockerCli command.Cli, opts *stopOptions) error {
+func runStop(ctx context.Context, dockerCli command.Cli, opts *stopOptions) error {
 	var timeout *int
 	if opts.timeoutChanged {
 		timeout = &opts.timeout
 	}
 
-	errChan := parallelOperation(context.Background(), opts.containers, func(ctx context.Context, id string) error {
+	errChan := parallelOperation(ctx, opts.containers, func(ctx context.Context, id string) error {
 		return dockerCli.Client().ContainerStop(ctx, id, container.StopOptions{
 			Signal:  opts.signal,
 			Timeout: timeout,

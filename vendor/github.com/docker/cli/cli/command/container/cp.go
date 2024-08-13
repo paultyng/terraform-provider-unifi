@@ -15,7 +15,7 @@ import (
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/streams"
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/system"
 	units "github.com/docker/go-units"
@@ -151,7 +151,7 @@ func NewCopyCommand(dockerCli command.Cli) *cobra.Command {
 				// User did not specify "quiet" flag; suppress output if no terminal is attached
 				opts.quiet = !dockerCli.Out().IsTerminal()
 			}
-			return runCopy(dockerCli, opts)
+			return runCopy(cmd.Context(), dockerCli, opts)
 		},
 		Annotations: map[string]string{
 			"aliases": "docker container cp, docker cp",
@@ -169,7 +169,7 @@ func progressHumanSize(n int64) string {
 	return units.HumanSizeWithPrecision(float64(n), 3)
 }
 
-func runCopy(dockerCli command.Cli, opts copyOptions) error {
+func runCopy(ctx context.Context, dockerCli command.Cli, opts copyOptions) error {
 	srcContainer, srcPath := splitCpArg(opts.source)
 	destContainer, destPath := splitCpArg(opts.destination)
 
@@ -190,8 +190,6 @@ func runCopy(dockerCli command.Cli, opts copyOptions) error {
 		direction |= toContainer
 		copyConfig.container = destContainer
 	}
-
-	ctx := context.Background()
 
 	switch direction {
 	case fromContainer:
@@ -246,7 +244,6 @@ func copyFromContainer(ctx context.Context, dockerCli command.Cli, copyConfig cp
 			linkTarget, rebaseName = archive.GetRebaseName(srcPath, linkTarget)
 			srcPath = linkTarget
 		}
-
 	}
 
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
@@ -400,7 +397,7 @@ func copyToContainer(ctx context.Context, dockerCli command.Cli, copyConfig cpCo
 		}
 	}
 
-	options := types.CopyToContainerOptions{
+	options := container.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: false,
 		CopyUIDGID:                copyConfig.copyUIDGID,
 	}
@@ -436,18 +433,18 @@ func copyToContainer(ctx context.Context, dockerCli command.Cli, copyConfig cpCo
 // so we have to check for a `/` or `.` prefix. Also, in the case of a Windows
 // client, a `:` could be part of an absolute Windows path, in which case it
 // is immediately proceeded by a backslash.
-func splitCpArg(arg string) (container, path string) {
+func splitCpArg(arg string) (ctr, path string) {
 	if system.IsAbs(arg) {
 		// Explicit local absolute path, e.g., `C:\foo` or `/foo`.
 		return "", arg
 	}
 
-	container, path, ok := strings.Cut(arg, ":")
-	if !ok || strings.HasPrefix(container, ".") {
+	ctr, path, ok := strings.Cut(arg, ":")
+	if !ok || strings.HasPrefix(ctr, ".") {
 		// Either there's no `:` in the arg
 		// OR it's an explicit local relative path like `./file:name.txt`.
 		return "", arg
 	}
 
-	return container, path
+	return ctr, path
 }

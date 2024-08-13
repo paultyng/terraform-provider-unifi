@@ -14,8 +14,10 @@ import (
 )
 
 // Implement interface
-var _ Strategy = (*HostPortStrategy)(nil)
-var _ StrategyTimeout = (*HostPortStrategy)(nil)
+var (
+	_ Strategy        = (*HostPortStrategy)(nil)
+	_ StrategyTimeout = (*HostPortStrategy)(nil)
+)
 
 var errShellNotExecutable = errors.New("/bin/sh command not executable")
 
@@ -69,7 +71,7 @@ func (hp *HostPortStrategy) Timeout() *time.Duration {
 }
 
 // WaitUntilReady implements Strategy.WaitUntilReady
-func (hp *HostPortStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) (err error) {
+func (hp *HostPortStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) error {
 	timeout := defaultStartupTimeout()
 	if hp.timeout != nil {
 		timeout = *hp.timeout
@@ -80,18 +82,21 @@ func (hp *HostPortStrategy) WaitUntilReady(ctx context.Context, target StrategyT
 
 	ipAddress, err := target.Host(ctx)
 	if err != nil {
-		return
+		return err
 	}
 
-	var waitInterval = hp.PollInterval
+	waitInterval := hp.PollInterval
 
 	internalPort := hp.Port
 	if internalPort == "" {
 		var ports nat.PortMap
-		ports, err = target.Ports(ctx)
+		inspect, err := target.Inspect(ctx)
 		if err != nil {
-			return
+			return err
 		}
+
+		ports = inspect.NetworkSettings.Ports
+
 		if len(ports) > 0 {
 			for p := range ports {
 				internalPort = p
@@ -101,27 +106,26 @@ func (hp *HostPortStrategy) WaitUntilReady(ctx context.Context, target StrategyT
 	}
 
 	if internalPort == "" {
-		err = fmt.Errorf("no port to wait for")
-		return
+		return fmt.Errorf("no port to wait for")
 	}
 
 	var port nat.Port
 	port, err = target.MappedPort(ctx, internalPort)
-	var i = 0
+	i := 0
 
 	for port == "" {
 		i++
 
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("%s:%w", ctx.Err(), err)
+			return fmt.Errorf("%w: %w", ctx.Err(), err)
 		case <-time.After(waitInterval):
 			if err := checkTarget(ctx, target); err != nil {
 				return err
 			}
 			port, err = target.MappedPort(ctx, internalPort)
 			if err != nil {
-				fmt.Printf("(%d) [%s] %s\n", i, port, err)
+				log.Printf("(%d) [%s] %s\n", i, port, err)
 			}
 		}
 	}
@@ -153,8 +157,10 @@ func externalCheck(ctx context.Context, ipAddress string, port nat.Port, target 
 		}
 		conn, err := dialer.DialContext(ctx, proto, address)
 		if err != nil {
-			if v, ok := err.(*net.OpError); ok {
-				if v2, ok := (v.Err).(*os.SyscallError); ok {
+			var v *net.OpError
+			if errors.As(err, &v) {
+				var v2 *os.SyscallError
+				if errors.As(v.Err, &v2) {
 					if isConnRefusedErr(v2.Err) {
 						time.Sleep(waitInterval)
 						continue

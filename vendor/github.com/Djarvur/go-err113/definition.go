@@ -67,7 +67,7 @@ func inspectDefinition(pass *analysis.Pass, tlds map[*ast.CallExpr]struct{}, n a
 
 func toString(ex ast.Expr, info *types.Info) string {
 	if tv, ok := info.Types[ex]; ok && tv.Value != nil {
-		return tv.Value.ExactString()
+		return tv.Value.String()
 	}
 
 	return ""

@@ -24,27 +24,33 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/compose-spec/compose-go/types"
-	moby "github.com/docker/docker/api/types"
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/docker/docker/api/types/container"
 )
 
 func (s *composeService) injectSecrets(ctx context.Context, project *types.Project, service types.ServiceConfig, id string) error {
 	for _, config := range service.Secrets {
-		secret := project.Secrets[config.Source]
-		if secret.Environment == "" {
+		file := project.Secrets[config.Source]
+		if file.Environment == "" {
 			continue
 		}
 
-		env, ok := project.Environment[secret.Environment]
-		if !ok {
-			return fmt.Errorf("environment variable %q required by secret %q is not set", secret.Environment, secret.Name)
+		if config.Target == "" {
+			config.Target = "/run/secrets/" + config.Source
+		} else if !isAbsTarget(config.Target) {
+			config.Target = "/run/secrets/" + config.Target
 		}
-		b, err := createTar(env, config)
+
+		env, ok := project.Environment[file.Environment]
+		if !ok {
+			return fmt.Errorf("environment variable %q required by file %q is not set", file.Environment, file.Name)
+		}
+		b, err := createTar(env, types.FileReferenceConfig(config))
 		if err != nil {
 			return err
 		}
 
-		err = s.apiClient().CopyToContainer(ctx, id, "/", &b, moby.CopyToContainerOptions{
+		err = s.apiClient().CopyToContainer(ctx, id, "/", &b, container.CopyToContainerOptions{
 			CopyUIDGID: config.UID != "" || config.GID != "",
 		})
 		if err != nil {
@@ -54,20 +60,47 @@ func (s *composeService) injectSecrets(ctx context.Context, project *types.Proje
 	return nil
 }
 
-func createTar(env string, config types.ServiceSecretConfig) (bytes.Buffer, error) {
+func (s *composeService) injectConfigs(ctx context.Context, project *types.Project, service types.ServiceConfig, id string) error {
+	for _, config := range service.Configs {
+		file := project.Configs[config.Source]
+		content := file.Content
+		if file.Environment != "" {
+			env, ok := project.Environment[file.Environment]
+			if !ok {
+				return fmt.Errorf("environment variable %q required by file %q is not set", file.Environment, file.Name)
+			}
+			content = env
+		}
+		if content == "" {
+			continue
+		}
+
+		if config.Target == "" {
+			config.Target = "/" + config.Source
+		}
+
+		b, err := createTar(content, types.FileReferenceConfig(config))
+		if err != nil {
+			return err
+		}
+
+		err = s.apiClient().CopyToContainer(ctx, id, "/", &b, container.CopyToContainerOptions{
+			CopyUIDGID: config.UID != "" || config.GID != "",
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createTar(env string, config types.FileReferenceConfig) (bytes.Buffer, error) {
 	value := []byte(env)
 	b := bytes.Buffer{}
 	tarWriter := tar.NewWriter(&b)
 	mode := uint32(0o444)
 	if config.Mode != nil {
 		mode = *config.Mode
-	}
-
-	target := config.Target
-	if config.Target == "" {
-		target = "/run/secrets/" + config.Source
-	} else if !isAbsTarget(config.Target) {
-		target = "/run/secrets/" + config.Target
 	}
 
 	var uid, gid int
@@ -87,7 +120,7 @@ func createTar(env string, config types.ServiceSecretConfig) (bytes.Buffer, erro
 	}
 
 	header := &tar.Header{
-		Name:    target,
+		Name:    config.Target,
 		Size:    int64(len(value)),
 		Mode:    int64(mode),
 		ModTime: time.Now(),

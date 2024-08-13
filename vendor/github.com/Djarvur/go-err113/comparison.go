@@ -32,12 +32,12 @@ func inspectComparision(pass *analysis.Pass, n ast.Node) bool { // nolint: unpar
 		negate = "!"
 	}
 
-	newExpr := fmt.Sprintf("%s%s.Is(%s, %s)", negate, "errors", rawString(be.X), rawString(be.Y))
+	newExpr := fmt.Sprintf("%s%s.Is(%s, %s)", negate, "errors", be.X, be.Y)
 
 	pass.Report(
 		analysis.Diagnostic{
 			Pos:     be.Pos(),
-			Message: fmt.Sprintf("do not compare errors directly %q, use %q instead", oldExpr, newExpr),
+			Message: fmt.Sprintf("do not compare errors directly, use errors.Is() instead: %q", oldExpr),
 			SuggestedFixes: []analysis.SuggestedFix{
 				{
 					Message: fmt.Sprintf("should replace %q with %q", oldExpr, newExpr),
@@ -108,16 +108,4 @@ func areBothErrors(x, y ast.Expr, typesInfo *types.Info) bool {
 	}
 
 	return true
-}
-
-func rawString(x ast.Expr) string {
-	switch t := x.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.SelectorExpr:
-		return fmt.Sprintf("%s.%s", rawString(t.X), t.Sel.Name)
-	case *ast.CallExpr:
-		return fmt.Sprintf("%s()", rawString(t.Fun))
-	}
-	return fmt.Sprintf("%s", x)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
@@ -12,7 +11,8 @@ import (
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/opts"
 	"github.com/docker/docker/api/types"
-	apiclient "github.com/docker/docker/client"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -28,7 +28,6 @@ type ExecOptions struct {
 	Privileged  bool
 	Env         opts.ListOpts
 	Workdir     string
-	Container   string
 	Command     []string
 	EnvFile     opts.ListOpts
 }
@@ -50,12 +49,12 @@ func NewExecCommand(dockerCli command.Cli) *cobra.Command {
 		Short: "Execute a command in a running container",
 		Args:  cli.RequiresMinArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.Container = args[0]
+			containerIDorName := args[0]
 			options.Command = args[1:]
-			return RunExec(dockerCli, options)
+			return RunExec(cmd.Context(), dockerCli, containerIDorName, options)
 		},
-		ValidArgsFunction: completion.ContainerNames(dockerCli, false, func(container types.Container) bool {
-			return container.State != "paused"
+		ValidArgsFunction: completion.ContainerNames(dockerCli, false, func(ctr types.Container) bool {
+			return ctr.State != "paused"
 		}),
 		Annotations: map[string]string{
 			"category-top": "2",
@@ -66,12 +65,12 @@ func NewExecCommand(dockerCli command.Cli) *cobra.Command {
 	flags := cmd.Flags()
 	flags.SetInterspersed(false)
 
-	flags.StringVarP(&options.DetachKeys, "detach-keys", "", "", "Override the key sequence for detaching a container")
+	flags.StringVar(&options.DetachKeys, "detach-keys", "", "Override the key sequence for detaching a container")
 	flags.BoolVarP(&options.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&options.TTY, "tty", "t", false, "Allocate a pseudo-TTY")
 	flags.BoolVarP(&options.Detach, "detach", "d", false, "Detached mode: run command in the background")
 	flags.StringVarP(&options.User, "user", "u", "", `Username or UID (format: "<name|uid>[:<group|gid>]")`)
-	flags.BoolVarP(&options.Privileged, "privileged", "", false, "Give extended privileges to the command")
+	flags.BoolVar(&options.Privileged, "privileged", false, "Give extended privileges to the command")
 	flags.VarP(&options.Env, "env", "e", "Set environment variables")
 	flags.SetAnnotation("env", "version", []string{"1.25"})
 	flags.Var(&options.EnvFile, "env-file", "Read in a file of environment variables")
@@ -79,48 +78,37 @@ func NewExecCommand(dockerCli command.Cli) *cobra.Command {
 	flags.StringVarP(&options.Workdir, "workdir", "w", "", "Working directory inside the container")
 	flags.SetAnnotation("workdir", "version", []string{"1.35"})
 
-	cmd.RegisterFlagCompletionFunc(
-		"env",
-		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return os.Environ(), cobra.ShellCompDirectiveNoFileComp
-		},
-	)
-	cmd.RegisterFlagCompletionFunc(
-		"env-file",
-		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return nil, cobra.ShellCompDirectiveDefault // _filedir
-		},
-	)
+	_ = cmd.RegisterFlagCompletionFunc("env", completion.EnvVarNames)
+	_ = cmd.RegisterFlagCompletionFunc("env-file", completion.FileNames)
 
 	return cmd
 }
 
 // RunExec executes an `exec` command
-func RunExec(dockerCli command.Cli, options ExecOptions) error {
-	execConfig, err := parseExec(options, dockerCli.ConfigFile())
+func RunExec(ctx context.Context, dockerCli command.Cli, containerIDorName string, options ExecOptions) error {
+	execOptions, err := parseExec(options, dockerCli.ConfigFile())
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
-	client := dockerCli.Client()
+	apiClient := dockerCli.Client()
 
 	// We need to check the tty _before_ we do the ContainerExecCreate, because
 	// otherwise if we error out we will leak execIDs on the server (and
 	// there's no easy way to clean those up). But also in order to make "not
 	// exist" errors take precedence we do a dummy inspect first.
-	if _, err := client.ContainerInspect(ctx, options.Container); err != nil {
+	if _, err := apiClient.ContainerInspect(ctx, containerIDorName); err != nil {
 		return err
 	}
-	if !execConfig.Detach {
-		if err := dockerCli.In().CheckTty(execConfig.AttachStdin, execConfig.Tty); err != nil {
+	if !execOptions.Detach {
+		if err := dockerCli.In().CheckTty(execOptions.AttachStdin, execOptions.Tty); err != nil {
 			return err
 		}
 	}
 
-	fillConsoleSize(execConfig, dockerCli)
+	fillConsoleSize(execOptions, dockerCli)
 
-	response, err := client.ContainerExecCreate(ctx, options.Container, *execConfig)
+	response, err := apiClient.ContainerExecCreate(ctx, containerIDorName, *execOptions)
 	if err != nil {
 		return err
 	}
@@ -130,52 +118,50 @@ func RunExec(dockerCli command.Cli, options ExecOptions) error {
 		return errors.New("exec ID empty")
 	}
 
-	if execConfig.Detach {
-		execStartCheck := types.ExecStartCheck{
-			Detach:      execConfig.Detach,
-			Tty:         execConfig.Tty,
-			ConsoleSize: execConfig.ConsoleSize,
-		}
-		return client.ContainerExecStart(ctx, execID, execStartCheck)
+	if execOptions.Detach {
+		return apiClient.ContainerExecStart(ctx, execID, container.ExecStartOptions{
+			Detach:      execOptions.Detach,
+			Tty:         execOptions.Tty,
+			ConsoleSize: execOptions.ConsoleSize,
+		})
 	}
-	return interactiveExec(ctx, dockerCli, execConfig, execID)
+	return interactiveExec(ctx, dockerCli, execOptions, execID)
 }
 
-func fillConsoleSize(execConfig *types.ExecConfig, dockerCli command.Cli) {
-	if execConfig.Tty {
+func fillConsoleSize(execOptions *container.ExecOptions, dockerCli command.Cli) {
+	if execOptions.Tty {
 		height, width := dockerCli.Out().GetTtySize()
-		execConfig.ConsoleSize = &[2]uint{height, width}
+		execOptions.ConsoleSize = &[2]uint{height, width}
 	}
 }
 
-func interactiveExec(ctx context.Context, dockerCli command.Cli, execConfig *types.ExecConfig, execID string) error {
+func interactiveExec(ctx context.Context, dockerCli command.Cli, execOptions *container.ExecOptions, execID string) error {
 	// Interactive exec requested.
 	var (
 		out, stderr io.Writer
 		in          io.ReadCloser
 	)
 
-	if execConfig.AttachStdin {
+	if execOptions.AttachStdin {
 		in = dockerCli.In()
 	}
-	if execConfig.AttachStdout {
+	if execOptions.AttachStdout {
 		out = dockerCli.Out()
 	}
-	if execConfig.AttachStderr {
-		if execConfig.Tty {
+	if execOptions.AttachStderr {
+		if execOptions.Tty {
 			stderr = dockerCli.Out()
 		} else {
 			stderr = dockerCli.Err()
 		}
 	}
-	fillConsoleSize(execConfig, dockerCli)
+	fillConsoleSize(execOptions, dockerCli)
 
-	client := dockerCli.Client()
-	execStartCheck := types.ExecStartCheck{
-		Tty:         execConfig.Tty,
-		ConsoleSize: execConfig.ConsoleSize,
-	}
-	resp, err := client.ContainerExecAttach(ctx, execID, execStartCheck)
+	apiClient := dockerCli.Client()
+	resp, err := apiClient.ContainerExecAttach(ctx, execID, container.ExecAttachOptions{
+		Tty:         execOptions.Tty,
+		ConsoleSize: execOptions.ConsoleSize,
+	})
 	if err != nil {
 		return err
 	}
@@ -192,17 +178,17 @@ func interactiveExec(ctx context.Context, dockerCli command.Cli, execConfig *typ
 				outputStream: out,
 				errorStream:  stderr,
 				resp:         resp,
-				tty:          execConfig.Tty,
-				detachKeys:   execConfig.DetachKeys,
+				tty:          execOptions.Tty,
+				detachKeys:   execOptions.DetachKeys,
 			}
 
 			return streamer.stream(ctx)
 		}()
 	}()
 
-	if execConfig.Tty && dockerCli.In().IsTerminal() {
+	if execOptions.Tty && dockerCli.In().IsTerminal() {
 		if err := MonitorTtySize(ctx, dockerCli, execID, true); err != nil {
-			fmt.Fprintln(dockerCli.Err(), "Error monitoring TTY size:", err)
+			_, _ = fmt.Fprintln(dockerCli.Err(), "Error monitoring TTY size:", err)
 		}
 	}
 
@@ -211,14 +197,14 @@ func interactiveExec(ctx context.Context, dockerCli command.Cli, execConfig *typ
 		return err
 	}
 
-	return getExecExitStatus(ctx, client, execID)
+	return getExecExitStatus(ctx, apiClient, execID)
 }
 
-func getExecExitStatus(ctx context.Context, client apiclient.ContainerAPIClient, execID string) error {
-	resp, err := client.ContainerExecInspect(ctx, execID)
+func getExecExitStatus(ctx context.Context, apiClient client.ContainerAPIClient, execID string) error {
+	resp, err := apiClient.ContainerExecInspect(ctx, execID)
 	if err != nil {
 		// If we can't connect, then the daemon probably died.
-		if !apiclient.IsErrConnectionFailed(err) {
+		if !client.IsErrConnectionFailed(err) {
 			return err
 		}
 		return cli.StatusError{StatusCode: -1}
@@ -232,8 +218,8 @@ func getExecExitStatus(ctx context.Context, client apiclient.ContainerAPIClient,
 
 // parseExec parses the specified args for the specified command and generates
 // an ExecConfig from it.
-func parseExec(execOpts ExecOptions, configFile *configfile.ConfigFile) (*types.ExecConfig, error) {
-	execConfig := &types.ExecConfig{
+func parseExec(execOpts ExecOptions, configFile *configfile.ConfigFile) (*container.ExecOptions, error) {
+	execOptions := &container.ExecOptions{
 		User:       execOpts.User,
 		Privileged: execOpts.Privileged,
 		Tty:        execOpts.TTY,
@@ -244,23 +230,23 @@ func parseExec(execOpts ExecOptions, configFile *configfile.ConfigFile) (*types.
 
 	// collect all the environment variables for the container
 	var err error
-	if execConfig.Env, err = opts.ReadKVEnvStrings(execOpts.EnvFile.GetAll(), execOpts.Env.GetAll()); err != nil {
+	if execOptions.Env, err = opts.ReadKVEnvStrings(execOpts.EnvFile.GetAll(), execOpts.Env.GetAll()); err != nil {
 		return nil, err
 	}
 
 	// If -d is not set, attach to everything by default
 	if !execOpts.Detach {
-		execConfig.AttachStdout = true
-		execConfig.AttachStderr = true
+		execOptions.AttachStdout = true
+		execOptions.AttachStderr = true
 		if execOpts.Interactive {
-			execConfig.AttachStdin = true
+			execOptions.AttachStdin = true
 		}
 	}
 
 	if execOpts.DetachKeys != "" {
-		execConfig.DetachKeys = execOpts.DetachKeys
+		execOptions.DetachKeys = execOpts.DetachKeys
 	} else {
-		execConfig.DetachKeys = configFile.DetachKeys
+		execOptions.DetachKeys = configFile.DetachKeys
 	}
-	return execConfig, nil
+	return execOptions, nil
 }

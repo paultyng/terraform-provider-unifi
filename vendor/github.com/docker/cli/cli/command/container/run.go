@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"syscall"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/command/completion"
 	"github.com/docker/cli/opts"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/moby/sys/signal"
 	"github.com/moby/term"
@@ -43,7 +41,7 @@ func NewRunCommand(dockerCli command.Cli) *cobra.Command {
 			if len(args) > 1 {
 				copts.Args = args[1:]
 			}
-			return runRun(dockerCli, cmd.Flags(), &options, copts)
+			return runRun(cmd.Context(), dockerCli, cmd.Flags(), &options, copts)
 		},
 		ValidArgsFunction: completion.ImageNames(dockerCli),
 		Annotations: map[string]string{
@@ -71,26 +69,19 @@ func NewRunCommand(dockerCli command.Cli) *cobra.Command {
 	command.AddTrustVerificationFlags(flags, &options.untrusted, dockerCli.ContentTrustEnabled())
 	copts = addFlags(flags)
 
-	cmd.RegisterFlagCompletionFunc(
-		"env",
-		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return os.Environ(), cobra.ShellCompDirectiveNoFileComp
-		},
-	)
-	cmd.RegisterFlagCompletionFunc(
-		"env-file",
-		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return nil, cobra.ShellCompDirectiveDefault
-		},
-	)
-	cmd.RegisterFlagCompletionFunc(
-		"network",
-		completion.NetworkNames(dockerCli),
-	)
+	_ = cmd.RegisterFlagCompletionFunc("cap-add", completeLinuxCapabilityNames)
+	_ = cmd.RegisterFlagCompletionFunc("cap-drop", completeLinuxCapabilityNames)
+	_ = cmd.RegisterFlagCompletionFunc("env", completion.EnvVarNames)
+	_ = cmd.RegisterFlagCompletionFunc("env-file", completion.FileNames)
+	_ = cmd.RegisterFlagCompletionFunc("network", completion.NetworkNames(dockerCli))
+	_ = cmd.RegisterFlagCompletionFunc("pull", completion.FromList(PullImageAlways, PullImageMissing, PullImageNever))
+	_ = cmd.RegisterFlagCompletionFunc("restart", completeRestartPolicies)
+	_ = cmd.RegisterFlagCompletionFunc("stop-signal", completeSignals)
+	_ = cmd.RegisterFlagCompletionFunc("volumes-from", completion.ContainerNames(dockerCli, true))
 	return cmd
 }
 
-func runRun(dockerCli command.Cli, flags *pflag.FlagSet, ropts *runOptions, copts *containerOptions) error {
+func runRun(ctx context.Context, dockerCli command.Cli, flags *pflag.FlagSet, ropts *runOptions, copts *containerOptions) error {
 	if err := validatePullOpt(ropts.pull); err != nil {
 		reportError(dockerCli.Err(), "run", err.Error(), true)
 		return cli.StatusError{StatusCode: 125}
@@ -101,7 +92,7 @@ func runRun(dockerCli command.Cli, flags *pflag.FlagSet, ropts *runOptions, copt
 		if v == nil {
 			newEnv = append(newEnv, k)
 		} else {
-			newEnv = append(newEnv, fmt.Sprintf("%s=%s", k, *v))
+			newEnv = append(newEnv, k+"="+*v)
 		}
 	}
 	copts.env = *opts.NewListOptsRef(&newEnv, nil)
@@ -115,18 +106,20 @@ func runRun(dockerCli command.Cli, flags *pflag.FlagSet, ropts *runOptions, copt
 		reportError(dockerCli.Err(), "run", err.Error(), true)
 		return cli.StatusError{StatusCode: 125}
 	}
-	return runContainer(dockerCli, ropts, copts, containerCfg)
+	return runContainer(ctx, dockerCli, ropts, copts, containerCfg)
 }
 
 //nolint:gocyclo
-func runContainer(dockerCli command.Cli, opts *runOptions, copts *containerOptions, containerCfg *containerConfig) error {
+func runContainer(ctx context.Context, dockerCli command.Cli, runOpts *runOptions, copts *containerOptions, containerCfg *containerConfig) error {
+	ctx = context.WithoutCancel(ctx)
+
 	config := containerCfg.Config
 	stdout, stderr := dockerCli.Out(), dockerCli.Err()
-	client := dockerCli.Client()
+	apiClient := dockerCli.Client()
 
 	config.ArgsEscaped = false
 
-	if !opts.detach {
+	if !runOpts.detach {
 		if err := dockerCli.In().CheckTty(config.AttachStdin, config.Tty); err != nil {
 			return err
 		}
@@ -141,17 +134,22 @@ func runContainer(dockerCli command.Cli, opts *runOptions, copts *containerOptio
 		config.StdinOnce = false
 	}
 
-	ctx, cancelFun := context.WithCancel(context.Background())
+	ctx, cancelFun := context.WithCancel(ctx)
 	defer cancelFun()
 
-	createResponse, err := createContainer(ctx, dockerCli, containerCfg, &opts.createOptions)
+	containerID, err := createContainer(ctx, dockerCli, containerCfg, &runOpts.createOptions)
 	if err != nil {
 		reportError(stderr, "run", err.Error(), true)
 		return runStartContainerErr(err)
 	}
-	if opts.sigProxy {
+	if runOpts.sigProxy {
 		sigc := notifyAllSignals()
-		go ForwardAllSignals(ctx, dockerCli, createResponse.ID, sigc)
+		// since we're explicitly setting up signal handling here, and the daemon will
+		// get notified independently of the clients ctx cancellation, we use this context
+		// but without cancellation to avoid ForwardAllSignals from returning
+		// before all signals are forwarded.
+		bgCtx := context.WithoutCancel(ctx)
+		go ForwardAllSignals(bgCtx, apiClient, containerID, sigc)
 		defer signal.StopCatch(sigc)
 	}
 
@@ -164,26 +162,40 @@ func runContainer(dockerCli command.Cli, opts *runOptions, copts *containerOptio
 		waitDisplayID = make(chan struct{})
 		go func() {
 			defer close(waitDisplayID)
-			fmt.Fprintln(stdout, createResponse.ID)
+			_, _ = fmt.Fprintln(stdout, containerID)
 		}()
 	}
 	attach := config.AttachStdin || config.AttachStdout || config.AttachStderr
 	if attach {
-		if opts.detachKeys != "" {
-			dockerCli.ConfigFile().DetachKeys = opts.detachKeys
+		detachKeys := dockerCli.ConfigFile().DetachKeys
+		if runOpts.detachKeys != "" {
+			detachKeys = runOpts.detachKeys
 		}
 
-		closeFn, err := attachContainer(ctx, dockerCli, &errCh, config, createResponse.ID)
+		// ctx should not be cancellable here, as this would kill the stream to the container
+		// and we want to keep the stream open until the process in the container exits or until
+		// the user forcefully terminates the CLI.
+		closeFn, err := attachContainer(ctx, dockerCli, containerID, &errCh, config, container.AttachOptions{
+			Stream:     true,
+			Stdin:      config.AttachStdin,
+			Stdout:     config.AttachStdout,
+			Stderr:     config.AttachStderr,
+			DetachKeys: detachKeys,
+		})
 		if err != nil {
 			return err
 		}
 		defer closeFn()
 	}
 
-	statusChan := waitExitOrRemoved(ctx, dockerCli, createResponse.ID, copts.autoRemove)
+	// New context here because we don't to cancel waiting on container exit/remove
+	// when we cancel attach, etc.
+	statusCtx, cancelStatusCtx := context.WithCancel(context.WithoutCancel(ctx))
+	defer cancelStatusCtx()
+	statusChan := waitExitOrRemoved(statusCtx, apiClient, containerID, copts.autoRemove)
 
 	// start the container
-	if err := client.ContainerStart(ctx, createResponse.ID, types.ContainerStartOptions{}); err != nil {
+	if err := apiClient.ContainerStart(ctx, containerID, container.StartOptions{}); err != nil {
 		// If we have hijackedIOStreamer, we should notify
 		// hijackedIOStreamer we are going to exit and wait
 		// to avoid the terminal are not restored.
@@ -201,8 +213,8 @@ func runContainer(dockerCli command.Cli, opts *runOptions, copts *containerOptio
 	}
 
 	if (config.AttachStdin || config.AttachStdout || config.AttachStderr) && config.Tty && dockerCli.Out().IsTerminal() {
-		if err := MonitorTtySize(ctx, dockerCli, createResponse.ID, false); err != nil {
-			fmt.Fprintln(stderr, "Error monitoring TTY size:", err)
+		if err := MonitorTtySize(ctx, dockerCli, containerID, false); err != nil {
+			_, _ = fmt.Fprintln(stderr, "Error monitoring TTY size:", err)
 		}
 	}
 
@@ -232,15 +244,7 @@ func runContainer(dockerCli command.Cli, opts *runOptions, copts *containerOptio
 	return nil
 }
 
-func attachContainer(ctx context.Context, dockerCli command.Cli, errCh *chan error, config *container.Config, containerID string) (func(), error) {
-	options := types.ContainerAttachOptions{
-		Stream:     true,
-		Stdin:      config.AttachStdin,
-		Stdout:     config.AttachStdout,
-		Stderr:     config.AttachStderr,
-		DetachKeys: dockerCli.ConfigFile().DetachKeys,
-	}
-
+func attachContainer(ctx context.Context, dockerCli command.Cli, containerID string, errCh *chan error, config *container.Config, options container.AttachOptions) (func(), error) {
 	resp, errAttach := dockerCli.Client().ContainerAttach(ctx, containerID, options)
 	if errAttach != nil {
 		return nil, errAttach
@@ -250,13 +254,13 @@ func attachContainer(ctx context.Context, dockerCli command.Cli, errCh *chan err
 		out, cerr io.Writer
 		in        io.ReadCloser
 	)
-	if config.AttachStdin {
+	if options.Stdin {
 		in = dockerCli.In()
 	}
-	if config.AttachStdout {
+	if options.Stdout {
 		out = dockerCli.Out()
 	}
-	if config.AttachStderr {
+	if options.Stderr {
 		if config.Tty {
 			cerr = dockerCli.Out()
 		} else {

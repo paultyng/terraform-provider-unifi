@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/paultyng/go-unifi/unifi"
+
+	"github.com/sayedh/go-unifi/unifi"
 )
 
 func resourcePortProfile() *schema.Resource {

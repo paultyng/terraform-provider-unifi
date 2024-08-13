@@ -27,42 +27,20 @@ type SettingIps struct {
 
 	Key string `json:"key"`
 
-	AdBlockingConfigurations []SettingIpsAdBlockingConfigurations `json:"ad_blocking_configurations,omitempty"`
-	AdBlockingEnabled        bool                                 `json:"ad_blocking_enabled"`
-	DNSFiltering             bool                                 `json:"dns_filtering"`
-	DNSFilters               []SettingIpsDNSFilters               `json:"dns_filters,omitempty"`
-	EnabledCategories        []string                             `json:"enabled_categories,omitempty"` // emerging-activex|emerging-attackresponse|botcc|emerging-chat|ciarmy|compromised|emerging-dns|emerging-dos|dshield|emerging-exploit|emerging-ftp|emerging-games|emerging-icmp|emerging-icmpinfo|emerging-imap|emerging-inappropriate|emerging-info|emerging-malware|emerging-misc|emerging-mobile|emerging-netbios|emerging-p2p|emerging-policy|emerging-pop3|emerging-rpc|emerging-scada|emerging-scan|emerging-shellcode|emerging-smtp|emerging-snmp|emerging-sql|emerging-telnet|emerging-tftp|tor|emerging-trojan|emerging-useragent|emerging-voip|emerging-webapps|emerging-webclient|emerging-webserver|emerging-worm
-	Honeypot                 []SettingIpsHoneypot                 `json:"honeypot,omitempty"`
-	HoneypotEnabled          bool                                 `json:"honeypot_enabled"`
-	IPsMode                  string                               `json:"ips_mode,omitempty"` // ids|ips|ipsInline|disabled
-	RestrictIPAddresses      bool                                 `json:"restrict_ip_addresses"`
-	RestrictTor              bool                                 `json:"restrict_tor"`
-	RestrictTorrents         bool                                 `json:"restrict_torrents"`
-	Suppression              SettingIpsSuppression                `json:"suppression,omitempty"`
+	DNSFiltering        bool                   `json:"dns_filtering"`
+	DNSFilters          []SettingIpsDNSFilters `json:"dns_filters,omitempty"`
+	EnabledCategories   []string               `json:"enabled_categories,omitempty"` // emerging-activex|emerging-attackresponse|botcc|emerging-chat|ciarmy|compromised|emerging-dns|emerging-dos|dshield|emerging-exploit|emerging-ftp|emerging-games|emerging-icmp|emerging-icmpinfo|emerging-imap|emerging-inappropriate|emerging-info|emerging-malware|emerging-misc|emerging-mobile|emerging-netbios|emerging-p2p|emerging-policy|emerging-pop3|emerging-rpc|emerging-scada|emerging-scan|emerging-shellcode|emerging-smtp|emerging-snmp|emerging-sql|emerging-telnet|emerging-tftp|tor|emerging-trojan|emerging-useragent|emerging-voip|emerging-webapps|emerging-webclient|emerging-webserver|emerging-worm
+	Honeypot            []SettingIpsHoneypot   `json:"honeypot,omitempty"`
+	HoneypotEnabled     bool                   `json:"honeypot_enabled"`
+	IPsMode             string                 `json:"ips_mode,omitempty"` // ids|ips|ipsInline|disabled
+	RestrictIPAddresses bool                   `json:"restrict_ip_addresses"`
+	RestrictTor         bool                   `json:"restrict_tor"`
+	RestrictTorrents    bool                   `json:"restrict_torrents"`
+	Suppression         SettingIpsSuppression  `json:"suppression,omitempty"`
 }
 
 func (dst *SettingIps) UnmarshalJSON(b []byte) error {
 	type Alias SettingIps
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(dst),
-	}
-
-	err := json.Unmarshal(b, &aux)
-	if err != nil {
-		return fmt.Errorf("unable to unmarshal alias: %w", err)
-	}
-
-	return nil
-}
-
-type SettingIpsAdBlockingConfigurations struct {
-	NetworkID string `json:"network_id"`
-}
-
-func (dst *SettingIpsAdBlockingConfigurations) UnmarshalJSON(b []byte) error {
-	type Alias SettingIpsAdBlockingConfigurations
 	aux := &struct {
 		*Alias
 	}{

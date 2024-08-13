@@ -7,11 +7,14 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/go-connections/nat"
+
 	"github.com/testcontainers/testcontainers-go/exec"
 )
 
-var _ Strategy = (*NopStrategy)(nil)
-var _ StrategyTimeout = (*NopStrategy)(nil)
+var (
+	_ Strategy        = (*NopStrategy)(nil)
+	_ StrategyTimeout = (*NopStrategy)(nil)
+)
 
 type NopStrategy struct {
 	timeout        *time.Duration
@@ -48,6 +51,11 @@ func (st NopStrategyTarget) Host(_ context.Context) (string, error) {
 	return "", nil
 }
 
+func (st NopStrategyTarget) Inspect(_ context.Context) (*types.ContainerJSON, error) {
+	return nil, nil
+}
+
+// Deprecated: use Inspect instead
 func (st NopStrategyTarget) Ports(_ context.Context) (nat.PortMap, error) {
 	return nil, nil
 }

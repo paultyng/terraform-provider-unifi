@@ -2,37 +2,33 @@ package progress
 
 import (
 	"context"
-	"io"
 	"os"
 	"sync"
 
 	"github.com/containerd/console"
 	"github.com/docker/buildx/util/logutil"
+	"github.com/mitchellh/hashstructure/v2"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/util/progress/progressui"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	PrinterModeAuto  = "auto"
-	PrinterModeTty   = "tty"
-	PrinterModePlain = "plain"
-	PrinterModeQuiet = "quiet"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type Printer struct {
 	status chan *client.SolveStatus
 
-	ready  chan struct{}
-	done   chan struct{}
-	paused chan struct{}
+	ready     chan struct{}
+	done      chan struct{}
+	paused    chan struct{}
+	closeOnce sync.Once
 
 	err          error
 	warnings     []client.VertexWarning
 	logMu        sync.Mutex
 	logSourceMap map[digest.Digest]interface{}
+	metrics      *metricWriter
 
 	// TODO: remove once we can use result context to pass build ref
 	//  see https://github.com/docker/buildx/pull/1861
@@ -41,8 +37,10 @@ type Printer struct {
 }
 
 func (p *Printer) Wait() error {
-	close(p.status)
-	<-p.done
+	p.closeOnce.Do(func() {
+		close(p.status)
+		<-p.done
+	})
 	return p.err
 }
 
@@ -58,10 +56,13 @@ func (p *Printer) Unpause() {
 
 func (p *Printer) Write(s *client.SolveStatus) {
 	p.status <- s
+	if p.metrics != nil {
+		p.metrics.Write(s)
+	}
 }
 
 func (p *Printer) Warnings() []client.VertexWarning {
-	return p.warnings
+	return dedupWarnings(p.warnings)
 }
 
 func (p *Printer) ValidateLogSource(dgst digest.Digest, v interface{}) bool {
@@ -89,32 +90,24 @@ func (p *Printer) ClearLogSource(v interface{}) {
 	}
 }
 
-func NewPrinter(ctx context.Context, w io.Writer, out console.File, mode string, opts ...PrinterOpt) (*Printer, error) {
+func NewPrinter(ctx context.Context, out console.File, mode progressui.DisplayMode, opts ...PrinterOpt) (*Printer, error) {
 	opt := &printerOpts{}
 	for _, o := range opts {
 		o(opt)
 	}
 
-	if v := os.Getenv("BUILDKIT_PROGRESS"); v != "" && mode == PrinterModeAuto {
-		mode = v
+	if v := os.Getenv("BUILDKIT_PROGRESS"); v != "" && mode == progressui.AutoMode {
+		mode = progressui.DisplayMode(v)
 	}
 
-	var c console.Console
-	switch mode {
-	case PrinterModeQuiet:
-		w = io.Discard
-	case PrinterModeAuto, PrinterModeTty:
-		if cons, err := console.ConsoleFromFile(out); err == nil {
-			c = cons
-		} else {
-			if mode == PrinterModeTty {
-				return nil, errors.Wrap(err, "failed to get console")
-			}
-		}
+	d, err := progressui.NewDisplay(out, mode, opt.displayOpts...)
+	if err != nil {
+		return nil, err
 	}
 
 	pw := &Printer{
-		ready: make(chan struct{}),
+		ready:   make(chan struct{}),
+		metrics: opt.mw,
 	}
 	go func() {
 		for {
@@ -128,7 +121,7 @@ func NewPrinter(ctx context.Context, w io.Writer, out console.File, mode string,
 			resumeLogs := logutil.Pause(logrus.StandardLogger())
 			close(pw.ready)
 			// not using shared context to not disrupt display but let is finish reporting errors
-			pw.warnings, pw.err = progressui.DisplaySolveStatus(ctx, c, w, pw.status, opt.displayOpts...)
+			pw.warnings, pw.err = d.UpdateFrom(ctx, pw.status)
 			resumeLogs()
 			close(pw.done)
 
@@ -142,6 +135,8 @@ func NewPrinter(ctx context.Context, w io.Writer, out console.File, mode string,
 			pw.ready = make(chan struct{})
 			<-pw.paused
 			pw.paused = nil
+
+			d, _ = progressui.NewDisplay(out, mode, opt.displayOpts...)
 		}
 	}()
 	<-pw.ready
@@ -162,7 +157,8 @@ func (p *Printer) BuildRefs() map[string]string {
 }
 
 type printerOpts struct {
-	displayOpts []progressui.DisplaySolveStatusOpt
+	displayOpts []progressui.DisplayOpt
+	mw          *metricWriter
 
 	onclose func()
 }
@@ -181,8 +177,37 @@ func WithDesc(text string, console string) PrinterOpt {
 	}
 }
 
+func WithMetrics(mp metric.MeterProvider, attrs attribute.Set) PrinterOpt {
+	return func(opt *printerOpts) {
+		opt.mw = newMetrics(mp, attrs)
+	}
+}
+
 func WithOnClose(onclose func()) PrinterOpt {
 	return func(opt *printerOpts) {
 		opt.onclose = onclose
 	}
+}
+
+func dedupWarnings(inp []client.VertexWarning) []client.VertexWarning {
+	m := make(map[uint64]client.VertexWarning)
+	for _, w := range inp {
+		wcp := w
+		wcp.Vertex = ""
+		if wcp.SourceInfo != nil {
+			wcp.SourceInfo.Definition = nil
+		}
+		h, err := hashstructure.Hash(wcp, hashstructure.FormatV2, nil)
+		if err != nil {
+			continue
+		}
+		if _, ok := m[h]; !ok {
+			m[h] = w
+		}
+	}
+	res := make([]client.VertexWarning, 0, len(m))
+	for _, w := range m {
+		res = append(res, w)
+	}
+	return res
 }

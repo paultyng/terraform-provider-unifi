@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/docker/compose/v2/internal"
@@ -29,15 +28,14 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/moby/buildkit/util/tracing/detect"
-	_ "github.com/moby/buildkit/util/tracing/detect/delegated" //nolint:blank-imports
-	_ "github.com/moby/buildkit/util/tracing/env"              //nolint:blank-imports
+	_ "github.com/moby/buildkit/util/tracing/env" //nolint:blank-imports
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
 func init() {
@@ -45,8 +43,6 @@ func init() {
 	// do not log tracing errors to stdio
 	otel.SetErrorHandler(skipErrors{})
 }
-
-var Tracer = otel.Tracer("compose")
 
 // OTLPConfig contains the necessary values to initialize an OTLP client
 // manually.
@@ -66,11 +62,6 @@ type envMap map[string]string
 func InitTracing(dockerCli command.Cli) (ShutdownFunc, error) {
 	// set global propagator to tracecontext (the default is no-op).
 	otel.SetTextMapPropagator(propagation.TraceContext{})
-
-	if v, _ := strconv.ParseBool(os.Getenv("COMPOSE_EXPERIMENTAL_OTEL")); !v {
-		return nil, nil
-	}
-
 	return InitProvider(dockerCli)
 }
 
@@ -111,15 +102,13 @@ func InitProvider(dockerCli command.Cli) (ShutdownFunc, error) {
 		),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create resource: %v", err)
+		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
 	muxExporter := MuxExporter{exporters: exporters}
-	sp := sdktrace.NewSimpleSpanProcessor(muxExporter)
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithResource(res),
-		sdktrace.WithSpanProcessor(sp),
+		sdktrace.WithBatcher(muxExporter),
 	)
 	otel.SetTracerProvider(tracerProvider)
 

@@ -32,8 +32,6 @@ type SettingMgmt struct {
 	AutoUpgrade             bool                  `json:"auto_upgrade"`
 	AutoUpgradeHour         int                   `json:"auto_upgrade_hour,omitempty"` // [0-9]|1[0-9]|2[0-3]|^$
 	BootSound               bool                  `json:"boot_sound"`
-	DebugToolsEnabled       bool                  `json:"debug_tools_enabled"`
-	DirectConnectEnabled    bool                  `json:"direct_connect_enabled"`
 	LedEnabled              bool                  `json:"led_enabled"`
 	OutdoorModeEnabled      bool                  `json:"outdoor_mode_enabled"`
 	UnifiIDpEnabled         bool                  `json:"unifi_idp_enabled"`

@@ -113,7 +113,6 @@ type Network struct {
 	L2TpAllowWeakCiphers         bool                            `json:"l2tp_allow_weak_ciphers"`
 	L2TpInterface                string                          `json:"l2tp_interface,omitempty"`    // wan|wan2
 	L2TpLocalWANIP               string                          `json:"l2tp_local_wan_ip,omitempty"` // ^any$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
-	LocalPort                    int                             `json:"local_port,omitempty"`        // ^([1-9][0-9]{0,3}|[1-5][0-9]{4}|[6][0-4][0-9]{3}|[6][5][0-4][0-9]{2}|[6][5][5][0-2][0-9]|[6][5][5][3][0-5])$
 	LteLanEnabled                bool                            `json:"lte_lan_enabled"`
 	MACOverride                  string                          `json:"mac_override"` // (^$|^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$)
 	MACOverrideEnabled           bool                            `json:"mac_override_enabled"`
@@ -150,10 +149,7 @@ type Network struct {
 	VLANEnabled                  bool                            `json:"vlan_enabled"`
 	VPNClientDefaultRoute        bool                            `json:"vpn_client_default_route"`
 	VPNClientPullDNS             bool                            `json:"vpn_client_pull_dns"`
-	VPNType                      string                          `json:"vpn_type,omitempty"`           // auto|ipsec-vpn|openvpn-client|openvpn-vpn|pptp-client|l2tp-server|pptp-server|uid-server|wireguard-server
-	VrrpIPSubnetGw1              string                          `json:"vrrp_ip_subnet_gw1,omitempty"` // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\/([1-9]|[1-2][0-9]|30)$
-	VrrpIPSubnetGw2              string                          `json:"vrrp_ip_subnet_gw2,omitempty"` // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\/([1-9]|[1-2][0-9]|30)$
-	VrrpVrid                     int                             `json:"vrrp_vrid,omitempty"`          // [1-9]|[1-9][0-9]
+	VPNType                      string                          `json:"vpn_type,omitempty"` // auto|ipsec-vpn|openvpn-client|openvpn-vpn|pptp-client|l2tp-server|pptp-server|uid-server
 	WANDHCPOptions               []NetworkWANDHCPOptions         `json:"wan_dhcp_options,omitempty"`
 	WANDHCPv6PDSize              int                             `json:"wan_dhcpv6_pd_size,omitempty"`      // ^(4[89]|5[0-9]|6[0-4])$|^$
 	WANDNS1                      string                          `json:"wan_dns1"`                          // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
@@ -181,15 +177,11 @@ type Network struct {
 	WANUsername                  string                          `json:"wan_username,omitempty"`       // [^"' ]+
 	WANVLAN                      int                             `json:"wan_vlan,omitempty"`           // [0-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-4]|^$
 	WANVLANEnabled               bool                            `json:"wan_vlan_enabled"`
-	WireguardInterface           string                          `json:"wireguard_interface,omitempty"`    // wan|wan2
-	WireguardLocalWANIP          string                          `json:"wireguard_local_wan_ip,omitempty"` // ^any$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
-	WireguardPublicKey           string                          `json:"wireguard_public_key,omitempty"`
 	XIPSecPreSharedKey           string                          `json:"x_ipsec_pre_shared_key,omitempty"` // [^\"\' ]+
 	XOpenVPNPassword             string                          `json:"x_openvpn_password,omitempty"`
 	XOpenVPNSharedSecretKey      string                          `json:"x_openvpn_shared_secret_key,omitempty"` // [0-9A-Fa-f]{512}
 	XPptpcPassword               string                          `json:"x_pptpc_password,omitempty"`            // [^\"\' ]+
 	XWANPassword                 string                          `json:"x_wan_password,omitempty"`              // [^"' ]+
-	XWireguardPrivateKey         string                          `json:"x_wireguard_private_key,omitempty"`
 }
 
 func (dst *Network) UnmarshalJSON(b []byte) error {
@@ -208,14 +200,12 @@ func (dst *Network) UnmarshalJSON(b []byte) error {
 		IPV6RaValidLifetime       emptyStringInt `json:"ipv6_ra_valid_lifetime"`
 		InternetAccessEnabled     *bool          `json:"internet_access_enabled"`
 		IntraNetworkAccessEnabled *bool          `json:"intra_network_access_enabled"`
-		LocalPort                 emptyStringInt `json:"local_port"`
 		OpenVPNLocalPort          emptyStringInt `json:"openvpn_local_port"`
 		OpenVPNRemotePort         emptyStringInt `json:"openvpn_remote_port"`
 		PptpcRouteDistance        emptyStringInt `json:"pptpc_route_distance"`
 		Priority                  emptyStringInt `json:"priority"`
 		RouteDistance             emptyStringInt `json:"route_distance"`
 		VLAN                      emptyStringInt `json:"vlan"`
-		VrrpVrid                  emptyStringInt `json:"vrrp_vrid"`
 		WANDHCPv6PDSize           emptyStringInt `json:"wan_dhcpv6_pd_size"`
 		WANEgressQOS              emptyStringInt `json:"wan_egress_qos"`
 		WANLoadBalanceWeight      emptyStringInt `json:"wan_load_balance_weight"`
@@ -246,14 +236,12 @@ func (dst *Network) UnmarshalJSON(b []byte) error {
 	dst.IPV6RaValidLifetime = int(aux.IPV6RaValidLifetime)
 	dst.InternetAccessEnabled = emptyBoolToTrue(aux.InternetAccessEnabled)
 	dst.IntraNetworkAccessEnabled = emptyBoolToTrue(aux.IntraNetworkAccessEnabled)
-	dst.LocalPort = int(aux.LocalPort)
 	dst.OpenVPNLocalPort = int(aux.OpenVPNLocalPort)
 	dst.OpenVPNRemotePort = int(aux.OpenVPNRemotePort)
 	dst.PptpcRouteDistance = int(aux.PptpcRouteDistance)
 	dst.Priority = int(aux.Priority)
 	dst.RouteDistance = int(aux.RouteDistance)
 	dst.VLAN = int(aux.VLAN)
-	dst.VrrpVrid = int(aux.VrrpVrid)
 	dst.WANDHCPv6PDSize = int(aux.WANDHCPv6PDSize)
 	dst.WANEgressQOS = int(aux.WANEgressQOS)
 	dst.WANLoadBalanceWeight = int(aux.WANLoadBalanceWeight)

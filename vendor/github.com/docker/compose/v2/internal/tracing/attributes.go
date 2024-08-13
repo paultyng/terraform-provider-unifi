@@ -17,10 +17,14 @@
 package tracing
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
-	"github.com/compose-spec/compose-go/types"
+	"github.com/compose-spec/compose-go/v2/types"
 	moby "github.com/docker/docker/api/types"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -29,6 +33,14 @@ import (
 // SpanOptions is a small helper type to make it easy to share the options helpers between
 // downstream functions that accept slices of trace.SpanStartOption and trace.EventOption.
 type SpanOptions []trace.SpanStartEventOption
+
+type MetricsKey struct{}
+
+type Metrics struct {
+	CountExtends        int
+	CountIncludesLocal  int
+	CountIncludesRemote int
+}
 
 func (s SpanOptions) SpanStartOptions() []trace.SpanStartOption {
 	out := make([]trace.SpanStartOption, len(s))
@@ -51,28 +63,37 @@ func (s SpanOptions) EventOptions() []trace.EventOption {
 // For convenience, it's returned as a SpanOptions object to allow it to be
 // passed directly to the wrapping helper methods in this package such as
 // SpanWrapFunc.
-func ProjectOptions(proj *types.Project) SpanOptions {
+func ProjectOptions(ctx context.Context, proj *types.Project) SpanOptions {
 	if proj == nil {
 		return nil
 	}
-
-	disabledServiceNames := make([]string, len(proj.DisabledServices))
-	for i := range proj.DisabledServices {
-		disabledServiceNames[i] = proj.DisabledServices[i].Name
-	}
-
+	capabilities, gpu, tpu := proj.ServicesWithCapabilities()
 	attrs := []attribute.KeyValue{
 		attribute.String("project.name", proj.Name),
 		attribute.String("project.dir", proj.WorkingDir),
 		attribute.StringSlice("project.compose_files", proj.ComposeFiles),
-		attribute.StringSlice("project.services.active", proj.ServiceNames()),
-		attribute.StringSlice("project.services.disabled", disabledServiceNames),
 		attribute.StringSlice("project.profiles", proj.Profiles),
 		attribute.StringSlice("project.volumes", proj.VolumeNames()),
 		attribute.StringSlice("project.networks", proj.NetworkNames()),
 		attribute.StringSlice("project.secrets", proj.SecretNames()),
 		attribute.StringSlice("project.configs", proj.ConfigNames()),
 		attribute.StringSlice("project.extensions", keys(proj.Extensions)),
+		attribute.StringSlice("project.services.active", proj.ServiceNames()),
+		attribute.StringSlice("project.services.disabled", proj.DisabledServiceNames()),
+		attribute.StringSlice("project.services.build", proj.ServicesWithBuild()),
+		attribute.StringSlice("project.services.depends_on", proj.ServicesWithDependsOn()),
+		attribute.StringSlice("project.services.capabilities", capabilities),
+		attribute.StringSlice("project.services.capabilities.gpu", gpu),
+		attribute.StringSlice("project.services.capabilities.tpu", tpu),
+	}
+	if metrics, ok := ctx.Value(MetricsKey{}).(Metrics); ok {
+		attrs = append(attrs, attribute.Int("project.services.extends", metrics.CountExtends))
+		attrs = append(attrs, attribute.Int("project.includes.local", metrics.CountIncludesLocal))
+		attrs = append(attrs, attribute.Int("project.includes.remote", metrics.CountIncludesRemote))
+	}
+
+	if projHash, ok := projectHash(proj); ok {
+		attrs = append(attrs, attribute.String("project.hash", projHash))
 	}
 	return []trace.SpanStartEventOption{
 		trace.WithAttributes(attrs...),
@@ -149,4 +170,24 @@ func timeAttr(key string, value time.Time) attribute.KeyValue {
 
 func unixTimeAttr(key string, value int64) attribute.KeyValue {
 	return timeAttr(key, time.Unix(value, 0).UTC())
+}
+
+// projectHash returns a checksum from the JSON encoding of the project.
+func projectHash(p *types.Project) (string, bool) {
+	if p == nil {
+		return "", false
+	}
+	// disabled services aren't included in the output, so make a copy with
+	// all the services active for hashing
+	var err error
+	p, err = p.WithServicesEnabled(append(p.ServiceNames(), p.DisabledServiceNames()...)...)
+	if err != nil {
+		return "", false
+	}
+	projData, err := json.Marshal(p)
+	if err != nil {
+		return "", false
+	}
+	d := sha256.Sum256(projData)
+	return fmt.Sprintf("%x", d), true
 }

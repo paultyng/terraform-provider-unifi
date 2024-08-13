@@ -24,6 +24,7 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/context/store"
+	"github.com/docker/compose/v2/internal/memnet"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"google.golang.org/grpc"
@@ -39,7 +40,7 @@ func traceClientFromDockerContext(dockerCli command.Cli, otelEnv envMap) (otlptr
 	// automatic integration with Docker Desktop;
 	cfg, err := ConfigFromDockerContext(dockerCli.ContextStore(), dockerCli.CurrentContext())
 	if err != nil {
-		return nil, fmt.Errorf("loading otel config from docker context metadata: %v", err)
+		return nil, fmt.Errorf("loading otel config from docker context metadata: %w", err)
 	}
 
 	if cfg.Endpoint == "" {
@@ -52,26 +53,28 @@ func traceClientFromDockerContext(dockerCli command.Cli, otelEnv envMap) (otlptr
 	defer func() {
 		for k, v := range otelEnv {
 			if err := os.Setenv(k, v); err != nil {
-				panic(fmt.Errorf("restoring env for %q: %v", k, err))
+				panic(fmt.Errorf("restoring env for %q: %w", k, err))
 			}
 		}
 	}()
 	for k := range otelEnv {
 		if err := os.Unsetenv(k); err != nil {
-			return nil, fmt.Errorf("stashing env for %q: %v", k, err)
+			return nil, fmt.Errorf("stashing env for %q: %w", k, err)
 		}
 	}
 
-	dialCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	dialCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	conn, err := grpc.DialContext(
 		dialCtx,
 		cfg.Endpoint,
-		grpc.WithContextDialer(DialInMemory),
+		grpc.WithContextDialer(memnet.DialEndpoint),
+		// this dial is restricted to using a local Unix socket / named pipe,
+		// so there is no need for TLS
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("initializing otel connection from docker context metadata: %v", err)
+		return nil, fmt.Errorf("initializing otel connection from docker context metadata: %w", err)
 	}
 
 	client := otlptracegrpc.NewClient(otlptracegrpc.WithGRPCConn(conn))

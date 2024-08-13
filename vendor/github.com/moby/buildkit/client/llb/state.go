@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	"github.com/moby/buildkit/identity"
 	"github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
@@ -104,11 +105,11 @@ func (s State) getValue(k interface{}) func(context.Context, *Constraints) (inte
 	}
 	if s.async != nil {
 		return func(ctx context.Context, c *Constraints) (interface{}, error) {
-			err := s.async.Do(ctx, c)
+			target, err := s.async.Do(ctx, c)
 			if err != nil {
 				return nil, err
 			}
-			return s.async.target.getValue(k)(ctx, c)
+			return target.getValue(k)(ctx, c)
 		}
 	}
 	if s.prev == nil {
@@ -118,8 +119,13 @@ func (s State) getValue(k interface{}) func(context.Context, *Constraints) (inte
 }
 
 func (s State) Async(f func(context.Context, State, *Constraints) (State, error)) State {
+	as := &asyncState{
+		f:    f,
+		prev: s,
+	}
+	as.g.CacheError = true
 	s2 := State{
-		async: &asyncState{f: f, prev: s},
+		async: as,
 	}
 	return s2
 }
@@ -229,7 +235,7 @@ func (s State) Output() Output {
 	return s.out
 }
 
-// WithOutput creats a new state with the output set to the given output.
+// WithOutput creates a new state with the output set to the given output.
 func (s State) WithOutput(o Output) State {
 	prev := s
 	s = State{
@@ -258,16 +264,21 @@ func (s State) WithImageConfig(c []byte) (State, error) {
 	}
 	s = s.Dir(img.Config.WorkingDir)
 	if img.Architecture != "" && img.OS != "" {
-		s = s.Platform(ocispecs.Platform{
+		plat := ocispecs.Platform{
 			OS:           img.OS,
 			Architecture: img.Architecture,
 			Variant:      img.Variant,
-		})
+			OSVersion:    img.OSVersion,
+		}
+		if img.OSFeatures != nil {
+			plat.OSFeatures = append([]string{}, img.OSFeatures...)
+		}
+		s = s.Platform(plat)
 	}
 	return s, nil
 }
 
-// Run performs the command specified by the arguments within the contexst of the current [State].
+// Run performs the command specified by the arguments within the context of the current [State].
 // The command is executed as a container with the [State]'s filesystem as the root filesystem.
 // As such any command you run must be present in the [State]'s filesystem.
 // Constraints such as [State.Ulimit], [State.ParentCgroup], [State.Network], etc. are applied to the container.
@@ -340,16 +351,12 @@ func (s State) GetEnv(ctx context.Context, key string, co ...ConstraintsOpt) (st
 
 // Env returns a new [State] with the provided environment variable set.
 // See [Env]
-func (s State) Env(ctx context.Context, co ...ConstraintsOpt) ([]string, error) {
+func (s State) Env(ctx context.Context, co ...ConstraintsOpt) (*EnvList, error) {
 	c := &Constraints{}
 	for _, f := range co {
 		f.SetConstraintsOption(c)
 	}
-	env, err := getEnv(s)(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	return env.ToArray(), nil
+	return getEnv(s)(ctx, c)
 }
 
 // GetDir returns the current working directory for the state.
@@ -561,9 +568,7 @@ func mergeMetadata(m1, m2 pb.OpMetadata) pb.OpMetadata {
 		if m1.Description == nil {
 			m1.Description = make(map[string]string)
 		}
-		for k, v := range m2.Description {
-			m1.Description[k] = v
-		}
+		maps.Copy(m1.Description, m2.Description)
 	}
 	if m2.ExportCache != nil {
 		m1.ExportCache = m2.ExportCache
@@ -592,9 +597,7 @@ func WithDescription(m map[string]string) ConstraintsOpt {
 		if c.Metadata.Description == nil {
 			c.Metadata.Description = map[string]string{}
 		}
-		for k, v := range m {
-			c.Metadata.Description[k] = v
-		}
+		maps.Copy(c.Metadata.Description, m)
 	})
 }
 

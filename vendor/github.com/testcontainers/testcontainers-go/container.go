@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -14,8 +16,11 @@ import (
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/nat"
+	"github.com/google/uuid"
+	"github.com/moby/patternmatcher/ignorefile"
+
 	tcexec "github.com/testcontainers/testcontainers-go/exec"
-	"github.com/testcontainers/testcontainers-go/internal/testcontainersdocker"
+	"github.com/testcontainers/testcontainers-go/internal/core"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -34,21 +39,22 @@ type Container interface {
 	Endpoint(context.Context, string) (string, error)               // get proto://ip:port string for the first exposed port
 	PortEndpoint(context.Context, nat.Port, string) (string, error) // get proto://ip:port string for the given exposed port
 	Host(context.Context) (string, error)                           // get host where the container port is exposed
+	Inspect(context.Context) (*types.ContainerJSON, error)          // get container info
 	MappedPort(context.Context, nat.Port) (nat.Port, error)         // get externally mapped port for a container port
-	Ports(context.Context) (nat.PortMap, error)                     // get all exposed ports
+	Ports(context.Context) (nat.PortMap, error)                     // Deprecated: Use c.Inspect(ctx).NetworkSettings.Ports instead
 	SessionID() string                                              // get session id
 	IsRunning() bool
-	Start(context.Context) error                 // start the container
-	Stop(context.Context, *time.Duration) error  // stop the container
-	Terminate(context.Context) error             // terminate the container
-	Logs(context.Context) (io.ReadCloser, error) // Get logs of the container
-	FollowOutput(LogConsumer)
-	StartLogProducer(context.Context) error
-	StopLogProducer() error
-	Name(context.Context) (string, error)                        // get container name
-	State(context.Context) (*types.ContainerState, error)        // returns container's running state
-	Networks(context.Context) ([]string, error)                  // get container networks
-	NetworkAliases(context.Context) (map[string][]string, error) // get container network aliases for a network
+	Start(context.Context) error                                    // start the container
+	Stop(context.Context, *time.Duration) error                     // stop the container
+	Terminate(context.Context) error                                // terminate the container
+	Logs(context.Context) (io.ReadCloser, error)                    // Get logs of the container
+	FollowOutput(LogConsumer)                                       // Deprecated: it will be removed in the next major release
+	StartLogProducer(context.Context, ...LogProductionOption) error // Deprecated: Use the ContainerRequest instead
+	StopLogProducer() error                                         // Deprecated: it will be removed in the next major release
+	Name(context.Context) (string, error)                           // Deprecated: Use c.Inspect(ctx).Name instead
+	State(context.Context) (*types.ContainerState, error)           // returns container's running state
+	Networks(context.Context) ([]string, error)                     // get container networks
+	NetworkAliases(context.Context) (map[string][]string, error)    // get container network aliases for a network
 	Exec(ctx context.Context, cmd []string, options ...tcexec.ProcessOption) (int, io.Reader, error)
 	ContainerIP(context.Context) (string, error)    // get container ip
 	ContainerIPs(context.Context) ([]string, error) // get all container IPs
@@ -56,39 +62,69 @@ type Container interface {
 	CopyDirToContainer(ctx context.Context, hostDirPath string, containerParentPath string, fileMode int64) error
 	CopyFileToContainer(ctx context.Context, hostFilePath string, containerFilePath string, fileMode int64) error
 	CopyFileFromContainer(ctx context.Context, filePath string) (io.ReadCloser, error)
+	GetLogProductionErrorChannel() <-chan error
 }
 
 // ImageBuildInfo defines what is needed to build an image
 type ImageBuildInfo interface {
+	BuildOptions() (types.ImageBuildOptions, error) // converts the ImageBuildInfo to a types.ImageBuildOptions
 	GetContext() (io.Reader, error)                 // the path to the build context
 	GetDockerfile() string                          // the relative path to the Dockerfile, including the fileitself
+	GetRepo() string                                // get repo label for image
+	GetTag() string                                 // get tag label for image
 	ShouldPrintBuildLog() bool                      // allow build log to be printed to stdout
 	ShouldBuildImage() bool                         // return true if the image needs to be built
 	GetBuildArgs() map[string]*string               // return the environment args used to build the from Dockerfile
-	GetAuthConfigs() map[string]registry.AuthConfig // return the auth configs to be able to pull from an authenticated docker registry
+	GetAuthConfigs() map[string]registry.AuthConfig // Deprecated. Testcontainers will detect registry credentials automatically. Return the auth configs to be able to pull from an authenticated docker registry
 }
 
 // FromDockerfile represents the parameters needed to build an image from a Dockerfile
 // rather than using a pre-built one
 type FromDockerfile struct {
-	Context        string                         // the path to the context of of the docker build
+	Context        string                         // the path to the context of the docker build
 	ContextArchive io.Reader                      // the tar archive file to send to docker that contains the build context
 	Dockerfile     string                         // the path from the context to the Dockerfile for the image, defaults to "Dockerfile"
+	Repo           string                         // the repo label for image, defaults to UUID
+	Tag            string                         // the tag label for image, defaults to UUID
 	BuildArgs      map[string]*string             // enable user to pass build args to docker daemon
 	PrintBuildLog  bool                           // enable user to print build log
 	AuthConfigs    map[string]registry.AuthConfig // Deprecated. Testcontainers will detect registry credentials automatically. Enable auth configs to be able to pull from an authenticated docker registry
+	// KeepImage describes whether DockerContainer.Terminate should not delete the
+	// container image. Useful for images that are built from a Dockerfile and take a
+	// long time to build. Keeping the image also Docker to reuse it.
+	KeepImage bool
+	// BuildOptionsModifier Modifier for the build options before image build. Use it for
+	// advanced configurations while building the image. Please consider that the modifier
+	// is called after the default build options are set.
+	BuildOptionsModifier func(*types.ImageBuildOptions)
 }
 
 type ContainerFile struct {
-	HostFilePath      string
+	HostFilePath      string    // If Reader is present, HostFilePath is ignored
+	Reader            io.Reader // If Reader is present, HostFilePath is ignored
 	ContainerFilePath string
 	FileMode          int64
+}
+
+// validate validates the ContainerFile
+func (c *ContainerFile) validate() error {
+	if c.HostFilePath == "" && c.Reader == nil {
+		return errors.New("either HostFilePath or Reader must be specified")
+	}
+
+	if c.ContainerFilePath == "" {
+		return errors.New("ContainerFilePath must be specified")
+	}
+
+	return nil
 }
 
 // ContainerRequest represents the parameters used to get a running container
 type ContainerRequest struct {
 	FromDockerfile
+	HostAccessPorts         []int
 	Image                   string
+	ImageSubstitutors       []ImageSubstitutor
 	Entrypoint              []string
 	Env                     map[string]string
 	ExposedPorts            []string // allow specifying protocol info
@@ -100,6 +136,7 @@ type ContainerRequest struct {
 	WaitingFor              wait.Strategy
 	Name                    string // for specifying container name
 	Hostname                string
+	WorkingDir              string                                     // specify the working directory of the container
 	ExtraHosts              []string                                   // Deprecated: Use HostConfigModifier instead
 	Privileged              bool                                       // For starting privileged container
 	Networks                []string                                   // for specifying network names
@@ -110,7 +147,7 @@ type ContainerRequest struct {
 	User                    string                                     // for specifying uid:gid
 	SkipReaper              bool                                       // Deprecated: The reaper is globally controlled by the .testcontainers.properties file or the TESTCONTAINERS_RYUK_DISABLED environment variable
 	ReaperImage             string                                     // Deprecated: use WithImageName ContainerOption instead. Alternative reaper image
-	ReaperOptions           []ContainerOption                          // options for the reaper
+	ReaperOptions           []ContainerOption                          // Deprecated: the reaper is configured at the properties level, for an entire test session
 	AutoRemove              bool                                       // Deprecated: Use HostConfigModifier instead. If set to true, the container will be removed from the host when stopped
 	AlwaysPullImage         bool                                       // Always pull image
 	ImagePlatform           string                                     // ImagePlatform describes the platform which the image runs on.
@@ -122,6 +159,7 @@ type ContainerRequest struct {
 	HostConfigModifier      func(*container.HostConfig)                // Modifier for the host config before container creation
 	EnpointSettingsModifier func(map[string]*network.EndpointSettings) // Modifier for the network settings before container creation
 	LifecycleHooks          []ContainerLifecycleHooks                  // define hooks to be executed during container lifecycle
+	LogConsumerCfg          *LogConsumerConfig                         // define the configuration for the log producer and its log consumers to follow the logs
 }
 
 // containerOptions functional options for a container
@@ -130,9 +168,11 @@ type containerOptions struct {
 	RegistryCredentials string // Deprecated: Testcontainers will detect registry credentials automatically
 }
 
+// Deprecated: it will be removed in the next major release
 // functional option for setting the reaper image
 type ContainerOption func(*containerOptions)
 
+// Deprecated: it will be removed in the next major release
 // WithImageName sets the reaper image name
 func WithImageName(imageName string) ContainerOption {
 	return func(o *containerOptions) {
@@ -140,7 +180,7 @@ func WithImageName(imageName string) ContainerOption {
 	}
 }
 
-// Deprecated: Testcontainers will detect registry credentials automatically
+// Deprecated: Testcontainers will detect registry credentials automatically, and it will be removed in the next major release
 // WithRegistryCredentials sets the reaper registry credentials
 func WithRegistryCredentials(registryCredentials string) ContainerOption {
 	return func(o *containerOptions) {
@@ -169,7 +209,10 @@ func (c *ContainerRequest) Validate() error {
 }
 
 // GetContext retrieve the build context for the request
+// Must be closed when no longer needed.
 func (c *ContainerRequest) GetContext() (io.Reader, error) {
+	var includes []string = []string{"."}
+
 	if c.ContextArchive != nil {
 		return c.ContextArchive, nil
 	}
@@ -181,12 +224,47 @@ func (c *ContainerRequest) GetContext() (io.Reader, error) {
 	}
 	c.Context = abs
 
-	buildContext, err := archive.TarWithOptions(c.Context, &archive.TarOptions{})
+	dockerIgnoreExists, excluded, err := parseDockerIgnore(abs)
+	if err != nil {
+		return nil, err
+	}
+
+	if dockerIgnoreExists {
+		// only add .dockerignore if it exists
+		includes = append(includes, ".dockerignore")
+	}
+
+	includes = append(includes, c.GetDockerfile())
+
+	buildContext, err := archive.TarWithOptions(
+		c.Context,
+		&archive.TarOptions{ExcludePatterns: excluded, IncludeFiles: includes},
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	return buildContext, nil
+}
+
+// parseDockerIgnore returns if the file exists, the excluded files and an error if any
+func parseDockerIgnore(targetDir string) (bool, []string, error) {
+	// based on https://github.com/docker/cli/blob/master/cli/command/image/build/dockerignore.go#L14
+	fileLocation := filepath.Join(targetDir, ".dockerignore")
+	var excluded []string
+	exists := false
+	if f, openErr := os.Open(fileLocation); openErr == nil {
+		defer f.Close()
+
+		exists = true
+
+		var err error
+		excluded, err = ignorefile.ReadAll(f)
+		if err != nil {
+			return true, excluded, fmt.Errorf("error reading .dockerignore: %w", err)
+		}
+	}
+	return exists, excluded, nil
 }
 
 // GetBuildArgs returns the env args to be used when creating from Dockerfile
@@ -204,9 +282,35 @@ func (c *ContainerRequest) GetDockerfile() string {
 	return f
 }
 
+// GetRepo returns the Repo label for image from the ContainerRequest, defaults to UUID
+func (c *ContainerRequest) GetRepo() string {
+	r := c.FromDockerfile.Repo
+	if r == "" {
+		return uuid.NewString()
+	}
+
+	return strings.ToLower(r)
+}
+
+// GetTag returns the Tag label for image from the ContainerRequest, defaults to UUID
+func (c *ContainerRequest) GetTag() string {
+	t := c.FromDockerfile.Tag
+	if t == "" {
+		return uuid.NewString()
+	}
+
+	return strings.ToLower(t)
+}
+
+// Deprecated: Testcontainers will detect registry credentials automatically, and it will be removed in the next major release
 // GetAuthConfigs returns the auth configs to be able to pull from an authenticated docker registry
 func (c *ContainerRequest) GetAuthConfigs() map[string]registry.AuthConfig {
-	images, err := testcontainersdocker.ExtractImagesFromDockerfile(filepath.Join(c.Context, c.GetDockerfile()), c.GetBuildArgs())
+	return getAuthConfigsFromDockerfile(c)
+}
+
+// getAuthConfigsFromDockerfile returns the auth configs to be able to pull from an authenticated docker registry
+func getAuthConfigsFromDockerfile(c *ContainerRequest) map[string]registry.AuthConfig {
+	images, err := core.ExtractImagesFromDockerfile(filepath.Join(c.Context, c.GetDockerfile()), c.GetBuildArgs())
 	if err != nil {
 		return map[string]registry.AuthConfig{}
 	}
@@ -228,8 +332,77 @@ func (c *ContainerRequest) ShouldBuildImage() bool {
 	return c.FromDockerfile.Context != "" || c.FromDockerfile.ContextArchive != nil
 }
 
+func (c *ContainerRequest) ShouldKeepBuiltImage() bool {
+	return c.FromDockerfile.KeepImage
+}
+
 func (c *ContainerRequest) ShouldPrintBuildLog() bool {
 	return c.FromDockerfile.PrintBuildLog
+}
+
+// BuildOptions returns the image build options when building a Docker image from a Dockerfile.
+// It will apply some defaults and finally call the BuildOptionsModifier from the FromDockerfile struct,
+// if set.
+func (c *ContainerRequest) BuildOptions() (types.ImageBuildOptions, error) {
+	buildOptions := types.ImageBuildOptions{
+		Remove:      true,
+		ForceRemove: true,
+	}
+
+	if c.FromDockerfile.BuildOptionsModifier != nil {
+		c.FromDockerfile.BuildOptionsModifier(&buildOptions)
+	}
+
+	// apply mandatory values after the modifier
+	buildOptions.BuildArgs = c.GetBuildArgs()
+	buildOptions.Dockerfile = c.GetDockerfile()
+
+	// Make sure the auth configs from the Dockerfile are set right after the user-defined build options.
+	authsFromDockerfile := getAuthConfigsFromDockerfile(c)
+
+	if buildOptions.AuthConfigs == nil {
+		buildOptions.AuthConfigs = map[string]registry.AuthConfig{}
+	}
+
+	for registry, authConfig := range authsFromDockerfile {
+		buildOptions.AuthConfigs[registry] = authConfig
+	}
+
+	// make sure the first tag is the one defined in the ContainerRequest
+	tag := fmt.Sprintf("%s:%s", c.GetRepo(), c.GetTag())
+
+	// apply substitutors to the built image
+	for _, is := range c.ImageSubstitutors {
+		modifiedTag, err := is.Substitute(tag)
+		if err != nil {
+			return buildOptions, fmt.Errorf("failed to substitute image %s with %s: %w", tag, is.Description(), err)
+		}
+
+		if modifiedTag != tag {
+			Logger.Printf("✍🏼 Replacing image with %s. From: %s to %s\n", is.Description(), tag, modifiedTag)
+			tag = modifiedTag
+		}
+	}
+
+	if len(buildOptions.Tags) > 0 {
+		// prepend the tag
+		buildOptions.Tags = append([]string{tag}, buildOptions.Tags...)
+	} else {
+		buildOptions.Tags = []string{tag}
+	}
+
+	if !c.ShouldKeepBuiltImage() {
+		buildOptions.Labels = core.DefaultLabels(core.SessionID())
+	}
+
+	// Do this as late as possible to ensure we don't leak the context on error/panic.
+	buildContext, err := c.GetContext()
+	if err != nil {
+		return buildOptions, err
+	}
+	buildOptions.Context = buildContext
+
+	return buildOptions, nil
 }
 
 func (c *ContainerRequest) validateContextAndImage() error {
@@ -248,6 +421,8 @@ func (c *ContainerRequest) validateContextOrImageIsSpecified() error {
 	return nil
 }
 
+// validateMounts ensures that the mounts do not have duplicate targets.
+// It will check the Mounts and HostConfigModifier.Binds fields.
 func (c *ContainerRequest) validateMounts() error {
 	targets := make(map[string]bool, len(c.Mounts))
 
@@ -260,5 +435,29 @@ func (c *ContainerRequest) validateMounts() error {
 			targets[targetPath] = true
 		}
 	}
+
+	if c.HostConfigModifier == nil {
+		return nil
+	}
+
+	hostConfig := container.HostConfig{}
+
+	c.HostConfigModifier(&hostConfig)
+
+	if hostConfig.Binds != nil && len(hostConfig.Binds) > 0 {
+		for _, bind := range hostConfig.Binds {
+			parts := strings.Split(bind, ":")
+			if len(parts) != 2 {
+				return fmt.Errorf("%w: %s", ErrInvalidBindMount, bind)
+			}
+			targetPath := parts[1]
+			if targets[targetPath] {
+				return fmt.Errorf("%w: %s", ErrDuplicateMountTarget, targetPath)
+			} else {
+				targets[targetPath] = true
+			}
+		}
+	}
+
 	return nil
 }
