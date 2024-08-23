@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/paultyng/go-unifi/unifi"
+	"github.com/sayedh/go-unifi/unifi"
 )
 
 // TODO: probably need to update this to be more like setting_usg,

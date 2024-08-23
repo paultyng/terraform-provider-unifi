@@ -9,7 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/paultyng/go-unifi/unifi"
+	"github.com/sayedh/go-unifi/unifi"
+	// "github.com/paultyng/go-unifi/unifi" (old go-unifi version)
 )
 
 var (
@@ -247,12 +248,15 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
-			"internet_access_enabled": {
-				Description: "Specifies whether this network should be allowed to access the internet or not.",
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-			},
+
+			// Deprecated from paultyng/go-unifi - UnifiVersion = "7.4.162"
+			// "internet_access_enabled": {
+			// 	Description: "Specifies whether this network should be allowed to access the internet or not.",
+			// 	Type:        schema.TypeBool,
+			// 	Optional:    true,
+			// 	Default:     true,
+			// },
+
 			"intra_network_access_enabled": {
 				Description: "Specifies whether this network should be allowed to access other local networks or not.",
 				Type:        schema.TypeBool,
@@ -282,6 +286,15 @@ func resourceNetwork() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+
+			// New update from sayedh/go-unifi - UnifiVersion = "8.3.32"
+			"network_isolation_enabled": {
+				Description: "Specifies whether network isolation is enabled for this network.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+
 			"wan_ip": {
 				Description:  "The IPv4 address of the WAN.",
 				Type:         schema.TypeString,
@@ -432,6 +445,9 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		IGMPSnooping:      d.Get("igmp_snooping").(bool),
 		MdnsEnabled:       d.Get("multicast_dns").(bool),
 
+		// New update from sayedh/go-unifi - UnifiVersion = "8.3.32"
+		NetworkIsolationEnabled: d.Get("network_isolation_enabled").(bool),
+
 		DHCPDDNSEnabled: len(dhcpDNS) > 0,
 		// this is kinda hacky but ¯\_(ツ)_/¯
 		DHCPDDNS1: append(dhcpDNS, "")[0],
@@ -466,8 +482,10 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		IPV6RaPriority:          d.Get("ipv6_ra_priority").(string),
 		IPV6RaValidLifetime:     d.Get("ipv6_ra_valid_lifetime").(int),
 
-		InternetAccessEnabled:     d.Get("internet_access_enabled").(bool),
-		IntraNetworkAccessEnabled: d.Get("intra_network_access_enabled").(bool),
+		InternetAccessEnabled: d.Get("internet_access_enabled").(bool),
+
+		// Deprecated from paultyng/go-unifi - UnifiVersion = "7.4.162"
+		// IntraNetworkAccessEnabled: d.Get("intra_network_access_enabled").(bool),
 
 		WANIP:           d.Get("wan_ip").(string),
 		WANType:         d.Get("wan_type").(string),
@@ -586,7 +604,10 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
 	d.Set("internet_access_enabled", resp.InternetAccessEnabled)
-	d.Set("intra_network_access_enabled", resp.IntraNetworkAccessEnabled)
+
+	// Deprecated from paultyng/go-unifi - UnifiVersion = "7.4.162"
+	// d.Set("intra_network_access_enabled", resp.IntraNetworkAccessEnabled)
+
 	d.Set("ipv6_interface_type", resp.IPV6InterfaceType)
 	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)
@@ -598,6 +619,10 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("ipv6_ra_valid_lifetime", resp.IPV6RaValidLifetime)
 	d.Set("ipv6_static_subnet", resp.IPV6Subnet)
 	d.Set("multicast_dns", resp.MdnsEnabled)
+
+	// New update from sayedh/go-unifi - UnifiVersion = "8.3.32"
+	d.Set("network_isolation_enabled", resp.NetworkIsolationEnabled)
+
 	d.Set("wan_dhcp_v6_pd_size", resp.WANDHCPv6PDSize)
 	d.Set("wan_dns", wanDNS)
 	d.Set("wan_egress_qos", resp.WANEgressQOS)

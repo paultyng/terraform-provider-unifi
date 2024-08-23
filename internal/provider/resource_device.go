@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/paultyng/go-unifi/unifi"
+	"github.com/sayedh/go-unifi/unifi"
 )
 
 func resourceDevice() *schema.Resource {
@@ -99,7 +99,7 @@ func resourceDevice() *schema.Resource {
 							},
 						},
 						"poe_mode": {
-							Description: "PoE mode of the port; valid values are `auto`, `pasv24`, `passthrough`, and `off`.",
+							Description:  "PoE mode of the port; valid values are `auto`, `pasv24`, `passthrough`, and `off`.",
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validation.StringInSlice([]string{"auto", "pasv24", "passthrough", "off"}, false),
