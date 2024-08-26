@@ -829,8 +829,8 @@ github.com/sashamelentyev/interfacebloat v1.1.0 h1:xdRdJp0irL086OyW1H/RTZTr1h/tM
 github.com/sashamelentyev/interfacebloat v1.1.0/go.mod h1:+Y9yU5YdTkrNvoX0xHc84dxiN1iBi9+G8zZIhPVoNjQ=
 github.com/sashamelentyev/usestdlibvars v1.26.0 h1:LONR2hNVKxRmzIrZR0PhSF3mhCAzvnr+DcUiHgREfXE=
 github.com/sashamelentyev/usestdlibvars v1.26.0/go.mod h1:9nl0jgOfHKWNFS43Ojw0i7aRoS4j6EBye3YBhmAIRF8=
-github.com/sayedh/go-unifi v1.0.0 h1:VQFANeOhG9V6Dg76Z7eZzglik2JnoWpLywaZfAJhahU=
-github.com/sayedh/go-unifi v1.0.0/go.mod h1:HtudPkwqEhiMwZbFotv0ikoiMZC0/WV8bQv+QbV2Soo=
+github.com/sayedh/go-unifi v1.0.1 h1:Q8nyqCZKIuP8MgmEGdV89tUSJ9kS1dFpKnd4BwUPWYo=
+github.com/sayedh/go-unifi v1.0.1/go.mod h1:HtudPkwqEhiMwZbFotv0ikoiMZC0/WV8bQv+QbV2Soo=
 github.com/secure-systems-lab/go-securesystemslib v0.8.0 h1:mr5An6X45Kb2nddcFlbmfHkLguCE9laoZCUzEEpIZXA=
 github.com/secure-systems-lab/go-securesystemslib v0.8.0/go.mod h1:UH2VZVuJfCYR8WgMlCU1uFsOUU+KeyrTWcSS73NBOzU=
 github.com/securego/gosec/v2 v2.20.1-0.20240525090044-5f0084eb01a9 h1:rnO6Zp1YMQwv8AyxzuwsVohljJgp4L0ZqiCgtACsPsc=

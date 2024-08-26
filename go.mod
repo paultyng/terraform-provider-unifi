@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.3.0
 	// Deprecated from paultyng/go-unifi - UnifiVersion = "7.4.162"
 	// github.com/paultyng/go-unifi v1.30.1
-	github.com/sayedh/go-unifi v1.0.0
+	github.com/sayedh/go-unifi v1.0.1
 	github.com/testcontainers/testcontainers-go v0.32.0
 	github.com/testcontainers/testcontainers-go/modules/compose v0.32.0
 )

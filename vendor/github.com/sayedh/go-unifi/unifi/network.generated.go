@@ -78,12 +78,14 @@ type Network struct {
 	GatewayDevice                                 string                          `json:"gateway_device"`         // (^$|^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$)
 	GatewayType                                   string                          `json:"gateway_type,omitempty"` // default|switch
 	IGMPFastleave                                 bool                            `json:"igmp_fastleave"`
+	IGMPForwardUnknownMulticast                   bool                            `json:"igmp_forward_unknown_multicast"`
 	IGMPGroupmembership                           int                             `json:"igmp_groupmembership,omitempty"` // [2-9]|[1-9][0-9]{1,2}|[1-2][0-9]{3}|3[0-5][0-9]{2}|3600|^$
 	IGMPMaxresponse                               int                             `json:"igmp_maxresponse,omitempty"`     // [1-9]|1[0-9]|2[0-5]|^$
 	IGMPMcrtrexpiretime                           int                             `json:"igmp_mcrtrexpiretime,omitempty"` // [0-9]|[1-9][0-9]{1,2}|[1-2][0-9]{3}|3[0-5][0-9]{2}|3600|^$
-	IGMPProxyDownstream                           bool                            `json:"igmp_proxy_downstream"`
+	IGMPProxyDownstreamNetworkIDs                 []string                        `json:"igmp_proxy_downstream_networkconf_ids,omitempty"`
+	IGMPProxyFor                                  string                          `json:"igmp_proxy_for,omitempty"` // all|some|none
 	IGMPProxyUpstream                             bool                            `json:"igmp_proxy_upstream"`
-	IGMPQuerier                                   string                          `json:"igmp_querier"` // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
+	IGMPQuerierSwitches                           []NetworkIGMPQuerierSwitches    `json:"igmp_querier_switches,omitempty"`
 	IGMPSnooping                                  bool                            `json:"igmp_snooping"`
 	IGMPSupression                                bool                            `json:"igmp_supression"`
 	IPSecDhGroup                                  int                             `json:"ipsec_dh_group,omitempty"` // 2|5|14|15|16|19|20|21|25|26
@@ -334,6 +336,27 @@ func (dst *Network) UnmarshalJSON(b []byte) error {
 	dst.WANSmartqUpRate = int(aux.WANSmartqUpRate)
 	dst.WANVLAN = int(aux.WANVLAN)
 	dst.WireguardClientPeerPort = int(aux.WireguardClientPeerPort)
+
+	return nil
+}
+
+type NetworkIGMPQuerierSwitches struct {
+	QuerierAddress string `json:"querier_address"`      // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
+	SwitchMAC      string `json:"switch_mac,omitempty"` // ^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$
+}
+
+func (dst *NetworkIGMPQuerierSwitches) UnmarshalJSON(b []byte) error {
+	type Alias NetworkIGMPQuerierSwitches
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(dst),
+	}
+
+	err := json.Unmarshal(b, &aux)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal alias: %w", err)
+	}
 
 	return nil
 }
