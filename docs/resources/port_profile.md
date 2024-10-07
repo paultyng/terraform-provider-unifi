@@ -46,7 +46,8 @@ resource "unifi_port_profile" "poe_disabled" {
 - `dot1x_idle_timeout` (Number) The timeout, in seconds, to use when using the MAC Based 802.1X control. Can be between 0 and 65535 Defaults to `300`.
 - `egress_rate_limit_kbps` (Number) The egress rate limit, in kpbs, for the port profile. Can be between `64` and `9999999`.
 - `egress_rate_limit_kbps_enabled` (Boolean) Enable egress rate limiting for the port profile. Defaults to `false`.
-- `forward` (String) The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`. Defaults to `native`.
+- `excluded_network_ids` (Set of String) The IDs of networks to exclude from this port profile.
+- `forward` (String) The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`. Defaults to `customize`.
 - `full_duplex` (Boolean) Enable full duplex for the port profile. Defaults to `false`.
 - `isolation` (Boolean) Enable port isolation for the port profile. Defaults to `false`.
 - `lldpmed_enabled` (Boolean) Enable LLDP-MED for the port profile. Defaults to `true`.

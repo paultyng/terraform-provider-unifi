@@ -427,7 +427,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		return nil, fmt.Errorf("unable to convert wan_dns to string slice: %w", err)
 	}
 
-	return &unifi.Network{
+	network := &unifi.Network{
 		Name:              d.Get("name").(string),
 		Purpose:           d.Get("purpose").(string),
 		VLAN:              vlan,
@@ -435,79 +435,149 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		NetworkGroup:      d.Get("network_group").(string),
 		DHCPDStart:        d.Get("dhcp_start").(string),
 		DHCPDStop:         d.Get("dhcp_stop").(string),
-		DHCPDEnabled:      d.Get("dhcp_enabled").(bool),
 		DHCPDLeaseTime:    d.Get("dhcp_lease").(int),
-		DHCPDBootEnabled:  d.Get("dhcpd_boot_enabled").(bool),
 		DHCPDBootServer:   d.Get("dhcpd_boot_server").(string),
 		DHCPDBootFilename: d.Get("dhcpd_boot_filename").(string),
-		DHCPRelayEnabled:  d.Get("dhcp_relay_enabled").(bool),
 		DomainName:        d.Get("domain_name").(string),
-		IGMPSnooping:      d.Get("igmp_snooping").(bool),
-		MdnsEnabled:       d.Get("multicast_dns").(bool),
+		VLANEnabled:       vlan != 0 && vlan != 1,
+		Enabled:           true,
+	}
 
-		// New update from sayedh/go-unifi - UnifiVersion = "8.3.32"
-		NetworkIsolationEnabled: d.Get("network_isolation_enabled").(bool),
+	// Add error handling for boolean fields
+	if v, ok := d.GetOk("dhcp_enabled"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.DHCPDEnabled = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for dhcp_enabled: expected bool, got %T", v)
+		}
+	}
 
-		DHCPDDNSEnabled: len(dhcpDNS) > 0,
-		// this is kinda hacky but ¯\_(ツ)_/¯
-		DHCPDDNS1: append(dhcpDNS, "")[0],
-		DHCPDDNS2: append(dhcpDNS, "", "")[1],
-		DHCPDDNS3: append(dhcpDNS, "", "", "")[2],
-		DHCPDDNS4: append(dhcpDNS, "", "", "", "")[3],
+	if v, ok := d.GetOk("dhcpd_boot_enabled"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.DHCPDBootEnabled = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for dhcpd_boot_enabled: expected bool, got %T", v)
+		}
+	}
 
-		VLANEnabled: vlan != 0 && vlan != 1,
+	if v, ok := d.GetOk("dhcp_relay_enabled"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.DHCPRelayEnabled = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for dhcp_relay_enabled: expected bool, got %T", v)
+		}
+	}
 
-		Enabled: true,
+	if v, ok := d.GetOk("igmp_snooping"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.IGMPSnooping = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for igmp_snooping: expected bool, got %T", v)
+		}
+	}
 
-		// Same hackish code as for DHCPv4 ¯\_(ツ)_/¯
-		DHCPDV6DNS1: append(dhcpV6DNS, "")[0],
-		DHCPDV6DNS2: append(dhcpV6DNS, "", "")[1],
-		DHCPDV6DNS3: append(dhcpV6DNS, "", "", "")[2],
-		DHCPDV6DNS4: append(dhcpV6DNS, "", "", "", "")[3],
+	if v, ok := d.GetOk("multicast_dns"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.MdnsEnabled = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for multicast_dns: expected bool, got %T", v)
+		}
+	}
 
-		DHCPDV6DNSAuto:   d.Get("dhcp_v6_dns_auto").(bool),
-		DHCPDV6Enabled:   d.Get("dhcp_v6_enabled").(bool),
-		DHCPDV6LeaseTime: d.Get("dhcp_v6_lease").(int),
-		DHCPDV6Start:     d.Get("dhcp_v6_start").(string),
-		DHCPDV6Stop:      d.Get("dhcp_v6_stop").(string),
+	// New update from sayedh/go-unifi - UnifiVersion = "8.3.32"
+	if v, ok := d.GetOk("network_isolation_enabled"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.NetworkIsolationEnabled = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for network_isolation_enabled: expected bool, got %T", v)
+		}
+	}
 
-		IPV6InterfaceType:       d.Get("ipv6_interface_type").(string),
-		IPV6Subnet:              d.Get("ipv6_static_subnet").(string),
-		IPV6PDInterface:         d.Get("ipv6_pd_interface").(string),
-		IPV6PDPrefixid:          d.Get("ipv6_pd_prefixid").(string),
-		IPV6PDStart:             d.Get("ipv6_pd_start").(string),
-		IPV6PDStop:              d.Get("ipv6_pd_stop").(string),
-		IPV6RaEnabled:           d.Get("ipv6_ra_enable").(bool),
-		IPV6RaPreferredLifetime: d.Get("ipv6_ra_preferred_lifetime").(int),
-		IPV6RaPriority:          d.Get("ipv6_ra_priority").(string),
-		IPV6RaValidLifetime:     d.Get("ipv6_ra_valid_lifetime").(int),
+	network.DHCPDDNSEnabled = len(dhcpDNS) > 0
+	// this is kinda hacky but ¯\_(ツ)_/¯
+	network.DHCPDDNS1 = append(dhcpDNS, "")[0]
+	network.DHCPDDNS2 = append(dhcpDNS, "", "")[1]
+	network.DHCPDDNS3 = append(dhcpDNS, "", "", "")[2]
+	network.DHCPDDNS4 = append(dhcpDNS, "", "", "", "")[3]
 
-		InternetAccessEnabled: d.Get("internet_access_enabled").(bool),
+	// Same hackish code as for DHCPv4 ¯\_(ツ)_/¯
+	network.DHCPDV6DNS1 = append(dhcpV6DNS, "")[0]
+	network.DHCPDV6DNS2 = append(dhcpV6DNS, "", "")[1]
+	network.DHCPDV6DNS3 = append(dhcpV6DNS, "", "", "")[2]
+	network.DHCPDV6DNS4 = append(dhcpV6DNS, "", "", "", "")[3]
 
-		// Deprecated from paultyng/go-unifi - UnifiVersion = "7.4.162"
-		// IntraNetworkAccessEnabled: d.Get("intra_network_access_enabled").(bool),
+	// Add error handling for the remaining boolean fields
+	if v, ok := d.GetOk("dhcp_v6_dns_auto"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.DHCPDV6DNSAuto = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for dhcp_v6_dns_auto: expected bool, got %T", v)
+		}
+	}
 
-		WANIP:           d.Get("wan_ip").(string),
-		WANType:         d.Get("wan_type").(string),
-		WANNetmask:      d.Get("wan_netmask").(string),
-		WANGateway:      d.Get("wan_gateway").(string),
-		WANNetworkGroup: d.Get("wan_networkgroup").(string),
-		WANEgressQOS:    d.Get("wan_egress_qos").(int),
-		WANUsername:     d.Get("wan_username").(string),
-		XWANPassword:    d.Get("x_wan_password").(string),
+	if v, ok := d.GetOk("dhcp_v6_enabled"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.DHCPDV6Enabled = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for dhcp_v6_enabled: expected bool, got %T", v)
+		}
+	}
 
-		WANTypeV6:       d.Get("wan_type_v6").(string),
-		WANDHCPv6PDSize: d.Get("wan_dhcp_v6_pd_size").(int),
-		WANIPV6:         d.Get("wan_ipv6").(string),
-		WANGatewayV6:    d.Get("wan_gateway_v6").(string),
-		WANPrefixlen:    d.Get("wan_prefixlen").(int),
+	if v, ok := d.GetOk("ipv6_ra_enable"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.IPV6RaEnabled = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for ipv6_ra_enable: expected bool, got %T", v)
+		}
+	}
 
-		// this is kinda hacky but ¯\_(ツ)_/¯
-		WANDNS1: append(wanDNS, "")[0],
-		WANDNS2: append(wanDNS, "", "")[1],
-		WANDNS3: append(wanDNS, "", "", "")[2],
-		WANDNS4: append(wanDNS, "", "", "", "")[3],
-	}, nil
+	if v, ok := d.GetOk("internet_access_enabled"); ok {
+		if boolValue, isBool := v.(bool); isBool {
+			network.InternetAccessEnabled = boolValue
+		} else {
+			return nil, fmt.Errorf("invalid type for internet_access_enabled: expected bool, got %T", v)
+		}
+	}
+
+	network.DHCPDV6LeaseTime = d.Get("dhcp_v6_lease").(int)
+	network.DHCPDV6Start = d.Get("dhcp_v6_start").(string)
+	network.DHCPDV6Stop = d.Get("dhcp_v6_stop").(string)
+
+	network.IPV6InterfaceType = d.Get("ipv6_interface_type").(string)
+	network.IPV6Subnet = d.Get("ipv6_static_subnet").(string)
+	network.IPV6PDInterface = d.Get("ipv6_pd_interface").(string)
+	network.IPV6PDPrefixid = d.Get("ipv6_pd_prefixid").(string)
+	network.IPV6PDStart = d.Get("ipv6_pd_start").(string)
+	network.IPV6PDStop = d.Get("ipv6_pd_stop").(string)
+	network.IPV6RaPreferredLifetime = d.Get("ipv6_ra_preferred_lifetime").(int)
+	network.IPV6RaPriority = d.Get("ipv6_ra_priority").(string)
+	network.IPV6RaValidLifetime = d.Get("ipv6_ra_valid_lifetime").(int)
+
+	// Deprecated from paultyng/go-unifi - UnifiVersion = "7.4.162"
+	// IntraNetworkAccessEnabled: d.Get("intra_network_access_enabled").(bool),
+
+	network.WANIP = d.Get("wan_ip").(string)
+	network.WANType = d.Get("wan_type").(string)
+	network.WANNetmask = d.Get("wan_netmask").(string)
+	network.WANGateway = d.Get("wan_gateway").(string)
+	network.WANNetworkGroup = d.Get("wan_networkgroup").(string)
+	network.WANEgressQOS = d.Get("wan_egress_qos").(int)
+	network.WANUsername = d.Get("wan_username").(string)
+	network.XWANPassword = d.Get("x_wan_password").(string)
+
+	network.WANTypeV6 = d.Get("wan_type_v6").(string)
+	network.WANDHCPv6PDSize = d.Get("wan_dhcp_v6_pd_size").(int)
+	network.WANIPV6 = d.Get("wan_ipv6").(string)
+	network.WANGatewayV6 = d.Get("wan_gateway_v6").(string)
+	network.WANPrefixlen = d.Get("wan_prefixlen").(int)
+
+	// this is kinda hacky but ¯\_(ツ)_/¯
+	network.WANDNS1 = append(wanDNS, "")[0]
+	network.WANDNS2 = append(wanDNS, "", "")[1]
+	network.WANDNS3 = append(wanDNS, "", "", "")[2]
+	network.WANDNS4 = append(wanDNS, "", "", "", "")[3]
+
+	return network, nil
 }
 
 func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData, site string) diag.Diagnostics {

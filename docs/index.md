@@ -7,8 +7,28 @@ description: |-
 
 # Unifi Provider
 
-The Unifi provider provides resources to interact with a Unifi controller API.
+The Unifi provider allows users to manage and configure UniFi Network controllers and devices via the Terraform ecosystem. This provider is currently **under active development** and should be considered **experimental**.
 
+## Important Warning
+
+This provider is **not yet fully functional** and is **under construction**. Only limited features are thoroughly tested and confirmed to work. Users should be aware that certain features may work inconsistently or may not work at all. It is recommended to use this provider for **testing and experimentation purposes only**, rather than in production environments.
+
+## Supported UniFi Controller Version
+
+This provider currently works with **UniFi Controller v8.4.59**. Efforts are ongoing to ensure compatibility with the latest UniFi Network Controller versions.
+
+## Features Currently Working
+
+The following features are thoroughly tested and confirmed to work:
+
+- **Resource: Network** - Manage UniFi network configurations.
+- **Resource: Port Profile** - Configure port profiles for UniFi switches.
+
+## Fork Information
+
+This provider is a fork of the original [paultyng/terraform-provider-unifi](https://github.com/paultyng/terraform-provider-unifi). The original provider supports UniFi Network versions up to **v7.4.162**. For users requiring compatibility with older UniFi Network versions, please use the [paultyng provider on the Terraform Registry](https://registry.terraform.io/providers/paultyng/unifi/latest).
+
+## Authentication Recommendations
 It is not recommended to use your own account for management of your controller. A user specific to
 Terraform is recommended. You can create a **Limited Admin** with **Local Access Only** and
 provide that information for authentication. Two-factor authentication is not supported in the provider.
