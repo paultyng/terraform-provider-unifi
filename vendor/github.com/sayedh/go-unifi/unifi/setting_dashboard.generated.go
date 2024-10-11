@@ -27,7 +27,7 @@ type SettingDashboard struct {
 
 	Key string `json:"key"`
 
-	LayoutPreference string                    `json:"layout_preference,omitempty"` // auto|custom
+	LayoutPreference string                    `json:"layout_preference,omitempty"` // auto|manual
 	Widgets          []SettingDashboardWidgets `json:"widgets,omitempty"`
 }
 
@@ -48,7 +48,7 @@ func (dst *SettingDashboard) UnmarshalJSON(b []byte) error {
 }
 
 type SettingDashboardWidgets struct {
-	Name string `json:"name,omitempty"` // traffic_identification|connection_types|wifi_technology|most_active_clients|most_active_aps|meshing|network_activity|wireless_experience|internet|wifi_activity|wifi_channels|wifi_client_experience|wifi_tx_retries|admin_activity|device_client_count|server_ip
+	Name string `json:"name,omitempty"` // traffic_identification|connection_types|wifi_technology|most_active_clients|most_active_aps|meshing|network_activity|wireless_experience|internet|wifi_activity|wifi_channels|wifi_client_experience|wifi_tx_retries|admin_activity|device_client_count|server_ip|speed_test|device_capacity|connectivity_status|system_status|wan|gateway|ap_density|most_active_apps_aps_clients|most_active_apps_clients|most_active_aps_clients|most_active_apps_aps|most_active_apps|v2_most_active_aps|v2_most_active_clients|wifi_connectivity|next_ai|wan_history
 }
 
 func (dst *SettingDashboardWidgets) UnmarshalJSON(b []byte) error {

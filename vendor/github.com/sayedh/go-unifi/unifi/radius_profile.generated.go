@@ -36,8 +36,7 @@ type RADIUSProfile struct {
 	UseUsgAuthServer          bool                       `json:"use_usg_auth_server"`
 	VLANEnabled               bool                       `json:"vlan_enabled"`
 	VLANWLANMode              string                     `json:"vlan_wlan_mode,omitempty"` // disabled|optional|required
-	XCaCrt                    string                     `json:"x_ca_crt,omitempty"`
-	XCaCrtFilename            string                     `json:"x_ca_crt_filename,omitempty"`
+	XCaCrts                   []RADIUSProfileXCaCrts     `json:"x_ca_crts,omitempty"`
 	XClientCrt                string                     `json:"x_client_crt,omitempty"`
 	XClientCrtFilename        string                     `json:"x_client_crt_filename,omitempty"`
 	XClientPrivateKey         string                     `json:"x_client_private_key,omitempty"`
@@ -110,6 +109,27 @@ func (dst *RADIUSProfileAuthServers) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("unable to unmarshal alias: %w", err)
 	}
 	dst.Port = int(aux.Port)
+
+	return nil
+}
+
+type RADIUSProfileXCaCrts struct {
+	Filename string `json:"filename,omitempty"`
+	XCaCrt   string `json:"x_ca_crt,omitempty"`
+}
+
+func (dst *RADIUSProfileXCaCrts) UnmarshalJSON(b []byte) error {
+	type Alias RADIUSProfileXCaCrts
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(dst),
+	}
+
+	err := json.Unmarshal(b, &aux)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal alias: %w", err)
+	}
 
 	return nil
 }

@@ -1815,7 +1815,7 @@ github.com/sashamelentyev/interfacebloat/pkg/analyzer
 ## explicit; go 1.20
 github.com/sashamelentyev/usestdlibvars/pkg/analyzer
 github.com/sashamelentyev/usestdlibvars/pkg/analyzer/internal/mapping
-# github.com/sayedh/go-unifi v1.0.1
+# github.com/sayedh/go-unifi v1.0.2
 ## explicit; go 1.22.5
 github.com/sayedh/go-unifi/unifi
 # github.com/scylladb/go-set v1.0.3-0.20200225121959-cc7b2070d91e
