@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -70,8 +71,18 @@ func resourcePortProfile() *schema.Resource {
 			"excluded_network_ids": {
 				Type:        schema.TypeSet,
 				Optional:    true,
+				Computed:    true, // Add Computed: true
 				Description: "The IDs of networks to exclude from this port profile.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			// Adding this new attribute
+			"included_network_ids": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Computed:      true, // Add Computed: true
+				Description:   "The IDs of networks to include in this port profile.",
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				ConflictsWith: []string{"excluded_network_ids"},
 			},
 			"forward": {
 				Description:  "The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`.",
@@ -268,10 +279,20 @@ func resourcePortProfile() *schema.Resource {
 func resourcePortProfileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
+	// Compute excludedNetworkIDs based on includedNetworkIDs
+	excludedNetworkIDs, diags := computeExcludedNetworkIDs(ctx, c, d)
+	if diags.HasError() {
+		return diags
+	}
+
+	// Prepare the PortProfile request
 	req, err := resourcePortProfileGetResourceData(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	// Set the computed excludedNetworkIDs
+	req.ExcludedNetworkIDs = excludedNetworkIDs
 
 	site := d.Get("site").(string)
 	if site == "" {
@@ -284,7 +305,13 @@ func resourcePortProfileCreate(ctx context.Context, d *schema.ResourceData, meta
 
 	d.SetId(resp.ID)
 
-	return resourcePortProfileSetResourceData(resp, d, site)
+	// Fetch networks to compute included_network_ids
+	networks, err := c.c.ListNetwork(ctx, site)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return resourcePortProfileSetResourceData(resp, d, site, networks)
 }
 
 func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProfile, error) {
@@ -349,7 +376,7 @@ func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProf
 	}, nil
 }
 
-func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.ResourceData, site string) diag.Diagnostics {
+func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.ResourceData, site string, networks []unifi.Network) diag.Diagnostics {
 	d.Set("site", site)
 	d.Set("autoneg", resp.Autoneg)
 	d.Set("dot1x_ctrl", resp.Dot1XCtrl)
@@ -393,9 +420,38 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 
 	d.Set("voice_networkconf_id", resp.VoiceNetworkID)
 
+	// Set included_network_ids if it was used in configuration
+	if _, ok := d.GetOk("included_network_ids"); ok {
+		// Create a set of all network IDs
+		allNetworkIDs := make(map[string]struct{})
+		for _, network := range networks {
+			allNetworkIDs[network.ID] = struct{}{}
+		}
+
+		// Create a set of excluded network IDs from the response
+		excludedSet := make(map[string]struct{})
+		for _, id := range resp.ExcludedNetworkIDs {
+			excludedSet[id] = struct{}{}
+		}
+
+		// Compute included network IDs
+		var includedNetworkIDs []string
+		for id := range allNetworkIDs {
+			if _, found := excludedSet[id]; !found {
+				includedNetworkIDs = append(includedNetworkIDs, id)
+			}
+		}
+
+		d.Set("included_network_ids", stringSliceToSet(includedNetworkIDs))
+	} else {
+		// Ensure included_network_ids is not set in the state
+		d.Set("included_network_ids", nil)
+	}
+
 	return nil
 }
 
+// Modify resourcePortProfileRead to fetch networks and pass them to SetResourceData
 func resourcePortProfileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
@@ -414,18 +470,32 @@ func resourcePortProfileRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	return resourcePortProfileSetResourceData(resp, d, site)
+	// Fetch networks to compute included_network_ids
+	networks, err := c.c.ListNetwork(ctx, site)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return resourcePortProfileSetResourceData(resp, d, site, networks)
 }
 
 func resourcePortProfileUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
+	// Compute excludedNetworkIDs based on includedNetworkIDs
+	excludedNetworkIDs, diags := computeExcludedNetworkIDs(ctx, c, d)
+	if diags.HasError() {
+		return diags
+	}
+
+	// Prepare the PortProfile request
 	req, err := resourcePortProfileGetResourceData(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	req.ID = d.Id()
+	req.ExcludedNetworkIDs = excludedNetworkIDs
 
 	site := d.Get("site").(string)
 	if site == "" {
@@ -438,7 +508,13 @@ func resourcePortProfileUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	return resourcePortProfileSetResourceData(resp, d, site)
+	// Fetch networks to compute included_network_ids
+	networks, err := c.c.ListNetwork(ctx, site)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return resourcePortProfileSetResourceData(resp, d, site, networks)
 }
 
 func resourcePortProfileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -453,4 +529,76 @@ func resourcePortProfileDelete(ctx context.Context, d *schema.ResourceData, meta
 
 	err := c.c.DeletePortProfile(ctx, site, id)
 	return diag.FromErr(err)
+}
+
+func computeExcludedNetworkIDs(ctx context.Context, c *client, d *schema.ResourceData) ([]string, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var excludedNetworkIDs []string
+
+	if v, ok := d.GetOk("included_network_ids"); ok {
+		includedNetworkIDs, err := setToStringSlice(v.(*schema.Set))
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
+		site := d.Get("site").(string)
+		if site == "" {
+			site = c.site
+		}
+
+		// Fetch all networks from the site
+		networks, err := c.c.ListNetwork(ctx, site)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
+		// Get the native network ID
+		nativeNetworkID := d.Get("native_networkconf_id").(string)
+
+		// Create a set of included network IDs for quick lookup
+		includedSet := make(map[string]struct{})
+		for _, id := range includedNetworkIDs {
+			includedSet[id] = struct{}{}
+		}
+
+		// Compute the excluded network IDs
+		for _, network := range networks {
+			// Skip WAN networks
+			if network.Purpose == "wan" || network.Purpose == "WAN" {
+				continue
+			}
+			// Skip included networks
+			if _, found := includedSet[network.ID]; found {
+				continue
+			}
+			// Skip the native VLAN
+			if network.ID == nativeNetworkID {
+				continue
+			}
+			// Add to excluded networks
+			excludedNetworkIDs = append(excludedNetworkIDs, network.ID)
+		}
+
+		// Add debug statements
+		tflog.Debug(ctx, "Included Network IDs", map[string]interface{}{
+			"included_network_ids": includedNetworkIDs,
+		})
+		tflog.Debug(ctx, "Excluded Network IDs", map[string]interface{}{
+			"excluded_network_ids": excludedNetworkIDs,
+		})
+
+	} else if v, ok := d.GetOk("excluded_network_ids"); ok {
+		var err error
+		excludedNetworkIDs, err = setToStringSlice(v.(*schema.Set))
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
+		// Add debug statements
+		tflog.Debug(ctx, "Excluded Network IDs (from config)", map[string]interface{}{
+			"excluded_network_ids": excludedNetworkIDs,
+		})
+	}
+
+	return excludedNetworkIDs, diags
 }
