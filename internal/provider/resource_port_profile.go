@@ -71,7 +71,7 @@ func resourcePortProfile() *schema.Resource {
 			"excluded_network_ids": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Computed:    true, // Add Computed: true
+				Computed:    true,
 				Description: "The IDs of networks to exclude from this port profile.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
@@ -79,7 +79,6 @@ func resourcePortProfile() *schema.Resource {
 			"included_network_ids": {
 				Type:          schema.TypeSet,
 				Optional:      true,
-				Computed:      true, // Add Computed: true
 				Description:   "The IDs of networks to include in this port profile.",
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				ConflictsWith: []string{"excluded_network_ids"},
@@ -419,34 +418,6 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	d.Set("tagged_vlan_mgmt", resp.TaggedVLANMgmt)
 
 	d.Set("voice_networkconf_id", resp.VoiceNetworkID)
-
-	// Set included_network_ids if it was used in configuration
-	if _, ok := d.GetOk("included_network_ids"); ok {
-		// Create a set of all network IDs
-		allNetworkIDs := make(map[string]struct{})
-		for _, network := range networks {
-			allNetworkIDs[network.ID] = struct{}{}
-		}
-
-		// Create a set of excluded network IDs from the response
-		excludedSet := make(map[string]struct{})
-		for _, id := range resp.ExcludedNetworkIDs {
-			excludedSet[id] = struct{}{}
-		}
-
-		// Compute included network IDs
-		var includedNetworkIDs []string
-		for id := range allNetworkIDs {
-			if _, found := excludedSet[id]; !found {
-				includedNetworkIDs = append(includedNetworkIDs, id)
-			}
-		}
-
-		d.Set("included_network_ids", stringSliceToSet(includedNetworkIDs))
-	} else {
-		// Ensure included_network_ids is not set in the state
-		d.Set("included_network_ids", nil)
-	}
 
 	return nil
 }
