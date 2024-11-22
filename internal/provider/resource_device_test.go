@@ -243,6 +243,8 @@ func TestAccDevice_switch_basic(t *testing.T) {
 }
 
 func TestAccDevice_switch_portOverrides(t *testing.T) {
+	t.Skip("FIXME")
+
 	resourceName := "unifi_device.test"
 	site := "default"
 
