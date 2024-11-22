@@ -178,7 +178,6 @@ func resourceNetwork() *schema.Resource {
 				Description: "Enable stateful DHCPv6 for static configuration.",
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
 			},
 			"dhcp_v6_lease": {
 				Description: "Specifies the lease time for DHCPv6 addresses in seconds.",
@@ -219,7 +218,6 @@ func resourceNetwork() *schema.Resource {
 				Description: "Specifies the static IPv6 subnet when `ipv6_interface_type` is 'static'.",
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 			},
 			"ipv6_pd_interface": {
 				Description:  "Specifies which WAN interface to use for IPv6 PD. Must be one of either `wan` or `wan2`.",
