@@ -20,12 +20,13 @@
 package watch
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	pathutil "github.com/docker/compose/v2/internal/paths"
 	"github.com/fsnotify/fsevents"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -132,11 +133,11 @@ func newWatcher(paths []string, ignore PathMatcher) (Notify, error) {
 		stop:   make(chan struct{}),
 	}
 
-	paths = dedupePathsForRecursiveWatcher(paths)
+	paths = pathutil.EncompassingPaths(paths)
 	for _, path := range paths {
 		path, err := filepath.Abs(path)
 		if err != nil {
-			return nil, errors.Wrap(err, "newWatcher")
+			return nil, fmt.Errorf("newWatcher: %w", err)
 		}
 		dw.initAdd(path)
 	}

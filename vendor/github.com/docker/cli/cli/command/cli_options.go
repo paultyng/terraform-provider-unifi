@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"io"
 	"os"
 	"strconv"
@@ -10,32 +11,44 @@ import (
 	"github.com/moby/term"
 )
 
-// DockerCliOption applies a modification on a DockerCli.
-type DockerCliOption func(cli *DockerCli) error
+// CLIOption is a functional argument to apply options to a [DockerCli]. These
+// options can be passed to [NewDockerCli] to initialize a new CLI, or
+// applied with [DockerCli.Initialize] or [DockerCli.Apply].
+type CLIOption func(cli *DockerCli) error
 
 // WithStandardStreams sets a cli in, out and err streams with the standard streams.
-func WithStandardStreams() DockerCliOption {
+func WithStandardStreams() CLIOption {
 	return func(cli *DockerCli) error {
 		// Set terminal emulation based on platform as required.
 		stdin, stdout, stderr := term.StdStreams()
 		cli.in = streams.NewIn(stdin)
 		cli.out = streams.NewOut(stdout)
-		cli.err = stderr
+		cli.err = streams.NewOut(stderr)
+		return nil
+	}
+}
+
+// WithBaseContext sets the base context of a cli. It is used to propagate
+// the context from the command line to the client.
+func WithBaseContext(ctx context.Context) CLIOption {
+	return func(cli *DockerCli) error {
+		cli.baseCtx = ctx
 		return nil
 	}
 }
 
 // WithCombinedStreams uses the same stream for the output and error streams.
-func WithCombinedStreams(combined io.Writer) DockerCliOption {
+func WithCombinedStreams(combined io.Writer) CLIOption {
 	return func(cli *DockerCli) error {
-		cli.out = streams.NewOut(combined)
-		cli.err = combined
+		s := streams.NewOut(combined)
+		cli.out = s
+		cli.err = s
 		return nil
 	}
 }
 
 // WithInputStream sets a cli input stream.
-func WithInputStream(in io.ReadCloser) DockerCliOption {
+func WithInputStream(in io.ReadCloser) CLIOption {
 	return func(cli *DockerCli) error {
 		cli.in = streams.NewIn(in)
 		return nil
@@ -43,7 +56,7 @@ func WithInputStream(in io.ReadCloser) DockerCliOption {
 }
 
 // WithOutputStream sets a cli output stream.
-func WithOutputStream(out io.Writer) DockerCliOption {
+func WithOutputStream(out io.Writer) CLIOption {
 	return func(cli *DockerCli) error {
 		cli.out = streams.NewOut(out)
 		return nil
@@ -51,15 +64,15 @@ func WithOutputStream(out io.Writer) DockerCliOption {
 }
 
 // WithErrorStream sets a cli error stream.
-func WithErrorStream(err io.Writer) DockerCliOption {
+func WithErrorStream(err io.Writer) CLIOption {
 	return func(cli *DockerCli) error {
-		cli.err = err
+		cli.err = streams.NewOut(err)
 		return nil
 	}
 }
 
 // WithContentTrustFromEnv enables content trust on a cli from environment variable DOCKER_CONTENT_TRUST value.
-func WithContentTrustFromEnv() DockerCliOption {
+func WithContentTrustFromEnv() CLIOption {
 	return func(cli *DockerCli) error {
 		cli.contentTrust = false
 		if e := os.Getenv("DOCKER_CONTENT_TRUST"); e != "" {
@@ -73,7 +86,7 @@ func WithContentTrustFromEnv() DockerCliOption {
 }
 
 // WithContentTrust enables content trust on a cli.
-func WithContentTrust(enabled bool) DockerCliOption {
+func WithContentTrust(enabled bool) CLIOption {
 	return func(cli *DockerCli) error {
 		cli.contentTrust = enabled
 		return nil
@@ -81,7 +94,7 @@ func WithContentTrust(enabled bool) DockerCliOption {
 }
 
 // WithDefaultContextStoreConfig configures the cli to use the default context store configuration.
-func WithDefaultContextStoreConfig() DockerCliOption {
+func WithDefaultContextStoreConfig() CLIOption {
 	return func(cli *DockerCli) error {
 		cli.contextStoreConfig = DefaultContextStoreConfig()
 		return nil
@@ -89,7 +102,7 @@ func WithDefaultContextStoreConfig() DockerCliOption {
 }
 
 // WithAPIClient configures the cli to use the given API client.
-func WithAPIClient(c client.APIClient) DockerCliOption {
+func WithAPIClient(c client.APIClient) CLIOption {
 	return func(cli *DockerCli) error {
 		cli.client = c
 		return nil

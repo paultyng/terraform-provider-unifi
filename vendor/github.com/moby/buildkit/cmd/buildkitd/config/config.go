@@ -14,8 +14,14 @@ type Config struct {
 
 	// Entitlements e.g. security.insecure, network.host
 	Entitlements []string `toml:"insecure-entitlements"`
+
+	// LogFormat is the format of the logs. It can be "json" or "text".
+	Log LogConfig `toml:"log"`
+
 	// GRPC configuration settings
 	GRPC GRPCConfig `toml:"grpc"`
+
+	OTEL OTELConfig `toml:"otel"`
 
 	Workers struct {
 		OCI        OCIConfig        `toml:"oci"`
@@ -27,13 +33,31 @@ type Config struct {
 	DNS *DNSConfig `toml:"dns"`
 
 	History *HistoryConfig `toml:"history"`
+
+	Frontends struct {
+		Dockerfile DockerfileFrontendConfig `toml:"dockerfile.v0"`
+		Gateway    GatewayFrontendConfig    `toml:"gateway.v0"`
+	} `toml:"frontend"`
+
+	System *SystemConfig `toml:"system"`
+}
+
+type SystemConfig struct {
+	// PlatformCacheMaxAge controls how often supported platforms
+	// are refreshed by rescanning the system.
+	PlatformsCacheMaxAge *Duration `toml:"platformsCacheMaxAge"`
+}
+
+type LogConfig struct {
+	Format string `toml:"format"`
 }
 
 type GRPCConfig struct {
-	Address      []string `toml:"address"`
-	DebugAddress string   `toml:"debugAddress"`
-	UID          *int     `toml:"uid"`
-	GID          *int     `toml:"gid"`
+	Address            []string `toml:"address"`
+	DebugAddress       string   `toml:"debugAddress"`
+	UID                *int     `toml:"uid"`
+	GID                *int     `toml:"gid"`
+	SecurityDescriptor string   `toml:"securityDescriptor"`
 
 	TLS TLSConfig `toml:"tls"`
 	// MaxRecvMsgSize int    `toml:"max_recv_message_size"`
@@ -44,6 +68,10 @@ type TLSConfig struct {
 	Cert string `toml:"cert"`
 	Key  string `toml:"key"`
 	CA   string `toml:"ca"`
+}
+
+type OTELConfig struct {
+	SocketPath string `toml:"socketPath"`
 }
 
 type GCConfig struct {
@@ -57,6 +85,8 @@ type NetworkConfig struct {
 	CNIConfigPath string `toml:"cniConfigPath"`
 	CNIBinaryPath string `toml:"cniBinaryPath"`
 	CNIPoolSize   int    `toml:"cniPoolSize"`
+	BridgeName    string `toml:"bridgeName"`
+	BridgeSubnet  string `toml:"bridgeSubnet"`
 }
 
 type OCIConfig struct {
@@ -98,6 +128,7 @@ type ContainerdConfig struct {
 	Labels    map[string]string `toml:"labels"`
 	Platforms []string          `toml:"platforms"`
 	Namespace string            `toml:"namespace"`
+	Runtime   ContainerdRuntime `toml:"runtime"`
 	GCConfig
 	NetworkConfig
 	Snapshotter string `toml:"snapshotter"`
@@ -112,6 +143,12 @@ type ContainerdConfig struct {
 	MaxParallelism int `toml:"max-parallelism"`
 
 	Rootless bool `toml:"rootless"`
+}
+
+type ContainerdRuntime struct {
+	Name    string                 `toml:"name"`
+	Path    string                 `toml:"path"`
+	Options map[string]interface{} `toml:"options"`
 }
 
 type GCPolicy struct {
@@ -130,4 +167,13 @@ type DNSConfig struct {
 type HistoryConfig struct {
 	MaxAge     Duration `toml:"maxAge"`
 	MaxEntries int64    `toml:"maxEntries"`
+}
+
+type DockerfileFrontendConfig struct {
+	Enabled *bool `toml:"enabled"`
+}
+
+type GatewayFrontendConfig struct {
+	Enabled             *bool    `toml:"enabled"`
+	AllowedRepositories []string `toml:"allowedRepositories"`
 }

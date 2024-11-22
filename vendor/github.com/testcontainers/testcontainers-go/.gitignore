@@ -11,3 +11,10 @@ src/pip-delete-this-directory.txt
 .DS_Store
 
 TEST-*.xml
+
+tcvenv
+
+**/go.work
+
+# VS Code settings
+.vscode

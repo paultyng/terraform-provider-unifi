@@ -9,7 +9,6 @@ import (
 
 	pluginmanager "github.com/docker/cli/cli-plugins/manager"
 	"github.com/docker/cli/cli/command"
-	"github.com/docker/cli/cli/config"
 	cliflags "github.com/docker/cli/cli/flags"
 	"github.com/docker/docker/pkg/homedir"
 	"github.com/docker/docker/registry"
@@ -23,12 +22,9 @@ import (
 
 // setupCommonRootCommand contains the setup common to
 // SetupRootCommand and SetupPluginRootCommand.
-func setupCommonRootCommand(rootCmd *cobra.Command) (*cliflags.ClientOptions, *pflag.FlagSet, *cobra.Command) {
+func setupCommonRootCommand(rootCmd *cobra.Command) (*cliflags.ClientOptions, *cobra.Command) {
 	opts := cliflags.NewClientOptions()
-	flags := rootCmd.Flags()
-
-	flags.StringVar(&opts.ConfigDir, "config", config.Dir(), "Location of client config files")
-	opts.InstallFlags(flags)
+	opts.InstallFlags(rootCmd.Flags())
 
 	cobra.AddTemplateFunc("add", func(a, b int) int { return a + b })
 	cobra.AddTemplateFunc("hasAliases", hasAliases)
@@ -58,7 +54,7 @@ func setupCommonRootCommand(rootCmd *cobra.Command) (*cliflags.ClientOptions, *p
 	rootCmd.SetHelpCommand(helpCommand)
 
 	rootCmd.PersistentFlags().BoolP("help", "h", false, "Print usage")
-	rootCmd.PersistentFlags().MarkShorthandDeprecated("help", "please use --help")
+	rootCmd.PersistentFlags().MarkShorthandDeprecated("help", "use --help")
 	rootCmd.PersistentFlags().Lookup("help").Hidden = true
 
 	rootCmd.Annotations = map[string]string{
@@ -73,20 +69,20 @@ func setupCommonRootCommand(rootCmd *cobra.Command) (*cliflags.ClientOptions, *p
 		}
 	}
 
-	return opts, flags, helpCommand
+	return opts, helpCommand
 }
 
 // SetupRootCommand sets default usage, help, and error handling for the
 // root command.
-func SetupRootCommand(rootCmd *cobra.Command) (*cliflags.ClientOptions, *pflag.FlagSet, *cobra.Command) {
+func SetupRootCommand(rootCmd *cobra.Command) (opts *cliflags.ClientOptions, helpCmd *cobra.Command) {
 	rootCmd.SetVersionTemplate("Docker version {{.Version}}\n")
 	return setupCommonRootCommand(rootCmd)
 }
 
 // SetupPluginRootCommand sets default usage, help and error handling for a plugin root command.
 func SetupPluginRootCommand(rootCmd *cobra.Command) (*cliflags.ClientOptions, *pflag.FlagSet) {
-	opts, flags, _ := setupCommonRootCommand(rootCmd)
-	return opts, flags
+	opts, _ := setupCommonRootCommand(rootCmd)
+	return opts, rootCmd.Flags()
 }
 
 // FlagErrorFunc prints an error message which matches the format of the
@@ -180,7 +176,7 @@ func (tcmd *TopLevelCommand) HandleGlobalFlags() (*cobra.Command, []string, erro
 }
 
 // Initialize finalises global option parsing and initializes the docker client.
-func (tcmd *TopLevelCommand) Initialize(ops ...command.InitializeOpt) error {
+func (tcmd *TopLevelCommand) Initialize(ops ...command.CLIOption) error {
 	tcmd.opts.SetDefaultOptions(tcmd.flags)
 	return tcmd.dockerCli.Initialize(tcmd.opts, ops...)
 }
@@ -474,7 +470,7 @@ Common Commands:
 Management Commands:
 
 {{- range managementSubCommands . }}
-  {{rpad (decoratedName .) (add .NamePadding 1)}}{{.Short}}{{ if isPlugin .}} {{vendorAndVersion .}}{{ end}}
+  {{rpad (decoratedName .) (add .NamePadding 1)}}{{.Short}}
 {{- end}}
 
 {{- end}}
@@ -483,7 +479,7 @@ Management Commands:
 Swarm Commands:
 
 {{- range orchestratorSubCommands . }}
-  {{rpad (decoratedName .) (add .NamePadding 1)}}{{.Short}}{{ if isPlugin .}} {{vendorAndVersion .}}{{ end}}
+  {{rpad (decoratedName .) (add .NamePadding 1)}}{{.Short}}
 {{- end}}
 
 {{- end}}

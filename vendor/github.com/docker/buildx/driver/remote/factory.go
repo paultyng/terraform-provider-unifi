@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	// import connhelpers for special url schemes
@@ -35,7 +36,7 @@ func (*factory) Usage() string {
 	return "remote"
 }
 
-func (*factory) Priority(ctx context.Context, endpoint string, api dockerclient.APIClient) int {
+func (*factory) Priority(ctx context.Context, endpoint string, api dockerclient.APIClient, dialMeta map[string][]string) int {
 	if util.IsValidEndpoint(endpoint) != nil {
 		return priorityUnsupported
 	}
@@ -46,7 +47,7 @@ func (f *factory) New(ctx context.Context, cfg driver.InitConfig) (driver.Driver
 	if len(cfg.Files) > 0 {
 		return nil, errors.Errorf("setting config file is not supported for remote driver")
 	}
-	if len(cfg.BuildkitFlags) > 0 {
+	if len(cfg.BuildkitdFlags) > 0 {
 		return nil, errors.Errorf("setting buildkit flags is not supported for remote driver")
 	}
 
@@ -80,6 +81,12 @@ func (f *factory) New(ctx context.Context, cfg driver.InitConfig) (driver.Driver
 			}
 			tls.key = v
 			tlsEnabled = true
+		case "default-load":
+			parsed, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, err
+			}
+			d.defaultLoad = parsed
 		default:
 			return nil, errors.Errorf("invalid driver option %s for remote driver", k)
 		}

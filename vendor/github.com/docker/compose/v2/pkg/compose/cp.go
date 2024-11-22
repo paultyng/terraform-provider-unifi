@@ -18,6 +18,7 @@ package compose
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -29,10 +30,9 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/compose/v2/pkg/api"
-	moby "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/system"
-	"github.com/pkg/errors"
 )
 
 type copyDirection int
@@ -88,9 +88,9 @@ func (s *composeService) copy(ctx context.Context, projectName string, options a
 	w := progress.ContextWriter(ctx)
 	g := errgroup.Group{}
 	for _, cont := range containers {
-		container := cont
+		ctr := cont
 		g.Go(func() error {
-			name := getCanonicalContainerName(container)
+			name := getCanonicalContainerName(ctr)
 			var msg string
 			if direction == fromService {
 				msg = fmt.Sprintf("copy %s:%s to %s", name, srcPath, dstPath)
@@ -103,7 +103,7 @@ func (s *composeService) copy(ctx context.Context, projectName string, options a
 				Status:     progress.Working,
 				StatusText: "Copying",
 			})
-			if err := copyFunc(ctx, container.ID, srcPath, dstPath, options); err != nil {
+			if err := copyFunc(ctx, ctr.ID, srcPath, dstPath, options); err != nil {
 				return err
 			}
 			w.Event(progress.Event{
@@ -124,11 +124,11 @@ func (s *composeService) listContainersTargetedForCopy(ctx context.Context, proj
 	var err error
 	switch {
 	case index > 0:
-		container, err := s.getSpecifiedContainer(ctx, projectName, oneOffExclude, true, serviceName, index)
+		ctr, err := s.getSpecifiedContainer(ctx, projectName, oneOffExclude, true, serviceName, index)
 		if err != nil {
 			return nil, err
 		}
-		return append(containers, container), nil
+		return append(containers, ctr), nil
 	default:
 		containers, err = s.getContainers(ctx, projectName, oneOffExclude, true, serviceName)
 		if err != nil {
@@ -175,7 +175,7 @@ func (s *composeService) copyToContainer(ctx context.Context, containerID string
 
 	// Validate the destination path
 	if err := command.ValidateOutputPathFileMode(dstStat.Mode); err != nil {
-		return errors.Wrapf(err, `destination "%s:%s" must be a directory or a regular file`, containerID, dstPath)
+		return fmt.Errorf(`destination "%s:%s" must be a directory or a regular file: %w`, containerID, dstPath, err)
 	}
 
 	// Ignore any error and assume that the parent directory of the destination
@@ -197,7 +197,7 @@ func (s *composeService) copyToContainer(ctx context.Context, containerID string
 		content = s.stdin()
 		resolvedDstPath = dstInfo.Path
 		if !dstInfo.IsDir {
-			return errors.Errorf("destination \"%s:%s\" must be a directory", containerID, dstPath)
+			return fmt.Errorf("destination \"%s:%s\" must be a directory", containerID, dstPath)
 		}
 	} else {
 		// Prepare source copy info.
@@ -237,7 +237,7 @@ func (s *composeService) copyToContainer(ctx context.Context, containerID string
 		}
 	}
 
-	options := moby.CopyToContainerOptions{
+	options := container.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: false,
 		CopyUIDGID:                opts.CopyUIDGID,
 	}
@@ -304,7 +304,7 @@ func (s *composeService) copyFromContainer(ctx context.Context, containerID, src
 	return archive.CopyTo(preArchive, srcInfo, dstPath)
 }
 
-func splitCpArg(arg string) (container, path string) {
+func splitCpArg(arg string) (ctr, path string) {
 	if system.IsAbs(arg) {
 		// Explicit local absolute path, e.g., `C:\foo` or `/foo`.
 		return "", arg

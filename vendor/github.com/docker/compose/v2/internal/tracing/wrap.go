@@ -19,8 +19,11 @@ package tracing
 import (
 	"context"
 
+	"github.com/acarl005/stripansi"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.19.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -34,7 +37,7 @@ import (
 // adding even more levels of function wrapping/indirection.
 func SpanWrapFunc(spanName string, opts SpanOptions, fn func(ctx context.Context) error) func(context.Context) error {
 	return func(ctx context.Context) error {
-		ctx, span := Tracer.Start(ctx, spanName, opts.SpanStartOptions()...)
+		ctx, span := otel.Tracer("").Start(ctx, spanName, opts.SpanStartOptions()...)
 		defer span.End()
 
 		if err := fn(ctx); err != nil {
@@ -57,7 +60,7 @@ func SpanWrapFunc(spanName string, opts SpanOptions, fn func(ctx context.Context
 // adding even more levels of function wrapping/indirection.
 func SpanWrapFuncForErrGroup(ctx context.Context, spanName string, opts SpanOptions, fn func(ctx context.Context) error) func() error {
 	return func() error {
-		ctx, span := Tracer.Start(ctx, spanName, opts.SpanStartOptions()...)
+		ctx, span := otel.Tracer("").Start(ctx, spanName, opts.SpanStartOptions()...)
 		defer span.End()
 
 		if err := fn(ctx); err != nil {
@@ -80,12 +83,16 @@ func EventWrapFuncForErrGroup(ctx context.Context, eventName string, opts SpanOp
 		eventOpts := opts.EventOptions()
 
 		err := fn(ctx)
-
 		if err != nil {
-			eventOpts = append(eventOpts, trace.WithAttributes(semconv.ExceptionMessage(err.Error())))
+			eventOpts = append(eventOpts, trace.WithAttributes(semconv.ExceptionMessage(stripansi.Strip(err.Error()))))
 		}
 		span.AddEvent(eventName, eventOpts...)
 
 		return err
 	}
+}
+
+func AddAttributeToSpan(ctx context.Context, attr ...attribute.KeyValue) {
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(attr...)
 }

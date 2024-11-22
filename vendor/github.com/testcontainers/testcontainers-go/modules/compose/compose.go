@@ -3,12 +3,13 @@ package compose
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 
-	"github.com/compose-spec/compose-go/types"
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
 	"github.com/docker/compose/v2/pkg/api"
@@ -24,17 +25,18 @@ const (
 	envComposeFile = "COMPOSE_FILE"
 )
 
-var composeLogOnce sync.Once
 var ErrNoStackConfigured = errors.New("no stack files configured")
 
 type composeStackOptions struct {
-	Identifier string
-	Paths      []string
-	Logger     testcontainers.Logging
+	Identifier     string
+	Paths          []string
+	temporaryPaths map[string]bool
+	Logger         testcontainers.Logging
+	Profiles       []string
 }
 
 type ComposeStackOption interface {
-	applyToComposeStack(o *composeStackOptions)
+	applyToComposeStack(o *composeStackOptions) error
 }
 
 type stackUpOptions struct {
@@ -75,9 +77,9 @@ type ComposeStack interface {
 	ServiceContainer(ctx context.Context, svcName string) (*testcontainers.DockerContainer, error)
 }
 
-// DockerCompose defines the contract for running Docker Compose
 // Deprecated: DockerCompose is the old shell escape based API
 // use ComposeStack instead
+// DockerCompose defines the contract for running Docker Compose
 type DockerCompose interface {
 	Down() ExecError
 	Invoke() ExecError
@@ -92,8 +94,32 @@ type waitService struct {
 	publishedPort int
 }
 
+// WithRecreate defines the strategy to apply on existing containers. If any other value than
+// api.RecreateNever, api.RecreateForce or api.RecreateDiverged is provided, the default value
+// api.RecreateForce will be used.
+func WithRecreate(recreate string) StackUpOption {
+	return Recreate(recreate)
+}
+
+// WithRecreateDependencies defines the strategy to apply on container dependencies. If any other value than
+// api.RecreateNever, api.RecreateForce or api.RecreateDiverged is provided, the default value
+// api.RecreateForce will be used.
+func WithRecreateDependencies(recreate string) StackUpOption {
+	return RecreateDependencies(recreate)
+}
+
 func WithStackFiles(filePaths ...string) ComposeStackOption {
 	return ComposeStackFiles(filePaths)
+}
+
+// WithStackReaders supports reading the compose file/s from a reader.
+func WithStackReaders(readers ...io.Reader) ComposeStackOption {
+	return ComposeStackReaders(readers)
+}
+
+// WithProfiles allows to enable/disable services based on the profiles defined in the compose file.
+func WithProfiles(profiles ...string) ComposeStackOption {
+	return ComposeProfiles(profiles)
 }
 
 func NewDockerCompose(filePaths ...string) (*dockerCompose, error) {
@@ -102,12 +128,16 @@ func NewDockerCompose(filePaths ...string) (*dockerCompose, error) {
 
 func NewDockerComposeWith(opts ...ComposeStackOption) (*dockerCompose, error) {
 	composeOptions := composeStackOptions{
-		Identifier: uuid.New().String(),
-		Logger:     testcontainers.Logger,
+		Identifier:     uuid.New().String(),
+		temporaryPaths: make(map[string]bool),
+		Logger:         testcontainers.Logger,
+		Profiles:       nil,
 	}
 
 	for i := range opts {
-		opts[i].applyToComposeStack(&composeOptions)
+		if err := opts[i].applyToComposeStack(&composeOptions); err != nil {
+			return nil, fmt.Errorf("apply compose stack option: %w", err)
+		}
 	}
 
 	if len(composeOptions.Paths) < 1 {
@@ -116,31 +146,33 @@ func NewDockerComposeWith(opts ...ComposeStackOption) (*dockerCompose, error) {
 
 	dockerCli, err := command.NewDockerCli()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new docker client: %w", err)
 	}
 
 	if err = dockerCli.Initialize(flags.NewClientOptions(), command.WithInitializeClient(makeClient)); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("initialize docker client: %w", err)
 	}
 
 	composeAPI := &dockerCompose{
-		name:           composeOptions.Identifier,
-		configs:        composeOptions.Paths,
-		logger:         composeOptions.Logger,
-		composeService: compose.NewComposeService(dockerCli),
-		dockerClient:   dockerCli.Client(),
-		waitStrategies: make(map[string]wait.Strategy),
-		containers:     make(map[string]*testcontainers.DockerContainer),
+		name:             composeOptions.Identifier,
+		configs:          composeOptions.Paths,
+		temporaryConfigs: composeOptions.temporaryPaths,
+		logger:           composeOptions.Logger,
+		projectProfiles:  composeOptions.Profiles,
+		composeService:   compose.NewComposeService(dockerCli),
+		dockerClient:     dockerCli.Client(),
+		waitStrategies:   make(map[string]wait.Strategy),
+		containers:       make(map[string]*testcontainers.DockerContainer),
+		networks:         make(map[string]*testcontainers.DockerNetwork),
+		sessionID:        testcontainers.SessionID(),
 	}
-
-	// log docker server info only once
-	composeLogOnce.Do(func() {
-		testcontainers.LogDockerServerInfo(context.Background(), dockerCli.Client(), testcontainers.Logger)
-	})
 
 	return composeAPI, nil
 }
 
+// Deprecated: NewLocalDockerCompose returns a DockerCompose compatible instance which is superseded
+// by ComposeStack use NewDockerCompose instead to get a ComposeStack compatible instance
+//
 // NewLocalDockerCompose returns an instance of the local Docker Compose, using an
 // array of Docker Compose file paths and an identifier for the Compose execution.
 //
@@ -148,9 +180,6 @@ func NewDockerComposeWith(opts ...ComposeStackOption) (*dockerCompose, error) {
 // Docker Compose execution. The identifier represents the name of the execution,
 // which will define the name of the underlying Docker network and the name of the
 // running Compose services.
-//
-// Deprecated: NewLocalDockerCompose returns a DockerCompose compatible instance which is superseded
-// by ComposeStack use NewDockerCompose instead to get a ComposeStack compatible instance
 func NewLocalDockerCompose(filePaths []string, identifier string, opts ...LocalDockerComposeOption) *LocalDockerCompose {
 	dc := &LocalDockerCompose{
 		LocalDockerComposeOptions: &LocalDockerComposeOptions{
@@ -162,11 +191,12 @@ func NewLocalDockerCompose(filePaths []string, identifier string, opts ...LocalD
 		opts[idx].ApplyToLocalCompose(dc.LocalDockerComposeOptions)
 	}
 
-	dc.Executable = "docker-compose"
+	dc.Executable = "docker"
 	if runtime.GOOS == "windows" {
-		dc.Executable = "docker-compose.exe"
+		dc.Executable = "docker.exe"
 	}
 
+	dc.composeSubcommand = "compose"
 	dc.ComposeFilePaths = filePaths
 
 	dc.absComposeFilePaths = make([]string, len(filePaths))
