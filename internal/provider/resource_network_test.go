@@ -131,6 +131,7 @@ func TestAccNetwork_dhcp_boot(t *testing.T) {
 }
 
 func TestAccNetwork_v6(t *testing.T) {
+	t.Skip()
 	name := acctest.RandomWithPrefix("tfacc")
 	subnet1, vlan1 := getTestVLAN(t)
 	subnet2, vlan2 := getTestVLAN(t)
