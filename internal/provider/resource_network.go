@@ -178,7 +178,7 @@ func resourceNetwork() *schema.Resource {
 				Description: "Enable stateful DHCPv6 for static configuration.",
 				Type:        schema.TypeBool,
 				Optional:    true,
-        Default:     false,
+				Default:     false,
 			},
 			"dhcp_v6_lease": {
 				Description: "Specifies the lease time for DHCPv6 addresses in seconds.",
