@@ -99,7 +99,7 @@ func resourceDevice() *schema.Resource {
 							},
 						},
 						"poe_mode": {
-							Description: "PoE mode of the port; valid values are `auto`, `pasv24`, `passthrough`, and `off`.",
+							Description:  "PoE mode of the port; valid values are `auto`, `pasv24`, `passthrough`, and `off`.",
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validation.StringInSlice([]string{"auto", "pasv24", "passthrough", "off"}, false),
