@@ -218,6 +218,7 @@ func resourceNetwork() *schema.Resource {
 				Description: "Specifies the static IPv6 subnet when `ipv6_interface_type` is 'static'.",
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 			},
 			"ipv6_pd_interface": {
 				Description:  "Specifies which WAN interface to use for IPv6 PD. Must be one of either `wan` or `wan2`.",
