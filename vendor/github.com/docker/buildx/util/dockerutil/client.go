@@ -46,17 +46,26 @@ func (c *Client) LoadImage(ctx context.Context, name string, status progress.Wri
 	w = &waitingWriter{
 		PipeWriter: pw,
 		f: func() {
-			resp, err := dapi.ImageLoad(ctx, pr, false)
-			defer close(done)
-			if err != nil {
+			handleErr := func(err error) {
 				pr.CloseWithError(err)
 				w.mu.Lock()
 				w.err = err
 				w.mu.Unlock()
+			}
+
+			resp, err := dapi.ImageLoad(ctx, pr, false)
+			defer close(done)
+			if err != nil {
+				handleErr(err)
 				return
 			}
-			prog := progress.WithPrefix(status, "", false)
-			progress.FromReader(prog, "importing to docker", resp.Body)
+
+			status = progress.ResetTime(status)
+			if err := progress.Wrap("importing to docker", status.Write, func(l progress.SubLogger) error {
+				return fromReader(l, resp.Body)
+			}); err != nil {
+				handleErr(err)
+			}
 		},
 		done:   done,
 		cancel: cancel,

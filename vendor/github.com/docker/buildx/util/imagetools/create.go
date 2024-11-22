@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"maps"
 	"net/url"
 	"strings"
 
 	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/platforms"
 	"github.com/containerd/containerd/remotes"
-	"github.com/docker/distribution/reference"
+	"github.com/containerd/errdefs"
+	"github.com/distribution/reference"
+	"github.com/docker/buildx/util/buildflags"
+	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	"github.com/moby/buildkit/util/contentutil"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
@@ -26,7 +29,7 @@ type Source struct {
 	Ref  reference.Named
 }
 
-func (r *Resolver) Combine(ctx context.Context, srcs []*Source) ([]byte, ocispec.Descriptor, error) {
+func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann []string, preferIndex bool) ([]byte, ocispec.Descriptor, error) {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	dts := make([][]byte, len(srcs))
@@ -75,9 +78,17 @@ func (r *Resolver) Combine(ctx context.Context, srcs []*Source) ([]byte, ocispec
 	}
 
 	// on single source, return original bytes
-	if len(srcs) == 1 {
-		if mt := srcs[0].Desc.MediaType; mt == images.MediaTypeDockerSchema2ManifestList || mt == ocispec.MediaTypeImageIndex {
+	if len(srcs) == 1 && len(ann) == 0 {
+		switch srcs[0].Desc.MediaType {
+		// if the source is already an image index or manifest list, there is no need to consider the value
+		// of preferIndex since if set to true then the source is already in the preferred format, and if false
+		// it doesn't matter since we're not going to split it into separate manifests
+		case images.MediaTypeDockerSchema2ManifestList, ocispec.MediaTypeImageIndex:
 			return dts[0], srcs[0].Desc, nil
+		default:
+			if !preferIndex {
+				return dts[0], srcs[0].Desc, nil
+			}
 		}
 	}
 
@@ -138,12 +149,41 @@ func (r *Resolver) Combine(ctx context.Context, srcs []*Source) ([]byte, ocispec
 		mt = ocispec.MediaTypeImageIndex
 	}
 
+	// annotations are only allowed on OCI indexes
+	indexAnnotation := make(map[string]string)
+	if mt == ocispec.MediaTypeImageIndex {
+		annotations, err := buildflags.ParseAnnotations(ann)
+		if err != nil {
+			return nil, ocispec.Descriptor{}, err
+		}
+		for k, v := range annotations {
+			switch k.Type {
+			case exptypes.AnnotationIndex:
+				indexAnnotation[k.Key] = v
+			case exptypes.AnnotationManifestDescriptor:
+				for i := 0; i < len(newDescs); i++ {
+					if newDescs[i].Annotations == nil {
+						newDescs[i].Annotations = map[string]string{}
+					}
+					if k.Platform == nil || k.PlatformString() == platforms.Format(*newDescs[i].Platform) {
+						newDescs[i].Annotations[k.Key] = v
+					}
+				}
+			case exptypes.AnnotationManifest, "":
+				return nil, ocispec.Descriptor{}, errors.Errorf("%q annotations are not supported yet", k.Type)
+			case exptypes.AnnotationIndexDescriptor:
+				return nil, ocispec.Descriptor{}, errors.Errorf("%q annotations are invalid while creating an image", k.Type)
+			}
+		}
+	}
+
 	idxBytes, err := json.MarshalIndent(ocispec.Index{
 		MediaType: mt,
 		Versioned: specs.Versioned{
 			SchemaVersion: 2,
 		},
-		Manifests: newDescs,
+		Manifests:   newDescs,
+		Annotations: indexAnnotation,
 	}, "", "  ")
 	if err != nil {
 		return nil, ocispec.Descriptor{}, errors.Wrap(err, "failed to marshal index")
@@ -199,13 +239,17 @@ func (r *Resolver) Copy(ctx context.Context, src *Source, dest reference.Named) 
 	if err != nil {
 		return err
 	}
-	source, repo := u.Hostname(), strings.TrimPrefix(u.Path, "/")
-	if src.Desc.Annotations == nil {
-		src.Desc.Annotations = make(map[string]string)
-	}
-	src.Desc.Annotations["containerd.io/distribution.source."+source] = repo
 
-	err = contentutil.CopyChain(ctx, contentutil.FromPusher(p), contentutil.FromFetcher(f), src.Desc)
+	desc := src.Desc
+	desc.Annotations = maps.Clone(desc.Annotations)
+	if desc.Annotations == nil {
+		desc.Annotations = make(map[string]string)
+	}
+
+	source, repo := u.Hostname(), strings.TrimPrefix(u.Path, "/")
+	desc.Annotations["containerd.io/distribution.source."+source] = repo
+
+	err = contentutil.CopyChain(ctx, contentutil.FromPusher(p), contentutil.FromFetcher(f), desc)
 	if err != nil {
 		return err
 	}

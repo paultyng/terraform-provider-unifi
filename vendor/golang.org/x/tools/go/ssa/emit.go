@@ -11,6 +11,8 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+
+	"golang.org/x/tools/internal/typeparams"
 )
 
 // emitAlloc emits to f a new Alloc instruction allocating a variable
@@ -64,7 +66,7 @@ func emitLocalVar(f *Function, v *types.Var) *Alloc {
 // new temporary, and returns the value so defined.
 func emitLoad(f *Function, addr Value) *UnOp {
 	v := &UnOp{Op: token.MUL, X: addr}
-	v.setType(mustDeref(addr.Type()))
+	v.setType(typeparams.MustDeref(addr.Type()))
 	f.emit(v)
 	return v
 }
@@ -182,7 +184,7 @@ func emitCompare(f *Function, op token.Token, x, y Value, pos token.Pos) Value {
 
 // isValuePreserving returns true if a conversion from ut_src to
 // ut_dst is value-preserving, i.e. just a change of type.
-// Precondition: neither argument is a named type.
+// Precondition: neither argument is a named or alias type.
 func isValuePreserving(ut_src, ut_dst types.Type) bool {
 	// Identical underlying types?
 	if types.IdenticalIgnoreTags(ut_dst, ut_src) {
@@ -246,7 +248,7 @@ func emitConv(f *Function, val Value, typ types.Type) Value {
 		// Record the types of operands to MakeInterface, if
 		// non-parameterized, as they are the set of runtime types.
 		t := val.Type()
-		if f.typeparams.Len() == 0 || !f.Prog.parameterized.isParameterized(t) {
+		if f.typeparams.Len() == 0 || !f.Prog.isParameterized(t) {
 			addRuntimeType(f.Prog, t)
 		}
 
@@ -274,18 +276,20 @@ func emitConv(f *Function, val Value, typ types.Type) Value {
 		sliceTo0ArrayPtr
 		convert
 	)
-	classify := func(s, d types.Type) conversionCase {
+	// classify the conversion case of a source type us to a destination type ud.
+	// us and ud are underlying types (not *Named or *Alias)
+	classify := func(us, ud types.Type) conversionCase {
 		// Just a change of type, but not value or representation?
-		if isValuePreserving(s, d) {
+		if isValuePreserving(us, ud) {
 			return changeType
 		}
 
 		// Conversion from slice to array or slice to array pointer?
-		if slice, ok := s.(*types.Slice); ok {
+		if slice, ok := us.(*types.Slice); ok {
 			var arr *types.Array
 			var ptr bool
 			// Conversion from slice to array pointer?
-			switch d := d.(type) {
+			switch d := ud.(type) {
 			case *types.Array:
 				arr = d
 			case *types.Pointer:
@@ -310,8 +314,8 @@ func emitConv(f *Function, val Value, typ types.Type) Value {
 
 		// The only remaining case in well-typed code is a representation-
 		// changing conversion of basic types (possibly with []byte/[]rune).
-		if !isBasic(s) && !isBasic(d) {
-			panic(fmt.Sprintf("in %s: cannot convert term %s (%s [within %s]) to type %s [within %s]", f, val, val.Type(), s, typ, d))
+		if !isBasic(us) && !isBasic(ud) {
+			panic(fmt.Sprintf("in %s: cannot convert term %s (%s [within %s]) to type %s [within %s]", f, val, val.Type(), us, typ, ud))
 		}
 		return convert
 	}
@@ -414,7 +418,7 @@ func emitTypeCoercion(f *Function, v Value, typ types.Type) Value {
 // emitStore emits to f an instruction to store value val at location
 // addr, applying implicit conversions as required by assignability rules.
 func emitStore(f *Function, addr, val Value, pos token.Pos) *Store {
-	typ := mustDeref(addr.Type())
+	typ := typeparams.MustDeref(addr.Type())
 	s := &Store{
 		Addr: addr,
 		Val:  emitConv(f, val, typ),
@@ -520,8 +524,8 @@ func emitTailCall(f *Function, call *Call) {
 // value of a field.
 func emitImplicitSelections(f *Function, v Value, indices []int, pos token.Pos) Value {
 	for _, index := range indices {
-		if st, vptr := deref(v.Type()); vptr {
-			fld := fieldOf(st, index)
+		if isPointerCore(v.Type()) {
+			fld := fieldOf(typeparams.MustDeref(v.Type()), index)
 			instr := &FieldAddr{
 				X:     v,
 				Field: index,
@@ -530,7 +534,7 @@ func emitImplicitSelections(f *Function, v Value, indices []int, pos token.Pos) 
 			instr.setType(types.NewPointer(fld.Type()))
 			v = f.emit(instr)
 			// Load the field's value iff indirectly embedded.
-			if _, fldptr := deref(fld.Type()); fldptr {
+			if isPointerCore(fld.Type()) {
 				v = emitLoad(f, v)
 			}
 		} else {
@@ -554,8 +558,8 @@ func emitImplicitSelections(f *Function, v Value, indices []int, pos token.Pos) 
 // field's value.
 // Ident id is used for position and debug info.
 func emitFieldSelection(f *Function, v Value, index int, wantAddr bool, id *ast.Ident) Value {
-	if st, vptr := deref(v.Type()); vptr {
-		fld := fieldOf(st, index)
+	if isPointerCore(v.Type()) {
+		fld := fieldOf(typeparams.MustDeref(v.Type()), index)
 		instr := &FieldAddr{
 			X:     v,
 			Field: index,

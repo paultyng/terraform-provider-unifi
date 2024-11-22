@@ -6,21 +6,84 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/magiconair/properties"
 )
 
-var tcConfig Config
-var tcConfigOnce *sync.Once = new(sync.Once)
+const ReaperDefaultImage = "testcontainers/ryuk:0.10.2"
 
-// Config represents the configuration for Testcontainers
+var (
+	tcConfig     Config
+	tcConfigOnce *sync.Once = new(sync.Once)
+)
+
 // testcontainersConfig {
+
+// Config represents the configuration for Testcontainers.
+// User values are read from ~/.testcontainers.properties file which can be overridden
+// using the specified environment variables. For more information, see [Custom Configuration].
+//
+// The Ryuk prefixed fields controls the [Garbage Collector] feature, which ensures that
+// resources are cleaned up after the test execution.
+//
+// [Garbage Collector]: https://golang.testcontainers.org/features/garbage_collector/
+// [Custom Configuration]: https://golang.testcontainers.org/features/configuration/
 type Config struct {
-	Host               string `properties:"docker.host,default="`
-	TLSVerify          int    `properties:"docker.tls.verify,default=0"`
-	CertPath           string `properties:"docker.cert.path,default="`
-	RyukDisabled       bool   `properties:"ryuk.disabled,default=false"`
-	RyukPrivileged     bool   `properties:"ryuk.container.privileged,default=false"`
+	// Host is the address of the Docker daemon.
+	//
+	// Environment variable: DOCKER_HOST
+	Host string `properties:"docker.host,default="`
+
+	// TLSVerify is a flag to enable or disable TLS verification when connecting to a Docker daemon.
+	//
+	// Environment variable: DOCKER_TLS_VERIFY
+	TLSVerify int `properties:"docker.tls.verify,default=0"`
+
+	// CertPath is the path to the directory containing the Docker certificates.
+	// This is used when connecting to a Docker daemon over TLS.
+	//
+	// Environment variable: DOCKER_CERT_PATH
+	CertPath string `properties:"docker.cert.path,default="`
+
+	// HubImageNamePrefix is the prefix used for the images pulled from the Docker Hub.
+	// This is useful when running tests in environments with restricted internet access.
+	//
+	// Environment variable: TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX
+	HubImageNamePrefix string `properties:"hub.image.name.prefix,default="`
+
+	// RyukDisabled is a flag to enable or disable the Garbage Collector.
+	// Setting this to true will prevent testcontainers from automatically cleaning up
+	// resources, which is particularly important in tests which timeout as they
+	// don't run test clean up.
+	//
+	// Environment variable: TESTCONTAINERS_RYUK_DISABLED
+	RyukDisabled bool `properties:"ryuk.disabled,default=false"`
+
+	// RyukPrivileged is a flag to enable or disable the privileged mode for the Garbage Collector container.
+	// Setting this to true will run the Garbage Collector container in privileged mode.
+	//
+	// Environment variable: TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED
+	RyukPrivileged bool `properties:"ryuk.container.privileged,default=false"`
+
+	// RyukReconnectionTimeout is the time to wait before attempting to reconnect to the Garbage Collector container.
+	//
+	// Environment variable: TESTCONTAINERS_RYUK_RECONNECTION_TIMEOUT
+	RyukReconnectionTimeout time.Duration `properties:"ryuk.reconnection.timeout,default=10s"`
+
+	// RyukConnectionTimeout is the time to wait before timing out when connecting to the Garbage Collector container.
+	//
+	// Environment variable: TESTCONTAINERS_RYUK_CONNECTION_TIMEOUT
+	RyukConnectionTimeout time.Duration `properties:"ryuk.connection.timeout,default=1m"`
+
+	// RyukVerbose is a flag to enable or disable verbose logging for the Garbage Collector.
+	//
+	// Environment variable: TESTCONTAINERS_RYUK_VERBOSE
+	RyukVerbose bool `properties:"ryuk.verbose,default=false"`
+
+	// TestcontainersHost is the address of the Testcontainers host.
+	//
+	// Environment variable: TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE
 	TestcontainersHost string `properties:"tc.host,default="`
 }
 
@@ -31,15 +94,6 @@ type Config struct {
 func Read() Config {
 	tcConfigOnce.Do(func() {
 		tcConfig = read()
-
-		if tcConfig.RyukDisabled {
-			ryukDisabledMessage := `
-**********************************************************************************************
-Ryuk has been disabled for the current execution. This can cause unexpected behavior in your environment.
-More on this: https://golang.testcontainers.org/features/garbage_collector/
-**********************************************************************************************`
-			fmt.Println(ryukDisabledMessage)
-		}
 	})
 
 	return tcConfig
@@ -62,9 +116,29 @@ func read() Config {
 			config.RyukDisabled = ryukDisabledEnv == "true"
 		}
 
+		hubImageNamePrefix := os.Getenv("TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX")
+		if hubImageNamePrefix != "" {
+			config.HubImageNamePrefix = hubImageNamePrefix
+		}
+
 		ryukPrivilegedEnv := os.Getenv("TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED")
 		if parseBool(ryukPrivilegedEnv) {
 			config.RyukPrivileged = ryukPrivilegedEnv == "true"
+		}
+
+		ryukVerboseEnv := os.Getenv("TESTCONTAINERS_RYUK_VERBOSE")
+		if parseBool(ryukVerboseEnv) {
+			config.RyukVerbose = ryukVerboseEnv == "true"
+		}
+
+		ryukReconnectionTimeoutEnv := os.Getenv("TESTCONTAINERS_RYUK_RECONNECTION_TIMEOUT")
+		if timeout, err := time.ParseDuration(ryukReconnectionTimeoutEnv); err == nil {
+			config.RyukReconnectionTimeout = timeout
+		}
+
+		ryukConnectionTimeoutEnv := os.Getenv("TESTCONTAINERS_RYUK_CONNECTION_TIMEOUT")
+		if timeout, err := time.ParseDuration(ryukConnectionTimeoutEnv); err == nil {
+			config.RyukConnectionTimeout = timeout
 		}
 
 		return config
@@ -87,14 +161,10 @@ func read() Config {
 		return applyEnvironmentConfiguration(config)
 	}
 
-	fmt.Printf("Testcontainers properties file has been found: %s\n", tcProp)
-
 	return applyEnvironmentConfiguration(config)
 }
 
 func parseBool(input string) bool {
-	if _, err := strconv.ParseBool(input); err == nil {
-		return true
-	}
-	return false
+	_, err := strconv.ParseBool(input)
+	return err == nil
 }

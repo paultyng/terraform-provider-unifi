@@ -6,4 +6,6 @@ const OCIExporter Feature = "OCI exporter"
 const DockerExporter Feature = "Docker exporter"
 
 const CacheExport Feature = "Cache export"
-const MultiPlatform Feature = "Multiple platforms"
+const MultiPlatform Feature = "Multi-platform build"
+
+const DefaultLoad Feature = "Automatically load images to the Docker Engine image store"

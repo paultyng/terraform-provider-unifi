@@ -2,17 +2,29 @@ package remote
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"net"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/docker/buildx/driver"
+	util "github.com/docker/buildx/driver/remote/util"
 	"github.com/docker/buildx/util/progress"
 	"github.com/moby/buildkit/client"
+	"github.com/moby/buildkit/client/connhelper"
+	"github.com/pkg/errors"
 )
 
 type Driver struct {
 	factory driver.Factory
 	driver.InitConfig
+
+	// if you add fields, remember to update docs:
+	// https://github.com/docker/docs/blob/main/content/build/drivers/remote.md
 	*tlsOpts
+	defaultLoad bool
 }
 
 type tlsOpts struct {
@@ -23,25 +35,15 @@ type tlsOpts struct {
 }
 
 func (d *Driver) Bootstrap(ctx context.Context, l progress.Logger) error {
-	for i := 0; ; i++ {
-		info, err := d.Info(ctx)
-		if err != nil {
-			return err
-		}
-		if info.Status != driver.Inactive {
-			return nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			if i > 10 {
-				i = 10
-			}
-			time.Sleep(time.Duration(i) * time.Second)
-		}
+	c, err := d.Client(ctx)
+	if err != nil {
+		return err
 	}
+	return progress.Wrap("[internal] waiting for connection", l, func(_ progress.SubLogger) error {
+		ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+		defer cancel()
+		return c.Wait(ctx)
+	})
 }
 
 func (d *Driver) Info(ctx context.Context) (*driver.Info, error) {
@@ -75,16 +77,71 @@ func (d *Driver) Rm(ctx context.Context, force, rmVolume, rmDaemon bool) error {
 	return nil
 }
 
-func (d *Driver) Client(ctx context.Context) (*client.Client, error) {
-	opts := []client.ClientOpt{}
-	if d.tlsOpts != nil {
-		opts = append(opts, []client.ClientOpt{
-			client.WithServerConfig(d.tlsOpts.serverName, d.tlsOpts.caCert),
-			client.WithCredentials(d.tlsOpts.cert, d.tlsOpts.key),
-		}...)
+func (d *Driver) Client(ctx context.Context, opts ...client.ClientOpt) (*client.Client, error) {
+	opts = append([]client.ClientOpt{
+		client.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return d.Dial(ctx)
+		}),
+	}, opts...)
+	return client.New(ctx, "", opts...)
+}
+
+func (d *Driver) Dial(ctx context.Context) (net.Conn, error) {
+	addr := d.InitConfig.EndpointAddr
+	ch, err := connhelper.GetConnectionHelper(addr)
+	if err != nil {
+		return nil, err
+	}
+	if ch != nil {
+		return ch.ContextDialer(ctx, addr)
 	}
 
-	return client.New(ctx, d.InitConfig.EndpointAddr, opts...)
+	network, addr, ok := strings.Cut(addr, "://")
+	if !ok {
+		return nil, errors.Errorf("invalid endpoint address: %s", d.InitConfig.EndpointAddr)
+	}
+
+	conn, err := util.DialContext(ctx, network, addr)
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	if d.tlsOpts != nil {
+		cfg, err := loadTLS(d.tlsOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "error loading tls config")
+		}
+		conn = tls.Client(conn, cfg)
+	}
+	return conn, nil
+}
+
+func loadTLS(opts *tlsOpts) (*tls.Config, error) {
+	cfg := &tls.Config{
+		ServerName: opts.serverName,
+		RootCAs:    x509.NewCertPool(),
+	}
+
+	if opts.caCert != "" {
+		ca, err := os.ReadFile(opts.caCert)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not read ca certificate")
+		}
+		if ok := cfg.RootCAs.AppendCertsFromPEM(ca); !ok {
+			return nil, errors.New("failed to append ca certs")
+		}
+	}
+
+	if opts.cert != "" || opts.key != "" {
+		cert, err := tls.LoadX509KeyPair(opts.cert, opts.key)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not read certificate/key")
+		}
+		cfg.Certificates = append(cfg.Certificates, cert)
+	}
+
+	return cfg, nil
 }
 
 func (d *Driver) Features(ctx context.Context) map[driver.Feature]bool {
@@ -93,7 +150,12 @@ func (d *Driver) Features(ctx context.Context) map[driver.Feature]bool {
 		driver.DockerExporter: true,
 		driver.CacheExport:    true,
 		driver.MultiPlatform:  true,
+		driver.DefaultLoad:    d.defaultLoad,
 	}
+}
+
+func (d *Driver) HostGatewayIP(ctx context.Context) (net.IP, error) {
+	return nil, errors.New("host-gateway is not supported by the remote driver")
 }
 
 func (d *Driver) Factory() driver.Factory {

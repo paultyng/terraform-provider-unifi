@@ -22,9 +22,11 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
 	"github.com/docker/compose/v2/pkg/utils"
 	moby "github.com/docker/docker/api/types"
+	containerType "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 )
 
@@ -39,12 +41,12 @@ const (
 	oneOffOnly
 )
 
-func (s *composeService) getContainers(ctx context.Context, project string, oneOff oneOff, stopped bool, selectedServices ...string) (Containers, error) {
+func (s *composeService) getContainers(ctx context.Context, project string, oneOff oneOff, all bool, selectedServices ...string) (Containers, error) {
 	var containers Containers
 	f := getDefaultFilters(project, oneOff, selectedServices...)
-	containers, err := s.apiClient().ContainerList(ctx, moby.ContainerListOptions{
+	containers, err := s.apiClient().ContainerList(ctx, containerType.ListOptions{
 		Filters: filters.NewArgs(f...),
-		All:     stopped,
+		All:     all,
 	})
 	if err != nil {
 		return nil, err
@@ -71,16 +73,16 @@ func getDefaultFilters(projectName string, oneOff oneOff, selectedServices ...st
 	return f
 }
 
-func (s *composeService) getSpecifiedContainer(ctx context.Context, projectName string, oneOff oneOff, stopped bool, serviceName string, containerIndex int) (moby.Container, error) {
+func (s *composeService) getSpecifiedContainer(ctx context.Context, projectName string, oneOff oneOff, all bool, serviceName string, containerIndex int) (moby.Container, error) {
 	defaultFilters := getDefaultFilters(projectName, oneOff, serviceName)
 	if containerIndex > 0 {
 		defaultFilters = append(defaultFilters, containerNumberFilter(containerIndex))
 	}
-	containers, err := s.apiClient().ContainerList(ctx, moby.ContainerListOptions{
+	containers, err := s.apiClient().ContainerList(ctx, containerType.ListOptions{
 		Filters: filters.NewArgs(
 			defaultFilters...,
 		),
-		All: stopped,
+		All: all,
 	})
 	if err != nil {
 		return moby.Container{}, err
@@ -117,6 +119,15 @@ func isRunning() containerPredicate {
 }
 
 func isNotService(services ...string) containerPredicate {
+	return func(c moby.Container) bool {
+		service := c.Labels[api.ServiceLabel]
+		return !utils.StringContains(services, service)
+	}
+}
+
+// isOrphaned is a predicate to select containers without a matching service definition in compose project
+func isOrphaned(project *types.Project) containerPredicate {
+	services := append(project.ServiceNames(), project.DisabledServiceNames()...)
 	return func(c moby.Container) bool {
 		service := c.Labels[api.ServiceLabel]
 		return !utils.StringContains(services, service)

@@ -79,18 +79,18 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"runtime"
 	"sync"
 
+	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/typeparams"
 	"golang.org/x/tools/internal/versions"
 )
 
-type opaqueType struct {
-	types.Type
-	name string
-}
+type opaqueType struct{ name string }
 
-func (t *opaqueType) String() string { return t.name }
+func (t *opaqueType) String() string         { return t.name }
+func (t *opaqueType) Underlying() types.Type { return t }
 
 var (
 	varOk    = newVar("ok", tBool)
@@ -103,7 +103,7 @@ var (
 	tInvalid    = types.Typ[types.Invalid]
 	tString     = types.Typ[types.String]
 	tUntypedNil = types.Typ[types.UntypedNil]
-	tRangeIter  = &opaqueType{nil, "iter"} // the type of all "range" iterators
+	tRangeIter  = &opaqueType{"iter"} // the type of all "range" iterators
 	tEface      = types.NewInterfaceType(nil, nil).Complete()
 
 	// SSA Value constants.
@@ -328,7 +328,7 @@ func (b *builder) builtin(fn *Function, obj *types.Builtin, args []ast.Expr, typ
 		}
 
 	case "new":
-		return emitNew(fn, mustDeref(typ), pos, "new")
+		return emitNew(fn, typeparams.MustDeref(typ), pos, "new")
 
 	case "len", "cap":
 		// Special case: len or cap of an array or *array is
@@ -336,7 +336,7 @@ func (b *builder) builtin(fn *Function, obj *types.Builtin, args []ast.Expr, typ
 		// We must still evaluate the value, though.  (If it
 		// was side-effect free, the whole call would have
 		// been constant-folded.)
-		t, _ := deref(fn.typeOf(args[0]))
+		t := typeparams.Deref(fn.typeOf(args[0]))
 		if at, ok := typeparams.CoreType(t).(*types.Array); ok {
 			b.expr(fn, args[0]) // for effects only
 			return intConst(at.Len())
@@ -392,7 +392,7 @@ func (b *builder) addr(fn *Function, e ast.Expr, escaping bool) lvalue {
 		return &address{addr: v, pos: e.Pos(), expr: e}
 
 	case *ast.CompositeLit:
-		typ, _ := deref(fn.typeOf(e))
+		typ := typeparams.Deref(fn.typeOf(e))
 		var v *Alloc
 		if escaping {
 			v = emitNew(fn, typ, e.Lbrace, "complit")
@@ -419,7 +419,7 @@ func (b *builder) addr(fn *Function, e ast.Expr, escaping bool) lvalue {
 		wantAddr := true
 		v := b.receiver(fn, e.X, wantAddr, escaping, sel)
 		index := sel.index[len(sel.index)-1]
-		fld := fieldOf(mustDeref(v.Type()), index) // v is an addr.
+		fld := fieldOf(typeparams.MustDeref(v.Type()), index) // v is an addr.
 
 		// Due to the two phases of resolving AssignStmt, a panic from x.f = p()
 		// when x is nil is required to come after the side-effects of
@@ -468,7 +468,7 @@ func (b *builder) addr(fn *Function, e ast.Expr, escaping bool) lvalue {
 			v.setType(et)
 			return fn.emit(v)
 		}
-		return &lazyAddress{addr: emit, t: mustDeref(et), pos: e.Lbrack, expr: e}
+		return &lazyAddress{addr: emit, t: typeparams.MustDeref(et), pos: e.Lbrack, expr: e}
 
 	case *ast.StarExpr:
 		return &address{addr: b.expr(fn, e.X), pos: e.Star, expr: e}
@@ -513,17 +513,15 @@ func (b *builder) assign(fn *Function, loc lvalue, e ast.Expr, isZero bool, sb *
 		// A CompositeLit never evaluates to a pointer,
 		// so if the type of the location is a pointer,
 		// an &-operation is implied.
-		if _, ok := loc.(blank); !ok { // avoid calling blank.typ()
-			if _, ok := deref(loc.typ()); ok {
-				ptr := b.addr(fn, e, true).address(fn)
-				// copy address
-				if sb != nil {
-					sb.store(loc, ptr)
-				} else {
-					loc.store(fn, ptr)
-				}
-				return
+		if !is[blank](loc) && isPointerCore(loc.typ()) { // avoid calling blank.typ()
+			ptr := b.addr(fn, e, true).address(fn)
+			// copy address
+			if sb != nil {
+				sb.store(loc, ptr)
+			} else {
+				loc.store(fn, ptr)
 			}
+			return
 		}
 
 		if _, ok := loc.(*address); ok {
@@ -795,14 +793,14 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 			// The result is a "bound".
 			obj := sel.obj.(*types.Func)
 			rt := fn.typ(recvType(obj))
-			_, wantAddr := deref(rt)
+			wantAddr := isPointer(rt)
 			escaping := true
 			v := b.receiver(fn, e.X, wantAddr, escaping, sel)
 
 			if types.IsInterface(rt) {
 				// If v may be an interface type I (after instantiating),
 				// we must emit a check that v is non-nil.
-				if recv, ok := sel.recv.(*types.TypeParam); ok {
+				if recv, ok := aliases.Unalias(sel.recv).(*types.TypeParam); ok {
 					// Emit a nil check if any possible instantiation of the
 					// type parameter is an interface type.
 					if typeSetOf(recv).Len() > 0 {
@@ -923,7 +921,7 @@ func (b *builder) stmtList(fn *Function, list []ast.Stmt) {
 // escaping is defined as per builder.addr().
 func (b *builder) receiver(fn *Function, e ast.Expr, wantAddr, escaping bool, sel *selection) Value {
 	var v Value
-	if _, eptr := deref(fn.typeOf(e)); wantAddr && !sel.indirect && !eptr {
+	if wantAddr && !sel.indirect && !isPointerCore(fn.typeOf(e)) {
 		v = b.addr(fn, e, escaping).address(fn)
 	} else {
 		v = b.expr(fn, e)
@@ -935,7 +933,7 @@ func (b *builder) receiver(fn *Function, e ast.Expr, wantAddr, escaping bool, se
 	if types.IsInterface(v.Type()) {
 		// When v is an interface, sel.Kind()==MethodValue and v.f is invoked.
 		// So v is not loaded, even if v has a pointer core type.
-	} else if _, vptr := deref(v.Type()); !wantAddr && vptr {
+	} else if !wantAddr && isPointerCore(v.Type()) {
 		v = emitLoad(fn, v)
 	}
 	return v
@@ -954,7 +952,7 @@ func (b *builder) setCallFunc(fn *Function, e *ast.CallExpr, c *CallCommon) {
 			obj := sel.obj.(*types.Func)
 			recv := recvType(obj)
 
-			_, wantAddr := deref(recv)
+			wantAddr := isPointer(recv)
 			escaping := true
 			v := b.receiver(fn, selector.X, wantAddr, escaping, sel)
 			if types.IsInterface(recv) {
@@ -1215,12 +1213,12 @@ func (b *builder) arrayLen(fn *Function, elts []ast.Expr) int64 {
 // literal has type *T behaves like &T{}.
 // In that case, addr must hold a T, not a *T.
 func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero bool, sb *storebuf) {
-	typ, _ := deref(fn.typeOf(e)) // type with name [may be type param]
+	typ := typeparams.Deref(fn.typeOf(e)) // retain the named/alias/param type, if any
 	switch t := typeparams.CoreType(typ).(type) {
 	case *types.Struct:
 		if !isZero && len(e.Elts) != t.NumFields() {
 			// memclear
-			zt, _ := deref(addr.Type())
+			zt := typeparams.MustDeref(addr.Type())
 			sb.store(&address{addr, e.Lbrace, nil}, zeroConst(zt))
 			isZero = true
 		}
@@ -1263,7 +1261,7 @@ func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero 
 
 			if !isZero && int64(len(e.Elts)) != at.Len() {
 				// memclear
-				zt, _ := deref(array.Type())
+				zt := typeparams.MustDeref(array.Type())
 				sb.store(&address{array, e.Lbrace, nil}, zeroConst(zt))
 			}
 		}
@@ -1319,7 +1317,7 @@ func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero 
 			//	map[*struct{}]bool{&struct{}{}: true}
 			wantAddr := false
 			if _, ok := unparen(e.Key).(*ast.CompositeLit); ok {
-				_, wantAddr = deref(t.Key())
+				wantAddr = isPointerCore(t.Key())
 			}
 
 			var key Value
@@ -1748,8 +1746,7 @@ func (b *builder) forStmt(fn *Function, s *ast.ForStmt, label *lblock) {
 	// Use forStmtGo122 instead if it applies.
 	if s.Init != nil {
 		if assign, ok := s.Init.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE {
-			afterGo122 := versions.Compare(fn.goversion, "go1.21") > 0
-			if afterGo122 {
+			if versions.AtLeast(fn.goversion, versions.Go1_22) {
 				b.forStmtGo122(fn, s, label)
 				return
 			}
@@ -1867,7 +1864,7 @@ func (b *builder) forStmtGo122(fn *Function, s *ast.ForStmt, label *lblock) {
 		fn.emit(phi)
 
 		fn.currentBlock = post
-		// If next is is local, it reuses the address and zeroes the old value so
+		// If next is local, it reuses the address and zeroes the old value so
 		// load before allocating next.
 		load := emitLoad(fn, phi)
 		next := emitLocal(fn, typ, v.Pos(), v.Name())
@@ -1993,7 +1990,7 @@ func (b *builder) rangeIndexed(fn *Function, x Value, tv types.Type, pos token.P
 
 	// Determine number of iterations.
 	var length Value
-	dt, _ := deref(x.Type())
+	dt := typeparams.Deref(x.Type())
 	if arr, ok := typeparams.CoreType(dt).(*types.Array); ok {
 		// For array or *array, the number of iterations is
 		// known statically thanks to the type.  We avoid a
@@ -2244,7 +2241,7 @@ func (b *builder) rangeStmt(fn *Function, s *ast.RangeStmt, label *lblock) {
 		}
 	}
 
-	afterGo122 := versions.Compare(fn.goversion, "go1.21") > 0
+	afterGo122 := versions.AtLeast(fn.goversion, versions.Go1_22)
 	if s.Tok == token.DEFINE && !afterGo122 {
 		// pre-go1.22: If iteration variables are defined (:=), this
 		// occurs once outside the loop.
@@ -2276,6 +2273,21 @@ func (b *builder) rangeStmt(fn *Function, s *ast.RangeStmt, label *lblock) {
 		default:
 			panic("Cannot range over basic type: " + rt.String())
 		}
+
+	case *types.Signature:
+		// Temporary hack to avoid crashes
+		// until Tim's principled fix (CL 555075) lands:
+		// compile range-over-func to a panic.
+		//
+		// This will cause statements in the loop body to be
+		// unreachable, and thus the call graph may be
+		// incomplete.
+		fn.emit(&Panic{
+			X:   NewConst(constant.MakeString("go1.23 range-over-func is not yet supported"), tString),
+			pos: s.For,
+		})
+		fn.currentBlock = fn.newBasicBlock("unreachable")
+		return
 
 	default:
 		panic("Cannot range over: " + rt.String())
@@ -2340,6 +2352,12 @@ start:
 		}
 
 	case *ast.LabeledStmt:
+		if s.Label.Name == "_" {
+			// Blank labels can't be the target of a goto, break,
+			// or continue statement, so we don't need a new block.
+			_s = s.Stmt
+			goto start
+		}
 		label = fn.labelledBlock(s.Label)
 		emitJump(fn, label._goto)
 		fn.currentBlock = label._goto
@@ -2618,14 +2636,19 @@ func (prog *Program) Build() {
 			p.Build()
 		} else {
 			wg.Add(1)
+			cpuLimit <- struct{}{} // acquire a token
 			go func(p *Package) {
 				p.Build()
 				wg.Done()
+				<-cpuLimit // release a token
 			}(p)
 		}
 	}
 	wg.Wait()
 }
+
+// cpuLimit is a counting semaphore to limit CPU parallelism.
+var cpuLimit = make(chan struct{}, runtime.GOMAXPROCS(0))
 
 // Build builds SSA code for all functions and vars in package p.
 //

@@ -96,24 +96,35 @@ func (fa *FileAction) Copy(input CopyInput, src, dest string, opt ...CopyOption)
 	return a
 }
 
-func (fa *FileAction) allOutputs(m map[Output]struct{}) {
+func (fa *FileAction) allOutputs(seen map[Output]struct{}, outputs []Output) []Output {
 	if fa == nil {
-		return
+		return outputs
 	}
-	if fa.state != nil && fa.state.Output() != nil {
-		m[fa.state.Output()] = struct{}{}
+
+	if fa.state != nil {
+		out := fa.state.Output()
+		if out != nil {
+			if _, ok := seen[out]; !ok {
+				outputs = append(outputs, out)
+				seen[out] = struct{}{}
+			}
+		}
 	}
 
 	if a, ok := fa.action.(*fileActionCopy); ok {
 		if a.state != nil {
-			if out := a.state.Output(); out != nil {
-				m[out] = struct{}{}
+			out := a.state.Output()
+			if out != nil {
+				if _, ok := seen[out]; !ok {
+					outputs = append(outputs, out)
+					seen[out] = struct{}{}
+				}
 			}
 		} else if a.fas != nil {
-			a.fas.allOutputs(m)
+			outputs = a.fas.allOutputs(seen, outputs)
 		}
 	}
-	fa.prev.allOutputs(m)
+	return fa.prev.allOutputs(seen, outputs)
 }
 
 func (fa *FileAction) bind(s State) *FileAction {
@@ -398,6 +409,18 @@ func WithAllowWildcard(b bool) RmOption {
 	})
 }
 
+type excludeOnCopyAction struct {
+	patterns []string
+}
+
+func (e *excludeOnCopyAction) SetCopyOption(i *CopyInfo) {
+	i.ExcludePatterns = append(i.ExcludePatterns, e.patterns...)
+}
+
+func WithExcludePatterns(patterns []string) CopyOption {
+	return &excludeOnCopyAction{patterns}
+}
+
 type fileActionRm struct {
 	file string
 	info RmInfo
@@ -465,17 +488,18 @@ type CopyOption interface {
 }
 
 type CopyInfo struct {
-	Mode                *os.FileMode
-	FollowSymlinks      bool
-	CopyDirContentsOnly bool
-	IncludePatterns     []string
-	ExcludePatterns     []string
-	AttemptUnpack       bool
-	CreateDestPath      bool
-	AllowWildcard       bool
-	AllowEmptyWildcard  bool
-	ChownOpt            *ChownOpt
-	CreatedTime         *time.Time
+	Mode                           *os.FileMode
+	FollowSymlinks                 bool
+	CopyDirContentsOnly            bool
+	IncludePatterns                []string
+	ExcludePatterns                []string
+	AttemptUnpack                  bool
+	CreateDestPath                 bool
+	AllowWildcard                  bool
+	AllowEmptyWildcard             bool
+	ChownOpt                       *ChownOpt
+	CreatedTime                    *time.Time
+	AlwaysReplaceExistingDestPaths bool
 }
 
 func (mi *CopyInfo) SetCopyOption(mi2 *CopyInfo) {
@@ -510,6 +534,7 @@ func (a *fileActionCopy) toProtoAction(ctx context.Context, parent string, base 
 		AttemptUnpackDockerCompatibility: a.info.AttemptUnpack,
 		CreateDestPath:                   a.info.CreateDestPath,
 		Timestamp:                        marshalTime(a.info.CreatedTime),
+		AlwaysReplaceExistingDestPaths:   a.info.AlwaysReplaceExistingDestPaths,
 	}
 	if a.info.Mode != nil {
 		c.Mode = int32(*a.info.Mode)
@@ -541,6 +566,9 @@ func (a *fileActionCopy) sourcePath(ctx context.Context) (string, error) {
 func (a *fileActionCopy) addCaps(f *FileOp) {
 	if len(a.info.IncludePatterns) != 0 || len(a.info.ExcludePatterns) != 0 {
 		addCap(&f.constraints, pb.CapFileCopyIncludeExcludePatterns)
+	}
+	if a.info.AlwaysReplaceExistingDestPaths {
+		addCap(&f.constraints, pb.CapFileCopyAlwaysReplaceExistingDestPaths)
 	}
 }
 
@@ -614,7 +642,7 @@ type fileActionState struct {
 	fa             *FileAction
 }
 
-func (ms *marshalState) addInput(st *fileActionState, c *Constraints, o Output) (pb.InputIndex, error) {
+func (ms *marshalState) addInput(c *Constraints, o Output) (pb.InputIndex, error) {
 	inp, err := o.ToInput(ms.ctx, c)
 	if err != nil {
 		return 0, err
@@ -656,7 +684,7 @@ func (ms *marshalState) add(fa *FileAction, c *Constraints) (*fileActionState, e
 	}
 
 	if source := fa.state.Output(); source != nil {
-		inp, err := ms.addInput(st, c, source)
+		inp, err := ms.addInput(c, source)
 		if err != nil {
 			return nil, err
 		}
@@ -672,7 +700,7 @@ func (ms *marshalState) add(fa *FileAction, c *Constraints) (*fileActionState, e
 	if a, ok := fa.action.(*fileActionCopy); ok {
 		if a.state != nil {
 			if out := a.state.Output(); out != nil {
-				inp, err := ms.addInput(st, c, out)
+				inp, err := ms.addInput(c, out)
 				if err != nil {
 					return nil, err
 				}
@@ -794,15 +822,8 @@ func (f *FileOp) Output() Output {
 	return f.output
 }
 
-func (f *FileOp) Inputs() (inputs []Output) {
-	mm := map[Output]struct{}{}
-
-	f.action.allOutputs(mm)
-
-	for o := range mm {
-		inputs = append(inputs, o)
-	}
-	return inputs
+func (f *FileOp) Inputs() []Output {
+	return f.action.allOutputs(map[Output]struct{}{}, []Output{})
 }
 
 func getIndex(input pb.InputIndex, len int, relative *int) pb.InputIndex {

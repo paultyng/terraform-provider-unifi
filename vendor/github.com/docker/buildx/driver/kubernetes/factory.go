@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -16,8 +17,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const prioritySupported = 40
-const priorityUnsupported = 80
+const (
+	prioritySupported   = 40
+	priorityUnsupported = 80
+	defaultTimeout      = 120 * time.Second
+)
 
 func init() {
 	driver.Register(&factory{})
@@ -34,7 +38,7 @@ func (*factory) Usage() string {
 	return DriverName
 }
 
-func (*factory) Priority(ctx context.Context, endpoint string, api dockerclient.APIClient) int {
+func (*factory) Priority(ctx context.Context, endpoint string, api dockerclient.APIClient, dialMeta map[string][]string) int {
 	if api == nil {
 		return priorityUnsupported
 	}
@@ -68,10 +72,13 @@ func (f *factory) New(ctx context.Context, cfg driver.InitConfig) (driver.Driver
 		clientset:  clientset,
 	}
 
-	deploymentOpt, loadbalance, namespace, err := f.processDriverOpts(deploymentName, namespace, cfg)
+	deploymentOpt, loadbalance, namespace, defaultLoad, timeout, err := f.processDriverOpts(deploymentName, namespace, cfg)
 	if nil != err {
 		return nil, err
 	}
+
+	d.defaultLoad = defaultLoad
+	d.timeout = timeout
 
 	d.deployment, d.configMaps, err = manifest.NewDeployment(deploymentOpt)
 	if err != nil {
@@ -100,16 +107,19 @@ func (f *factory) New(ctx context.Context, cfg driver.InitConfig) (driver.Driver
 	return d, nil
 }
 
-func (f *factory) processDriverOpts(deploymentName string, namespace string, cfg driver.InitConfig) (*manifest.DeploymentOpt, string, string, error) {
+func (f *factory) processDriverOpts(deploymentName string, namespace string, cfg driver.InitConfig) (*manifest.DeploymentOpt, string, string, bool, time.Duration, error) {
 	deploymentOpt := &manifest.DeploymentOpt{
 		Name:          deploymentName,
 		Image:         bkimage.DefaultImage,
 		Replicas:      1,
-		BuildkitFlags: cfg.BuildkitFlags,
+		BuildkitFlags: cfg.BuildkitdFlags,
 		Rootless:      false,
 		Platforms:     cfg.Platforms,
 		ConfigFiles:   cfg.Files,
 	}
+
+	defaultLoad := false
+	timeout := defaultTimeout
 
 	deploymentOpt.Qemu.Image = bkimage.QemuImage
 
@@ -127,36 +137,47 @@ func (f *factory) processDriverOpts(deploymentName string, namespace string, cfg
 		case "replicas":
 			deploymentOpt.Replicas, err = strconv.Atoi(v)
 			if err != nil {
-				return nil, "", "", err
+				return nil, "", "", false, 0, err
 			}
 		case "requests.cpu":
 			deploymentOpt.RequestsCPU = v
 		case "requests.memory":
 			deploymentOpt.RequestsMemory = v
+		case "requests.ephemeral-storage":
+			deploymentOpt.RequestsEphemeralStorage = v
 		case "limits.cpu":
 			deploymentOpt.LimitsCPU = v
 		case "limits.memory":
 			deploymentOpt.LimitsMemory = v
+		case "limits.ephemeral-storage":
+			deploymentOpt.LimitsEphemeralStorage = v
 		case "rootless":
 			deploymentOpt.Rootless, err = strconv.ParseBool(v)
 			if err != nil {
-				return nil, "", "", err
+				return nil, "", "", false, 0, err
 			}
 			if _, isImage := cfg.DriverOpts["image"]; !isImage {
 				deploymentOpt.Image = bkimage.DefaultRootlessImage
 			}
+		case "schedulername":
+			deploymentOpt.SchedulerName = v
 		case "serviceaccount":
 			deploymentOpt.ServiceAccountName = v
 		case "nodeselector":
-			kvs := strings.Split(strings.Trim(v, `"`), ",")
-			s := map[string]string{}
-			for i := range kvs {
-				kv := strings.Split(kvs[i], "=")
-				if len(kv) == 2 {
-					s[kv[0]] = kv[1]
-				}
+			deploymentOpt.NodeSelector, err = splitMultiValues(v, ",", "=")
+			if err != nil {
+				return nil, "", "", false, 0, errors.Wrap(err, "cannot parse node selector")
 			}
-			deploymentOpt.NodeSelector = s
+		case "annotations":
+			deploymentOpt.CustomAnnotations, err = splitMultiValues(v, ",", "=")
+			if err != nil {
+				return nil, "", "", false, 0, errors.Wrap(err, "cannot parse annotations")
+			}
+		case "labels":
+			deploymentOpt.CustomLabels, err = splitMultiValues(v, ",", "=")
+			if err != nil {
+				return nil, "", "", false, 0, errors.Wrap(err, "cannot parse labels")
+			}
 		case "tolerations":
 			ts := strings.Split(v, ";")
 			deploymentOpt.Tolerations = []corev1.Toleration{}
@@ -180,12 +201,12 @@ func (f *factory) processDriverOpts(deploymentName string, namespace string, cfg
 						case "tolerationSeconds":
 							c, err := strconv.Atoi(kv[1])
 							if nil != err {
-								return nil, "", "", err
+								return nil, "", "", false, 0, err
 							}
 							c64 := int64(c)
 							t.TolerationSeconds = &c64
 						default:
-							return nil, "", "", errors.Errorf("invalid tolaration %q", v)
+							return nil, "", "", false, 0, errors.Errorf("invalid tolaration %q", v)
 						}
 					}
 				}
@@ -197,24 +218,47 @@ func (f *factory) processDriverOpts(deploymentName string, namespace string, cfg
 			case LoadbalanceSticky:
 			case LoadbalanceRandom:
 			default:
-				return nil, "", "", errors.Errorf("invalid loadbalance %q", v)
+				return nil, "", "", false, 0, errors.Errorf("invalid loadbalance %q", v)
 			}
 			loadbalance = v
 		case "qemu.install":
 			deploymentOpt.Qemu.Install, err = strconv.ParseBool(v)
 			if err != nil {
-				return nil, "", "", err
+				return nil, "", "", false, 0, err
 			}
 		case "qemu.image":
 			if v != "" {
 				deploymentOpt.Qemu.Image = v
 			}
+		case "default-load":
+			defaultLoad, err = strconv.ParseBool(v)
+			if err != nil {
+				return nil, "", "", false, 0, err
+			}
+		case "timeout":
+			timeout, err = time.ParseDuration(v)
+			if err != nil {
+				return nil, "", "", false, 0, errors.Wrap(err, "cannot parse timeout")
+			}
 		default:
-			return nil, "", "", errors.Errorf("invalid driver option %s for driver %s", k, DriverName)
+			return nil, "", "", false, 0, errors.Errorf("invalid driver option %s for driver %s", k, DriverName)
 		}
 	}
 
-	return deploymentOpt, loadbalance, namespace, nil
+	return deploymentOpt, loadbalance, namespace, defaultLoad, timeout, nil
+}
+
+func splitMultiValues(in string, itemsep string, kvsep string) (map[string]string, error) {
+	kvs := strings.Split(strings.Trim(in, `"`), itemsep)
+	s := map[string]string{}
+	for i := range kvs {
+		kv := strings.Split(kvs[i], kvsep)
+		if len(kv) != 2 {
+			return nil, errors.Errorf("invalid key-value pair: %s", kvs[i])
+		}
+		s[kv[0]] = kv[1]
+	}
+	return s, nil
 }
 
 func (f *factory) AllowsInstances() bool {
@@ -226,10 +270,10 @@ func (f *factory) AllowsInstances() bool {
 // eg. "buildx_buildkit_loving_mendeleev0" -> "loving-mendeleev0"
 func buildxNameToDeploymentName(bx string) (string, error) {
 	// TODO: commands.util.go should not pass "buildx_buildkit_" prefix to drivers
-	if !strings.HasPrefix(bx, "buildx_buildkit_") {
-		return "", errors.Errorf("expected a string with \"buildx_buildkit_\", got %q", bx)
+	s, err := driver.ParseBuilderName(bx)
+	if err != nil {
+		return "", err
 	}
-	s := strings.TrimPrefix(bx, "buildx_buildkit_")
 	s = strings.ReplaceAll(s, "_", "-")
 	return s, nil
 }

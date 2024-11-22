@@ -1,31 +1,23 @@
 package build
 
 import (
-	"bufio"
 	"bytes"
 	"context"
-	"crypto/rand"
 	_ "crypto/sha256" // ensure digests can be computed
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/content/local"
 	"github.com/containerd/containerd/images"
-	"github.com/containerd/containerd/platforms"
+	"github.com/distribution/reference"
 	"github.com/docker/buildx/builder"
 	"github.com/docker/buildx/driver"
-	"github.com/docker/buildx/localstate"
 	"github.com/docker/buildx/util/desktop"
 	"github.com/docker/buildx/util/dockerutil"
 	"github.com/docker/buildx/util/imagetools"
@@ -33,22 +25,16 @@ import (
 	"github.com/docker/buildx/util/resolver"
 	"github.com/docker/buildx/util/waitmap"
 	"github.com/docker/cli/opts"
-	"github.com/docker/distribution/reference"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/builder/remotecontext/urlutil"
+	imagetypes "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/client/ociindex"
 	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	gateway "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/moby/buildkit/identity"
 	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/upload/uploadprovider"
 	"github.com/moby/buildkit/solver/errdefs"
 	"github.com/moby/buildkit/solver/pb"
 	spb "github.com/moby/buildkit/sourcepolicy/pb"
-	"github.com/moby/buildkit/util/apicaps"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/moby/buildkit/util/progress/progresswriter"
 	"github.com/moby/buildkit/util/tracing"
@@ -66,12 +52,14 @@ var (
 )
 
 const (
-	printFallbackImage = "docker/dockerfile:1.5.2-labs@sha256:f2e91734a84c0922ff47aa4098ab775f1dfa932430d2888dd5cad5251fafdac4"
+	printFallbackImage     = "docker/dockerfile:1.5@sha256:dbbd5e059e8a07ff7ea6233b213b36aa516b4c53c645f1817a4dd18b83cbea56"
+	printLintFallbackImage = "docker.io/docker/dockerfile-upstream:1.8.1@sha256:e87caa74dcb7d46cd820352bfea12591f3dba3ddc4285e19c7dcd13359f7cefd"
 )
 
 type Options struct {
 	Inputs Inputs
 
+	Ref           string
 	Allow         []entitlements.Entitlement
 	Attests       map[string]*string
 	BuildArgs     map[string]string
@@ -91,17 +79,18 @@ type Options struct {
 	Target        string
 	Ulimits       *opts.UlimitOpt
 
-	Session []session.Attachable
-
-	// Linked marks this target as exclusively linked (not requested by the user).
-	Linked       bool
-	PrintFunc    *PrintFunc
-	SourcePolicy *spb.Policy
+	Session                []session.Attachable
+	Linked                 bool // Linked marks this target as exclusively linked (not requested by the user).
+	PrintFunc              *PrintFunc
+	WithProvenanceResponse bool
+	SourcePolicy           *spb.Policy
+	GroupRef               string
 }
 
 type PrintFunc struct {
-	Name   string
-	Format string
+	Name         string
+	Format       string
+	IgnoreStatus bool
 }
 
 type Inputs struct {
@@ -116,6 +105,11 @@ type Inputs struct {
 type NamedContext struct {
 	Path  string
 	State *llb.State
+}
+
+type reqForNode struct {
+	*resolvedNode
+	so *client.SolveOpt
 }
 
 func filterAvailableNodes(nodes []builder.Node) ([]builder.Node, error) {
@@ -135,218 +129,6 @@ func filterAvailableNodes(nodes []builder.Node) ([]builder.Node, error) {
 	return nil, err
 }
 
-type driverPair struct {
-	driverIndex int
-	platforms   []specs.Platform
-	so          *client.SolveOpt
-	bopts       gateway.BuildOpts
-}
-
-func driverIndexes(m map[string][]driverPair) []int {
-	out := make([]int, 0, len(m))
-	visited := map[int]struct{}{}
-	for _, dp := range m {
-		for _, d := range dp {
-			if _, ok := visited[d.driverIndex]; ok {
-				continue
-			}
-			visited[d.driverIndex] = struct{}{}
-			out = append(out, d.driverIndex)
-		}
-	}
-	return out
-}
-
-func allIndexes(l int) []int {
-	out := make([]int, 0, l)
-	for i := 0; i < l; i++ {
-		out = append(out, i)
-	}
-	return out
-}
-
-func ensureBooted(ctx context.Context, nodes []builder.Node, idxs []int, pw progress.Writer) ([]*client.Client, error) {
-	clients := make([]*client.Client, len(nodes))
-
-	baseCtx := ctx
-	eg, ctx := errgroup.WithContext(ctx)
-
-	for _, i := range idxs {
-		func(i int) {
-			eg.Go(func() error {
-				c, err := driver.Boot(ctx, baseCtx, nodes[i].Driver, pw)
-				if err != nil {
-					return err
-				}
-				clients[i] = c
-				return nil
-			})
-		}(i)
-	}
-
-	if err := eg.Wait(); err != nil {
-		return nil, err
-	}
-
-	return clients, nil
-}
-
-func splitToDriverPairs(availablePlatforms map[string]int, opt map[string]Options) map[string][]driverPair {
-	m := map[string][]driverPair{}
-	for k, opt := range opt {
-		mm := map[int][]specs.Platform{}
-		for _, p := range opt.Platforms {
-			k := platforms.Format(p)
-			idx := availablePlatforms[k] // default 0
-			pp := mm[idx]
-			pp = append(pp, p)
-			mm[idx] = pp
-		}
-		// if no platform is specified, use first driver
-		if len(mm) == 0 {
-			mm[0] = nil
-		}
-		dps := make([]driverPair, 0, 2)
-		for idx, pp := range mm {
-			dps = append(dps, driverPair{driverIndex: idx, platforms: pp})
-		}
-		m[k] = dps
-	}
-	return m
-}
-
-func resolveDrivers(ctx context.Context, nodes []builder.Node, opt map[string]Options, pw progress.Writer) (map[string][]driverPair, []*client.Client, error) {
-	dps, clients, err := resolveDriversBase(ctx, nodes, opt, pw)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	bopts := make([]gateway.BuildOpts, len(clients))
-
-	span, ctx := tracing.StartSpan(ctx, "load buildkit capabilities", trace.WithSpanKind(trace.SpanKindInternal))
-
-	eg, ctx := errgroup.WithContext(ctx)
-	for i, c := range clients {
-		if c == nil {
-			continue
-		}
-
-		func(i int, c *client.Client) {
-			eg.Go(func() error {
-				clients[i].Build(ctx, client.SolveOpt{
-					Internal: true,
-				}, "buildx", func(ctx context.Context, c gateway.Client) (*gateway.Result, error) {
-					bopts[i] = c.BuildOpts()
-					return nil, nil
-				}, nil)
-				return nil
-			})
-		}(i, c)
-	}
-
-	err = eg.Wait()
-	tracing.FinishWithError(span, err)
-	if err != nil {
-		return nil, nil, err
-	}
-	for key := range dps {
-		for i, dp := range dps[key] {
-			dps[key][i].bopts = bopts[dp.driverIndex]
-		}
-	}
-
-	return dps, clients, nil
-}
-
-func resolveDriversBase(ctx context.Context, nodes []builder.Node, opt map[string]Options, pw progress.Writer) (map[string][]driverPair, []*client.Client, error) {
-	availablePlatforms := map[string]int{}
-	for i, node := range nodes {
-		for _, p := range node.Platforms {
-			availablePlatforms[platforms.Format(p)] = i
-		}
-	}
-
-	undetectedPlatform := false
-	allPlatforms := map[string]int{}
-	for _, opt := range opt {
-		for _, p := range opt.Platforms {
-			k := platforms.Format(p)
-			allPlatforms[k] = -1
-			if _, ok := availablePlatforms[k]; !ok {
-				undetectedPlatform = true
-			}
-		}
-	}
-
-	// fast path
-	if len(nodes) == 1 || len(allPlatforms) == 0 {
-		m := map[string][]driverPair{}
-		for k, opt := range opt {
-			m[k] = []driverPair{{driverIndex: 0, platforms: opt.Platforms}}
-		}
-		clients, err := ensureBooted(ctx, nodes, driverIndexes(m), pw)
-		if err != nil {
-			return nil, nil, err
-		}
-		return m, clients, nil
-	}
-
-	// map based on existing platforms
-	if !undetectedPlatform {
-		m := splitToDriverPairs(availablePlatforms, opt)
-		clients, err := ensureBooted(ctx, nodes, driverIndexes(m), pw)
-		if err != nil {
-			return nil, nil, err
-		}
-		return m, clients, nil
-	}
-
-	// boot all drivers in k
-	clients, err := ensureBooted(ctx, nodes, allIndexes(len(nodes)), pw)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	eg, ctx := errgroup.WithContext(ctx)
-	workers := make([][]*client.WorkerInfo, len(clients))
-
-	for i, c := range clients {
-		if c == nil {
-			continue
-		}
-		func(i int) {
-			eg.Go(func() error {
-				ww, err := clients[i].ListWorkers(ctx)
-				if err != nil {
-					return errors.Wrap(err, "listing workers")
-				}
-				workers[i] = ww
-				return nil
-			})
-
-		}(i)
-	}
-
-	if err := eg.Wait(); err != nil {
-		return nil, nil, err
-	}
-
-	for i, ww := range workers {
-		for _, w := range ww {
-			for _, p := range w.Platforms {
-				p = platforms.Normalize(p)
-				ps := platforms.Format(p)
-
-				if _, ok := availablePlatforms[ps]; !ok {
-					availablePlatforms[ps] = i
-				}
-			}
-		}
-	}
-
-	return splitToDriverPairs(availablePlatforms, opt), clients, nil
-}
-
 func toRepoOnly(in string) (string, error) {
 	m := map[string]struct{}{}
 	p := strings.Split(in, ",")
@@ -364,314 +146,6 @@ func toRepoOnly(in string) (string, error) {
 	return strings.Join(out, ","), nil
 }
 
-func toSolveOpt(ctx context.Context, node builder.Node, multiDriver bool, opt Options, bopts gateway.BuildOpts, configDir string, pw progress.Writer, docker *dockerutil.Client) (solveOpt *client.SolveOpt, release func(), err error) {
-	nodeDriver := node.Driver
-	defers := make([]func(), 0, 2)
-	releaseF := func() {
-		for _, f := range defers {
-			f()
-		}
-	}
-
-	defer func() {
-		if err != nil {
-			releaseF()
-		}
-	}()
-
-	// inline cache from build arg
-	if v, ok := opt.BuildArgs["BUILDKIT_INLINE_CACHE"]; ok {
-		if v, _ := strconv.ParseBool(v); v {
-			opt.CacheTo = append(opt.CacheTo, client.CacheOptionsEntry{
-				Type:  "inline",
-				Attrs: map[string]string{},
-			})
-		}
-	}
-
-	for _, e := range opt.CacheTo {
-		if e.Type != "inline" && !nodeDriver.Features(ctx)[driver.CacheExport] {
-			return nil, nil, notSupported(nodeDriver, driver.CacheExport)
-		}
-	}
-
-	cacheTo := make([]client.CacheOptionsEntry, 0, len(opt.CacheTo))
-	for _, e := range opt.CacheTo {
-		if e.Type == "gha" {
-			if !bopts.LLBCaps.Contains(apicaps.CapID("cache.gha")) {
-				continue
-			}
-		} else if e.Type == "s3" {
-			if !bopts.LLBCaps.Contains(apicaps.CapID("cache.s3")) {
-				continue
-			}
-		}
-		cacheTo = append(cacheTo, e)
-	}
-
-	cacheFrom := make([]client.CacheOptionsEntry, 0, len(opt.CacheFrom))
-	for _, e := range opt.CacheFrom {
-		if e.Type == "gha" {
-			if !bopts.LLBCaps.Contains(apicaps.CapID("cache.gha")) {
-				continue
-			}
-		} else if e.Type == "s3" {
-			if !bopts.LLBCaps.Contains(apicaps.CapID("cache.s3")) {
-				continue
-			}
-		}
-		cacheFrom = append(cacheFrom, e)
-	}
-
-	so := client.SolveOpt{
-		Frontend:            "dockerfile.v0",
-		FrontendAttrs:       map[string]string{},
-		LocalDirs:           map[string]string{},
-		CacheExports:        cacheTo,
-		CacheImports:        cacheFrom,
-		AllowedEntitlements: opt.Allow,
-		SourcePolicy:        opt.SourcePolicy,
-	}
-
-	if opt.CgroupParent != "" {
-		so.FrontendAttrs["cgroup-parent"] = opt.CgroupParent
-	}
-
-	if v, ok := opt.BuildArgs["BUILDKIT_MULTI_PLATFORM"]; ok {
-		if v, _ := strconv.ParseBool(v); v {
-			so.FrontendAttrs["multi-platform"] = "true"
-		}
-	}
-
-	if multiDriver {
-		// force creation of manifest list
-		so.FrontendAttrs["multi-platform"] = "true"
-	}
-
-	attests := make(map[string]string)
-	for k, v := range opt.Attests {
-		if v != nil {
-			attests[k] = *v
-		}
-	}
-	supportsAttestations := bopts.LLBCaps.Contains(apicaps.CapID("exporter.image.attestations"))
-	if len(attests) > 0 {
-		if !supportsAttestations {
-			return nil, nil, errors.Errorf("attestations are not supported by the current buildkitd")
-		}
-		for k, v := range attests {
-			so.FrontendAttrs["attest:"+k] = v
-		}
-	}
-
-	if _, ok := opt.Attests["provenance"]; !ok && supportsAttestations {
-		const noAttestEnv = "BUILDX_NO_DEFAULT_ATTESTATIONS"
-		var noProv bool
-		if v, ok := os.LookupEnv(noAttestEnv); ok {
-			noProv, err = strconv.ParseBool(v)
-			if err != nil {
-				return nil, nil, errors.Wrap(err, "invalid "+noAttestEnv)
-			}
-		}
-		if !noProv {
-			so.FrontendAttrs["attest:provenance"] = "mode=min,inline-only=true"
-		}
-	}
-
-	switch len(opt.Exports) {
-	case 1:
-		// valid
-	case 0:
-		if nodeDriver.IsMobyDriver() && !noDefaultLoad() {
-			// backwards compat for docker driver only:
-			// this ensures the build results in a docker image.
-			opt.Exports = []client.ExportEntry{{Type: "image", Attrs: map[string]string{}}}
-		}
-	default:
-		return nil, nil, errors.Errorf("multiple outputs currently unsupported")
-	}
-
-	// fill in image exporter names from tags
-	if len(opt.Tags) > 0 {
-		tags := make([]string, len(opt.Tags))
-		for i, tag := range opt.Tags {
-			ref, err := reference.Parse(tag)
-			if err != nil {
-				return nil, nil, errors.Wrapf(err, "invalid tag %q", tag)
-			}
-			tags[i] = ref.String()
-		}
-		for i, e := range opt.Exports {
-			switch e.Type {
-			case "image", "oci", "docker":
-				opt.Exports[i].Attrs["name"] = strings.Join(tags, ",")
-			}
-		}
-	} else {
-		for _, e := range opt.Exports {
-			if e.Type == "image" && e.Attrs["name"] == "" && e.Attrs["push"] != "" {
-				if ok, _ := strconv.ParseBool(e.Attrs["push"]); ok {
-					return nil, nil, errors.Errorf("tag is needed when pushing to registry")
-				}
-			}
-		}
-	}
-
-	// cacheonly is a fake exporter to opt out of default behaviors
-	exports := make([]client.ExportEntry, 0, len(opt.Exports))
-	for _, e := range opt.Exports {
-		if e.Type != "cacheonly" {
-			exports = append(exports, e)
-		}
-	}
-	opt.Exports = exports
-
-	// set up exporters
-	for i, e := range opt.Exports {
-		if e.Type == "oci" && !nodeDriver.Features(ctx)[driver.OCIExporter] {
-			return nil, nil, notSupported(nodeDriver, driver.OCIExporter)
-		}
-		if e.Type == "docker" {
-			features := docker.Features(ctx, e.Attrs["context"])
-			if features[dockerutil.OCIImporter] && e.Output == nil {
-				// rely on oci importer if available (which supports
-				// multi-platform images), otherwise fall back to docker
-				opt.Exports[i].Type = "oci"
-			} else if len(opt.Platforms) > 1 || len(attests) > 0 {
-				if e.Output != nil {
-					return nil, nil, errors.Errorf("docker exporter does not support exporting manifest lists, use the oci exporter instead")
-				}
-				return nil, nil, errors.Errorf("docker exporter does not currently support exporting manifest lists")
-			}
-			if e.Output == nil {
-				if nodeDriver.IsMobyDriver() {
-					e.Type = "image"
-				} else {
-					w, cancel, err := docker.LoadImage(ctx, e.Attrs["context"], pw)
-					if err != nil {
-						return nil, nil, err
-					}
-					defers = append(defers, cancel)
-					opt.Exports[i].Output = wrapWriteCloser(w)
-				}
-			} else if !nodeDriver.Features(ctx)[driver.DockerExporter] {
-				return nil, nil, notSupported(nodeDriver, driver.DockerExporter)
-			}
-		}
-		if e.Type == "image" && nodeDriver.IsMobyDriver() {
-			opt.Exports[i].Type = "moby"
-			if e.Attrs["push"] != "" {
-				if ok, _ := strconv.ParseBool(e.Attrs["push"]); ok {
-					if ok, _ := strconv.ParseBool(e.Attrs["push-by-digest"]); ok {
-						return nil, nil, errors.Errorf("push-by-digest is currently not implemented for docker driver, please create a new builder instance")
-					}
-				}
-			}
-		}
-		if e.Type == "docker" || e.Type == "image" || e.Type == "oci" {
-			// inline buildinfo attrs from build arg
-			if v, ok := opt.BuildArgs["BUILDKIT_INLINE_BUILDINFO_ATTRS"]; ok {
-				e.Attrs["buildinfo-attrs"] = v
-			}
-		}
-	}
-
-	so.Exports = opt.Exports
-	so.Session = opt.Session
-
-	releaseLoad, err := LoadInputs(ctx, nodeDriver, opt.Inputs, pw, &so)
-	if err != nil {
-		return nil, nil, err
-	}
-	defers = append(defers, releaseLoad)
-
-	if sharedKey := so.LocalDirs["context"]; sharedKey != "" {
-		if p, err := filepath.Abs(sharedKey); err == nil {
-			sharedKey = filepath.Base(p)
-		}
-		so.SharedKey = sharedKey + ":" + tryNodeIdentifier(configDir)
-	}
-
-	if opt.Pull {
-		so.FrontendAttrs["image-resolve-mode"] = "pull"
-	}
-	if opt.Target != "" {
-		so.FrontendAttrs["target"] = opt.Target
-	}
-	if len(opt.NoCacheFilter) > 0 {
-		so.FrontendAttrs["no-cache"] = strings.Join(opt.NoCacheFilter, ",")
-	}
-	if opt.NoCache {
-		so.FrontendAttrs["no-cache"] = ""
-	}
-	for k, v := range opt.BuildArgs {
-		so.FrontendAttrs["build-arg:"+k] = v
-	}
-	for k, v := range opt.Labels {
-		so.FrontendAttrs["label:"+k] = v
-	}
-
-	for k, v := range node.ProxyConfig {
-		if _, ok := opt.BuildArgs[k]; !ok {
-			so.FrontendAttrs["build-arg:"+k] = v
-		}
-	}
-
-	// set platforms
-	if len(opt.Platforms) != 0 {
-		pp := make([]string, len(opt.Platforms))
-		for i, p := range opt.Platforms {
-			pp[i] = platforms.Format(p)
-		}
-		if len(pp) > 1 && !nodeDriver.Features(ctx)[driver.MultiPlatform] {
-			return nil, nil, notSupported(nodeDriver, driver.MultiPlatform)
-		}
-		so.FrontendAttrs["platform"] = strings.Join(pp, ",")
-	}
-
-	// setup networkmode
-	switch opt.NetworkMode {
-	case "host":
-		so.FrontendAttrs["force-network-mode"] = opt.NetworkMode
-		so.AllowedEntitlements = append(so.AllowedEntitlements, entitlements.EntitlementNetworkHost)
-	case "none":
-		so.FrontendAttrs["force-network-mode"] = opt.NetworkMode
-	case "", "default":
-	default:
-		return nil, nil, errors.Errorf("network mode %q not supported by buildkit - you can define a custom network for your builder using the network driver-opt in buildx create", opt.NetworkMode)
-	}
-
-	// setup extrahosts
-	extraHosts, err := toBuildkitExtraHosts(ctx, opt.ExtraHosts, nodeDriver)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(extraHosts) > 0 {
-		so.FrontendAttrs["add-hosts"] = extraHosts
-	}
-
-	// setup shm size
-	if opt.ShmSize.Value() > 0 {
-		so.FrontendAttrs["shm-size"] = strconv.FormatInt(opt.ShmSize.Value(), 10)
-	}
-
-	// setup ulimits
-	ulimits, err := toBuildkitUlimits(opt.Ulimits)
-	if err != nil {
-		return nil, nil, err
-	} else if len(ulimits) > 0 {
-		so.FrontendAttrs["ulimit"] = ulimits
-	}
-
-	// remember local state like directory path that is not sent to buildkit
-	so.Ref = identity.NewID()
-	if err := saveLocalState(so, opt, node, configDir); err != nil {
-		return nil, nil, err
-	}
-
-	return &so, releaseF, nil
-}
-
 func Build(ctx context.Context, nodes []builder.Node, opt map[string]Options, docker *dockerutil.Client, configDir string, w progress.Writer) (resp map[string]*client.SolveResponse, err error) {
 	return BuildWithResultHandler(ctx, nodes, opt, docker, configDir, w, nil)
 }
@@ -686,7 +160,7 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 		return nil, errors.Wrapf(err, "no valid drivers found")
 	}
 
-	var noMobyDriver driver.Driver
+	var noMobyDriver *driver.DriverHandle
 	for _, n := range nodes {
 		if !n.Driver.IsMobyDriver() {
 			noMobyDriver = n.Driver
@@ -697,6 +171,10 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 	if noMobyDriver != nil && !noDefaultLoad() && noPrintFunc(opt) {
 		var noOutputTargets []string
 		for name, opt := range opt {
+			if noMobyDriver.Features(ctx)[driver.DefaultLoad] {
+				continue
+			}
+
 			if !opt.Linked && len(opt.Exports) == 0 {
 				noOutputTargets = append(noOutputTargets, name)
 			}
@@ -713,7 +191,7 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 		}
 	}
 
-	m, clients, err := resolveDrivers(ctx, nodes, opt, w)
+	drivers, err := resolveDrivers(ctx, nodes, opt, w)
 	if err != nil {
 		return nil, err
 	}
@@ -727,31 +205,43 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 		}
 	}()
 
+	reqForNodes := make(map[string][]*reqForNode)
 	eg, ctx := errgroup.WithContext(ctx)
 
 	for k, opt := range opt {
-		multiDriver := len(m[k]) > 1
+		multiDriver := len(drivers[k]) > 1
 		hasMobyDriver := false
-		gitattrs, err := getGitAttributes(ctx, opt.Inputs.ContextPath, opt.Inputs.DockerfilePath)
+		gitattrs, addVCSLocalDir, err := getGitAttributes(ctx, opt.Inputs.ContextPath, opt.Inputs.DockerfilePath)
 		if err != nil {
-			logrus.Warn(err)
+			logrus.WithError(err).Warn("current commit information was not captured by the build")
 		}
-		for i, np := range m[k] {
-			node := nodes[np.driverIndex]
-			if node.Driver.IsMobyDriver() {
+		var reqn []*reqForNode
+		for _, np := range drivers[k] {
+			if np.Node().Driver.IsMobyDriver() {
 				hasMobyDriver = true
 			}
 			opt.Platforms = np.platforms
-			so, release, err := toSolveOpt(ctx, node, multiDriver, opt, np.bopts, configDir, w, docker)
+			gatewayOpts, err := np.BuildOpts(ctx)
 			if err != nil {
+				return nil, err
+			}
+			so, release, err := toSolveOpt(ctx, np.Node(), multiDriver, opt, gatewayOpts, configDir, addVCSLocalDir, w, docker)
+			if err != nil {
+				return nil, err
+			}
+			if err := saveLocalState(so, k, opt, np.Node(), configDir); err != nil {
 				return nil, err
 			}
 			for k, v := range gitattrs {
 				so.FrontendAttrs[k] = v
 			}
 			defers = append(defers, release)
-			m[k][i].so = so
+			reqn = append(reqn, &reqForNode{
+				resolvedNode: np,
+				so:           so,
+			})
 		}
+		reqForNodes[k] = reqn
 		for _, at := range opt.Session {
 			if s, ok := at.(interface {
 				SetLogger(progresswriter.Logger)
@@ -764,8 +254,8 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 
 		// validate for multi-node push
 		if hasMobyDriver && multiDriver {
-			for _, dp := range m[k] {
-				for _, e := range dp.so.Exports {
+			for _, np := range reqForNodes[k] {
+				for _, e := range np.so.Exports {
 					if e.Type == "moby" {
 						if ok, _ := strconv.ParseBool(e.Attrs["push"]); ok {
 							return nil, errors.Errorf("multi-node push can't currently be performed with the docker driver, please switch to a different driver")
@@ -778,12 +268,13 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 
 	// validate that all links between targets use same drivers
 	for name := range opt {
-		dps := m[name]
-		for _, dp := range dps {
-			for k, v := range dp.so.FrontendAttrs {
+		dps := reqForNodes[name]
+		for i, dp := range dps {
+			so := reqForNodes[name][i].so
+			for k, v := range so.FrontendAttrs {
 				if strings.HasPrefix(k, "context:") && strings.HasPrefix(v, "target:") {
 					k2 := strings.TrimPrefix(v, "target:")
-					dps2, ok := m[k2]
+					dps2, ok := drivers[k2]
 					if !ok {
 						return nil, errors.Errorf("failed to find target %s for context %s", k2, strings.TrimPrefix(k, "context:")) // should be validated before already
 					}
@@ -807,12 +298,13 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 	results := waitmap.New()
 
 	multiTarget := len(opt) > 1
+	childTargets := calculateChildTargets(reqForNodes, opt)
 
 	for k, opt := range opt {
 		err := func(k string) error {
 			opt := opt
-			dps := m[k]
-			multiDriver := len(m[k]) > 1
+			dps := drivers[k]
+			multiDriver := len(drivers[k]) > 1
 
 			var span trace.Span
 			ctx := ctx
@@ -828,8 +320,9 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 			var insecurePush bool
 
 			for i, dp := range dps {
-				i, dp, so := i, dp, *dp.so
-				node := nodes[dp.driverIndex]
+				i, dp := i, dp
+				node := dp.Node()
+				so := reqForNodes[k][i].so
 				if multiDriver {
 					for i, e := range so.Exports {
 						switch e.Type {
@@ -860,11 +353,14 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 
 				pw := progress.WithPrefix(w, k, multiTarget)
 
-				c := clients[dp.driverIndex]
+				c, err := dp.Client(ctx)
+				if err != nil {
+					return err
+				}
 				eg2.Go(func() error {
 					pw = progress.ResetTime(pw)
 
-					if err := waitContextDeps(ctx, dp.driverIndex, results, &so); err != nil {
+					if err := waitContextDeps(ctx, dp.driverIndex, results, so); err != nil {
 						return err
 					}
 
@@ -905,25 +401,8 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 
 						res, err := c.Solve(ctx, req)
 						if err != nil {
-							fallback := false
-							var reqErr *errdefs.UnsupportedSubrequestError
-							if errors.As(err, &reqErr) {
-								switch reqErr.Name {
-								case "frontend.outline", "frontend.targets":
-									fallback = true
-								default:
-									return nil, err
-								}
-							} else {
-								return nil, err
-							}
-							// buildkit v0.8 vendored in Docker 20.10 does not support typed errors
-							if strings.Contains(err.Error(), "unsupported request frontend.outline") || strings.Contains(err.Error(), "unsupported request frontend.targets") {
-								fallback = true
-							}
-
-							if fallback {
-								req.FrontendOpt["build-arg:BUILDKIT_SYNTAX"] = printFallbackImage
+							req, ok := fallbackPrintError(err, req)
+							if ok {
 								res2, err2 := c.Solve(ctx, req)
 								if err2 != nil {
 									return nil, err
@@ -937,19 +416,43 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 							printRes = res.Metadata
 						}
 
-						results.Set(resultKey(dp.driverIndex, k), res)
+						rKey := resultKey(dp.driverIndex, k)
+						results.Set(rKey, res)
+
+						if children, ok := childTargets[rKey]; ok && len(children) > 0 {
+							// wait for the child targets to register their LLB before evaluating
+							_, err := results.Get(ctx, children...)
+							if err != nil {
+								return nil, err
+							}
+							// we need to wait until the child targets have completed before we can release
+							eg, ctx := errgroup.WithContext(ctx)
+							eg.Go(func() error {
+								return res.EachRef(func(ref gateway.Reference) error {
+									return ref.Evaluate(ctx)
+								})
+							})
+							eg.Go(func() error {
+								_, err := results.Get(ctx, children...)
+								return err
+							})
+							if err := eg.Wait(); err != nil {
+								return nil, err
+							}
+						}
+
 						return res, nil
 					}
+					buildRef := fmt.Sprintf("%s/%s/%s", node.Builder, node.Name, so.Ref)
 					var rr *client.SolveResponse
 					if resultHandleFunc != nil {
 						var resultHandle *ResultHandle
-						resultHandle, rr, err = NewResultHandle(ctx, cc, so, "buildx", buildFunc, ch)
+						resultHandle, rr, err = NewResultHandle(ctx, cc, *so, "buildx", buildFunc, ch)
 						resultHandleFunc(dp.driverIndex, resultHandle)
 					} else {
-						rr, err = c.Build(ctx, so, "buildx", buildFunc, ch)
+						rr, err = c.Build(ctx, *so, "buildx", buildFunc, ch)
 					}
-					if desktop.BuildBackendEnabled() && node.Driver.HistoryAPISupported(ctx) {
-						buildRef := fmt.Sprintf("%s/%s/%s", node.Builder, node.Name, so.Ref)
+					if !so.Internal && desktop.BuildBackendEnabled() && node.Driver.HistoryAPISupported(ctx) {
 						if err != nil {
 							return &desktop.ErrorWithBuildRef{
 								Ref: buildRef,
@@ -969,8 +472,14 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 					for k, v := range printRes {
 						rr.ExporterResponse[k] = string(v)
 					}
+					rr.ExporterResponse["buildx.build.ref"] = buildRef
+					if opt.WithProvenanceResponse && node.Driver.HistoryAPISupported(ctx) {
+						if err := setRecordProvenance(ctx, c, rr, so.Ref, pw); err != nil {
+							return err
+						}
+					}
 
-					node := nodes[dp.driverIndex].Driver
+					node := dp.Node().Driver
 					if node.IsMobyDriver() {
 						for _, e := range so.Exports {
 							if e.Type == "moby" && e.Attrs["push"] != "" {
@@ -1029,7 +538,7 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 				}
 
 				if pushNames != "" {
-					progress.Write(pw, fmt.Sprintf("merging manifest list %s", pushNames), func() error {
+					err := progress.Write(pw, fmt.Sprintf("merging manifest list %s", pushNames), func() error {
 						descs := make([]specs.Descriptor, 0, len(res))
 
 						for _, r := range res {
@@ -1062,7 +571,7 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 						if len(descs) > 0 {
 							var imageopt imagetools.Opt
 							for _, dp := range dps {
-								imageopt = nodes[dp.driverIndex].ImageOpt
+								imageopt = dp.Node().ImageOpt
 								break
 							}
 							names := strings.Split(pushNames, ",")
@@ -1098,7 +607,7 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 								}
 							}
 
-							dt, desc, err := itpull.Combine(ctx, srcs)
+							dt, desc, err := itpull.Combine(ctx, srcs, nil, false)
 							if err != nil {
 								return err
 							}
@@ -1125,6 +634,9 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 						}
 						return nil
 					})
+					if err != nil {
+						return err
+					}
 				}
 				return nil
 			})
@@ -1143,7 +655,7 @@ func BuildWithResultHandler(ctx context.Context, nodes []builder.Node, opt map[s
 	return resp, nil
 }
 
-func pushWithMoby(ctx context.Context, d driver.Driver, name string, l progress.SubLogger) error {
+func pushWithMoby(ctx context.Context, d *driver.DriverHandle, name string, l progress.SubLogger) error {
 	api := d.Config().DockerAPI
 	if api == nil {
 		return errors.Errorf("invalid empty Docker API reference") // should never happen
@@ -1153,7 +665,7 @@ func pushWithMoby(ctx context.Context, d driver.Driver, name string, l progress.
 		return err
 	}
 
-	rc, err := api.ImagePush(ctx, name, types.ImagePushOptions{
+	rc, err := api.ImagePush(ctx, name, imagetypes.PushOptions{
 		RegistryAuth: creds,
 	})
 	if err != nil {
@@ -1223,7 +735,7 @@ func pushWithMoby(ctx context.Context, d driver.Driver, name string, l progress.
 	return nil
 }
 
-func remoteDigestWithMoby(ctx context.Context, d driver.Driver, name string) (string, error) {
+func remoteDigestWithMoby(ctx context.Context, d *driver.DriverHandle, name string) (string, error) {
 	api := d.Config().DockerAPI
 	if api == nil {
 		return "", errors.Errorf("invalid empty Docker API reference") // should never happen
@@ -1246,237 +758,34 @@ func remoteDigestWithMoby(ctx context.Context, d driver.Driver, name string) (st
 	return remoteImage.Descriptor.Digest.String(), nil
 }
 
-func createTempDockerfile(r io.Reader) (string, error) {
-	dir, err := os.MkdirTemp("", "dockerfile")
-	if err != nil {
-		return "", err
-	}
-	f, err := os.Create(filepath.Join(dir, "Dockerfile"))
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	if _, err := io.Copy(f, r); err != nil {
-		return "", err
-	}
-	return dir, err
-}
-
-func LoadInputs(ctx context.Context, d *driver.DriverHandle, inp Inputs, pw progress.Writer, target *client.SolveOpt) (func(), error) {
-	if inp.ContextPath == "" {
-		return nil, errors.New("please specify build context (e.g. \".\" for the current directory)")
-	}
-
-	// TODO: handle stdin, symlinks, remote contexts, check files exist
-
-	var (
-		err              error
-		dockerfileReader io.Reader
-		dockerfileDir    string
-		dockerfileName   = inp.DockerfilePath
-		toRemove         []string
-	)
-
-	switch {
-	case inp.ContextState != nil:
-		if target.FrontendInputs == nil {
-			target.FrontendInputs = make(map[string]llb.State)
-		}
-		target.FrontendInputs["context"] = *inp.ContextState
-		target.FrontendInputs["dockerfile"] = *inp.ContextState
-	case inp.ContextPath == "-":
-		if inp.DockerfilePath == "-" {
-			return nil, errStdinConflict
-		}
-
-		buf := bufio.NewReader(inp.InStream)
-		magic, err := buf.Peek(archiveHeaderSize * 2)
-		if err != nil && err != io.EOF {
-			return nil, errors.Wrap(err, "failed to peek context header from STDIN")
-		}
-		if !(err == io.EOF && len(magic) == 0) {
-			if isArchive(magic) {
-				// stdin is context
-				up := uploadprovider.New()
-				target.FrontendAttrs["context"] = up.Add(buf)
-				target.Session = append(target.Session, up)
-			} else {
-				if inp.DockerfilePath != "" {
-					return nil, errDockerfileConflict
-				}
-				// stdin is dockerfile
-				dockerfileReader = buf
-				inp.ContextPath, _ = os.MkdirTemp("", "empty-dir")
-				toRemove = append(toRemove, inp.ContextPath)
-				target.LocalDirs["context"] = inp.ContextPath
-			}
-		}
-	case isLocalDir(inp.ContextPath):
-		target.LocalDirs["context"] = inp.ContextPath
-		switch inp.DockerfilePath {
-		case "-":
-			dockerfileReader = inp.InStream
-		case "":
-			dockerfileDir = inp.ContextPath
-		default:
-			dockerfileDir = filepath.Dir(inp.DockerfilePath)
-			dockerfileName = filepath.Base(inp.DockerfilePath)
-		}
-	case IsRemoteURL(inp.ContextPath):
-		if inp.DockerfilePath == "-" {
-			dockerfileReader = inp.InStream
-		}
-		target.FrontendAttrs["context"] = inp.ContextPath
-	default:
-		return nil, errors.Errorf("unable to prepare context: path %q not found", inp.ContextPath)
-	}
-
-	if inp.DockerfileInline != "" {
-		dockerfileReader = strings.NewReader(inp.DockerfileInline)
-	}
-
-	if dockerfileReader != nil {
-		dockerfileDir, err = createTempDockerfile(dockerfileReader)
-		if err != nil {
-			return nil, err
-		}
-		toRemove = append(toRemove, dockerfileDir)
-		dockerfileName = "Dockerfile"
-		target.FrontendAttrs["dockerfilekey"] = "dockerfile"
-	}
-	if urlutil.IsURL(inp.DockerfilePath) {
-		dockerfileDir, err = createTempDockerfileFromURL(ctx, d, inp.DockerfilePath, pw)
-		if err != nil {
-			return nil, err
-		}
-		toRemove = append(toRemove, dockerfileDir)
-		dockerfileName = "Dockerfile"
-		target.FrontendAttrs["dockerfilekey"] = "dockerfile"
-		delete(target.FrontendInputs, "dockerfile")
-	}
-
-	if dockerfileName == "" {
-		dockerfileName = "Dockerfile"
-	}
-
-	if dockerfileDir != "" {
-		target.LocalDirs["dockerfile"] = dockerfileDir
-		dockerfileName = handleLowercaseDockerfile(dockerfileDir, dockerfileName)
-	}
-
-	target.FrontendAttrs["filename"] = dockerfileName
-
-	for k, v := range inp.NamedContexts {
-		target.FrontendAttrs["frontend.caps"] = "moby.buildkit.frontend.contexts+forward"
-		if v.State != nil {
-			target.FrontendAttrs["context:"+k] = "input:" + k
-			if target.FrontendInputs == nil {
-				target.FrontendInputs = make(map[string]llb.State)
-			}
-			target.FrontendInputs[k] = *v.State
-			continue
-		}
-
-		if IsRemoteURL(v.Path) || strings.HasPrefix(v.Path, "docker-image://") || strings.HasPrefix(v.Path, "target:") {
-			target.FrontendAttrs["context:"+k] = v.Path
-			continue
-		}
-
-		// handle OCI layout
-		if strings.HasPrefix(v.Path, "oci-layout://") {
-			pathAlone := strings.TrimPrefix(v.Path, "oci-layout://")
-			localPath := pathAlone
-			localPath, dig, hasDigest := strings.Cut(localPath, "@")
-			localPath, tag, hasTag := strings.Cut(localPath, ":")
-			if !hasTag {
-				tag = "latest"
-				hasTag = true
-			}
-			idx := ociindex.NewStoreIndex(localPath)
-			if !hasDigest {
-				// lookup by name
-				desc, err := idx.Get(tag)
-				if err != nil {
-					return nil, err
-				}
-				if desc != nil {
-					dig = string(desc.Digest)
-					hasDigest = true
-				}
-			}
-			if !hasDigest {
-				// lookup single
-				desc, err := idx.GetSingle()
-				if err != nil {
-					return nil, err
-				}
-				if desc != nil {
-					dig = string(desc.Digest)
-					hasDigest = true
-				}
-			}
-			if !hasDigest {
-				return nil, errors.Errorf("oci-layout reference %q could not be resolved", v.Path)
-			}
-			_, err := digest.Parse(dig)
-			if err != nil {
-				return nil, errors.Wrapf(err, "invalid oci-layout digest %s", dig)
-			}
-
-			store, err := local.NewStore(localPath)
-			if err != nil {
-				return nil, errors.Wrapf(err, "invalid store at %s", localPath)
-			}
-			storeName := identity.NewID()
-			if target.OCIStores == nil {
-				target.OCIStores = map[string]content.Store{}
-			}
-			target.OCIStores[storeName] = store
-
-			layout := "oci-layout://" + storeName
-			if hasTag {
-				layout += ":" + tag
-			}
-			if hasDigest {
-				layout += "@" + dig
-			}
-
-			target.FrontendAttrs["context:"+k] = layout
-			continue
-		}
-		st, err := os.Stat(v.Path)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get build context %v", k)
-		}
-		if !st.IsDir() {
-			return nil, errors.Wrapf(syscall.ENOTDIR, "failed to get build context path %v", v)
-		}
-		localName := k
-		if k == "context" || k == "dockerfile" {
-			localName = "_" + k // underscore to avoid collisions
-		}
-		target.LocalDirs[localName] = v.Path
-		target.FrontendAttrs["context:"+k] = "local:" + localName
-	}
-
-	release := func() {
-		for _, dir := range toRemove {
-			os.RemoveAll(dir)
-		}
-	}
-	return release, nil
-}
-
 func resultKey(index int, name string) string {
 	return fmt.Sprintf("%d-%s", index, name)
 }
 
+// calculateChildTargets returns all the targets that depend on current target for reverse index
+func calculateChildTargets(reqs map[string][]*reqForNode, opt map[string]Options) map[string][]string {
+	out := make(map[string][]string)
+	for name := range opt {
+		dps := reqs[name]
+		for i, dp := range dps {
+			so := reqs[name][i].so
+			for k, v := range so.FrontendAttrs {
+				if strings.HasPrefix(k, "context:") && strings.HasPrefix(v, "target:") {
+					target := resultKey(dp.driverIndex, strings.TrimPrefix(v, "target:"))
+					out[target] = append(out[target], resultKey(dp.driverIndex, name))
+				}
+			}
+		}
+	}
+	return out
+}
+
 func waitContextDeps(ctx context.Context, index int, results *waitmap.Map, so *client.SolveOpt) error {
-	m := map[string]string{}
+	m := map[string][]string{}
 	for k, v := range so.FrontendAttrs {
 		if strings.HasPrefix(k, "context:") && strings.HasPrefix(v, "target:") {
 			target := resultKey(index, strings.TrimPrefix(v, "target:"))
-			m[target] = k
+			m[target] = append(m[target], k)
 		}
 	}
 	if len(m) == 0 {
@@ -1491,7 +800,7 @@ func waitContextDeps(ctx context.Context, index int, results *waitmap.Map, so *c
 		return err
 	}
 
-	for k, v := range m {
+	for k, contexts := range m {
 		r, ok := res[k]
 		if !ok {
 			continue
@@ -1506,19 +815,45 @@ func waitContextDeps(ctx context.Context, index int, results *waitmap.Map, so *c
 		if so.FrontendInputs == nil {
 			so.FrontendInputs = map[string]llb.State{}
 		}
-		if len(rr.Refs) > 0 {
-			for platform, r := range rr.Refs {
-				st, err := r.ToState()
+
+		for _, v := range contexts {
+			if len(rr.Refs) > 0 {
+				for platform, r := range rr.Refs {
+					st, err := r.ToState()
+					if err != nil {
+						return err
+					}
+					so.FrontendInputs[k+"::"+platform] = st
+					so.FrontendAttrs[v+"::"+platform] = "input:" + k + "::" + platform
+					metadata := make(map[string][]byte)
+					if dt, ok := rr.Metadata[exptypes.ExporterImageConfigKey+"/"+platform]; ok {
+						metadata[exptypes.ExporterImageConfigKey] = dt
+					}
+					if dt, ok := rr.Metadata["containerimage.buildinfo/"+platform]; ok {
+						metadata["containerimage.buildinfo"] = dt
+					}
+					if len(metadata) > 0 {
+						dt, err := json.Marshal(metadata)
+						if err != nil {
+							return err
+						}
+						so.FrontendAttrs["input-metadata:"+k+"::"+platform] = string(dt)
+					}
+				}
+				delete(so.FrontendAttrs, v)
+			}
+			if rr.Ref != nil {
+				st, err := rr.Ref.ToState()
 				if err != nil {
 					return err
 				}
-				so.FrontendInputs[k+"::"+platform] = st
-				so.FrontendAttrs[v+"::"+platform] = "input:" + k + "::" + platform
+				so.FrontendInputs[k] = st
+				so.FrontendAttrs[v] = "input:" + k
 				metadata := make(map[string][]byte)
-				if dt, ok := rr.Metadata[exptypes.ExporterImageConfigKey+"/"+platform]; ok {
+				if dt, ok := rr.Metadata[exptypes.ExporterImageConfigKey]; ok {
 					metadata[exptypes.ExporterImageConfigKey] = dt
 				}
-				if dt, ok := rr.Metadata["containerimage.buildinfo/"+platform]; ok {
+				if dt, ok := rr.Metadata["containerimage.buildinfo"]; ok {
 					metadata["containerimage.buildinfo"] = dt
 				}
 				if len(metadata) > 0 {
@@ -1526,113 +861,52 @@ func waitContextDeps(ctx context.Context, index int, results *waitmap.Map, so *c
 					if err != nil {
 						return err
 					}
-					so.FrontendAttrs["input-metadata:"+k+"::"+platform] = string(dt)
+					so.FrontendAttrs["input-metadata:"+k] = string(dt)
 				}
-			}
-			delete(so.FrontendAttrs, v)
-		}
-		if rr.Ref != nil {
-			st, err := rr.Ref.ToState()
-			if err != nil {
-				return err
-			}
-			so.FrontendInputs[k] = st
-			so.FrontendAttrs[v] = "input:" + k
-			metadata := make(map[string][]byte)
-			if dt, ok := rr.Metadata[exptypes.ExporterImageConfigKey]; ok {
-				metadata[exptypes.ExporterImageConfigKey] = dt
-			}
-			if dt, ok := rr.Metadata["containerimage.buildinfo"]; ok {
-				metadata["containerimage.buildinfo"] = dt
-			}
-			if len(metadata) > 0 {
-				dt, err := json.Marshal(metadata)
-				if err != nil {
-					return err
-				}
-				so.FrontendAttrs["input-metadata:"+k] = string(dt)
 			}
 		}
 	}
 	return nil
 }
 
-func notSupported(d driver.Driver, f driver.Feature) error {
-	return errors.Errorf("%s feature is currently not supported for %s driver. Please switch to a different driver (eg. \"docker buildx create --use\")", f, d.Factory().Name())
-}
-
-func noDefaultLoad() bool {
-	v, ok := os.LookupEnv("BUILDX_NO_DEFAULT_LOAD")
-	if !ok {
-		return false
-	}
-	b, err := strconv.ParseBool(v)
-	if err != nil {
-		logrus.Warnf("invalid non-bool value for BUILDX_NO_DEFAULT_LOAD: %s", v)
-	}
-	return b
-}
-
-// handle https://github.com/moby/moby/pull/10858
-func handleLowercaseDockerfile(dir, p string) string {
-	if filepath.Base(p) != "Dockerfile" {
-		return p
+func fallbackPrintError(err error, req gateway.SolveRequest) (gateway.SolveRequest, bool) {
+	if _, ok := req.FrontendOpt["requestid"]; !ok {
+		return req, false
 	}
 
-	f, err := os.Open(filepath.Dir(filepath.Join(dir, p)))
-	if err != nil {
-		return p
-	}
-
-	names, err := f.Readdirnames(-1)
-	if err != nil {
-		return p
-	}
-
-	foundLowerCase := false
-	for _, n := range names {
-		if n == "Dockerfile" {
-			return p
-		}
-		if n == "dockerfile" {
-			foundLowerCase = true
-		}
-	}
-	if foundLowerCase {
-		return filepath.Join(filepath.Dir(p), "dockerfile")
-	}
-	return p
-}
-
-func wrapWriteCloser(wc io.WriteCloser) func(map[string]string) (io.WriteCloser, error) {
-	return func(map[string]string) (io.WriteCloser, error) {
-		return wc, nil
-	}
-}
-
-var nodeIdentifierMu sync.Mutex
-
-func tryNodeIdentifier(configDir string) (out string) {
-	nodeIdentifierMu.Lock()
-	defer nodeIdentifierMu.Unlock()
-	sessionFile := filepath.Join(configDir, ".buildNodeID")
-	if _, err := os.Lstat(sessionFile); err != nil {
-		if os.IsNotExist(err) { // create a new file with stored randomness
-			b := make([]byte, 8)
-			if _, err := rand.Read(b); err != nil {
-				return out
-			}
-			if err := os.WriteFile(sessionFile, []byte(hex.EncodeToString(b)), 0600); err != nil {
-				return out
-			}
+	fallback := false
+	fallbackLint := false
+	var reqErr *errdefs.UnsupportedSubrequestError
+	if errors.As(err, &reqErr) {
+		switch reqErr.Name {
+		case "frontend.lint":
+			fallbackLint = true
+			fallthrough
+		case "frontend.outline", "frontend.targets":
+			fallback = true
+		default:
+			return req, false
 		}
 	}
 
-	dt, err := os.ReadFile(sessionFile)
-	if err == nil {
-		return string(dt)
+	// buildkit v0.8 vendored in Docker 20.10 does not support typed errors
+	for _, req := range []string{"frontend.outline", "frontend.targets", "frontend.lint"} {
+		if strings.Contains(err.Error(), "unsupported request "+req) {
+			fallback = true
+		}
+		if req == "frontend.lint" {
+			fallbackLint = true
+		}
 	}
-	return
+
+	if fallback {
+		req.FrontendOpt["build-arg:BUILDKIT_SYNTAX"] = printFallbackImage
+		if fallbackLint {
+			req.FrontendOpt["build-arg:BUILDKIT_SYNTAX"] = printLintFallbackImage
+		}
+		return req, true
+	}
+	return req, false
 }
 
 func noPrintFunc(opt map[string]Options) bool {
@@ -1642,43 +916,6 @@ func noPrintFunc(opt map[string]Options) bool {
 		}
 	}
 	return true
-}
-
-func saveLocalState(so client.SolveOpt, opt Options, node builder.Node, configDir string) error {
-	var err error
-
-	if so.Ref == "" {
-		return nil
-	}
-
-	lp := opt.Inputs.ContextPath
-	dp := opt.Inputs.DockerfilePath
-	if lp != "" || dp != "" {
-		if lp != "" {
-			lp, err = filepath.Abs(lp)
-			if err != nil {
-				return err
-			}
-		}
-		if dp != "" {
-			dp, err = filepath.Abs(dp)
-			if err != nil {
-				return err
-			}
-		}
-		ls, err := localstate.New(configDir)
-		if err != nil {
-			return err
-		}
-		if err := ls.SaveRef(node.Builder, node.Name, so.Ref, localstate.State{
-			LocalPath:      lp,
-			DockerfilePath: dp,
-		}); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // ReadSourcePolicy reads a source policy from a file.

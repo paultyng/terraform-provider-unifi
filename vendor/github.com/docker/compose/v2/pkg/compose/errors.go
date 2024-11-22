@@ -17,11 +17,10 @@
 package compose
 
 import (
+	"errors"
 	"io/fs"
 
-	"github.com/pkg/errors"
-
-	"github.com/compose-spec/compose-go/errdefs"
+	"github.com/compose-spec/compose-go/v2/errdefs"
 )
 
 // Error error to categorize failures and extract metrics info
