@@ -68,7 +68,7 @@ func resourceDynamicDNS() *schema.Resource {
 				Sensitive:   true,
 			},
 
-			//TODO: options support?
+			// TODO: options support?
 		},
 	}
 }

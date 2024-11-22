@@ -1,19 +1,17 @@
 ---
 linters:
-  disable-all: true
-  enable:
-    - "gofmt"
-    - "gosimple"
-    - "govet"
-    - "ineffassign"
-    - "makezero"
-    - "misspell"
-    - "nakedret"
-    - "nilerr"
-    - "staticcheck"
-    - "structcheck"
-    - "unconvert"
-    - "unused"
-
-run:
-  timeout: '5m'
+  enable-all: true
+  disable:
+    # Temporary
+    #- 'depguard'
+    #- 'gomoddirectives'
+    #- 'nosnakecase'
+    #- 'paralleltest'
+    #- 'persprintf'
+    #- 'thelper'
+    #- 'varnamelen'
+    #- 'wrapcheck'
+    #- 'wsl'
+    
+    # Deprecated
+    - 'exportloopref'
