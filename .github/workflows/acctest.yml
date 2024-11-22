@@ -4,6 +4,10 @@ on:
     paths-ignore:
       - "README.md"
   push:
+    branches:
+      - "main"
+    tags:
+      - "v*"
     paths-ignore:
       - "README.md"
   schedule:
