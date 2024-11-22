@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -32,4 +33,26 @@ func stringSliceToList(list []string) []interface{} {
 
 func stringSliceToSet(src []string) *schema.Set {
 	return schema.NewSet(schema.HashString, stringSliceToList(src))
+}
+
+func compareStringSlicesWithoutOrder(s, t []string) bool {
+	if len(s) != len(t) {
+		return false
+	}
+
+	ss := make([]string, len(s))
+	tt := make([]string, len(t))
+
+	copy(ss, s)
+	copy(tt, t)
+
+	sort.Strings(ss)
+	sort.Strings(tt)
+
+	for i, v := range ss {
+		if v != tt[i] {
+			return false
+		}
+	}
+	return true
 }
