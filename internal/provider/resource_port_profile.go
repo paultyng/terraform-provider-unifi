@@ -95,7 +95,7 @@ func resourcePortProfile() *schema.Resource {
 				Description: "Enable LLDP-MED topology change notifications for the port profile.",
 				Type:        schema.TypeBool,
 				Optional:    true,
-				//ValidateFunc: ,
+				// ValidateFunc: ,
 			},
 			// TODO: rename to native_network_id
 			"native_networkconf_id": {

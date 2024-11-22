@@ -122,7 +122,6 @@ func resourceAccountUpdate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceAccountDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
-	//name := d.Get("name").(string)
 	site := d.Get("site").(string)
 	if site == "" {
 		site = c.site

@@ -39,16 +39,8 @@ func relName(v Value, i Instruction) string {
 	return v.Name()
 }
 
-// normalizeAnyFortesting controls whether we replace occurrences of
-// interface{} with any. It is only used for normalizing test output.
-var normalizeAnyForTesting bool
-
 func relType(t types.Type, from *types.Package) string {
-	s := types.TypeString(t, types.RelativeTo(from))
-	if normalizeAnyForTesting {
-		s = strings.ReplaceAll(s, "interface{}", "any")
-	}
-	return s
+	return types.TypeString(t, types.RelativeTo(from))
 }
 
 func relTerm(term *types.Term, from *types.Package) string {
@@ -355,7 +347,12 @@ func (s *Send) String() string {
 }
 
 func (s *Defer) String() string {
-	return printCall(&s.Call, "defer ", s)
+	prefix := "defer "
+	if s.DeferStack != nil {
+		prefix += "[" + relName(s.DeferStack, s) + "] "
+	}
+	c := printCall(&s.Call, prefix, s)
+	return c
 }
 
 func (s *Select) String() string {

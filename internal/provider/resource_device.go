@@ -154,7 +154,6 @@ func resourceDeviceImport(ctx context.Context, d *schema.ResourceData, meta inte
 		// look up id by mac
 		mac := cleanMAC(id)
 		device, err := c.c.GetDeviceByMAC(ctx, site, mac)
-
 		if err != nil {
 			return nil, err
 		}
@@ -314,7 +313,7 @@ func resourceDeviceGetResourceData(d *schema.ResourceData) (*unifi.Device, error
 		return nil, fmt.Errorf("unable to process port_override block: %w", err)
 	}
 
-	//TODO: pass Disabled once we figure out how to enable the device afterwards
+	// TODO: pass Disabled once we figure out how to enable the device afterwards
 
 	return &unifi.Device{
 		MAC:           d.Get("mac").(string),

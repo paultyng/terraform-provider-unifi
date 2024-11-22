@@ -15,8 +15,6 @@ func TestAccDataUser_default(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
-			//preCheck(t)
-
 			_, err := testClient.CreateUser(context.Background(), "default", &unifi.User{
 				MAC:  mac,
 				Name: "tfacc-User-Data",
@@ -26,7 +24,7 @@ func TestAccDataUser_default(t *testing.T) {
 				t.Fatal(err)
 			}
 		},
-		//PreCheck:          func() { preCheck(t) },
+		// PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
