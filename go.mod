@@ -1,6 +1,6 @@
 module github.com/paultyng/terraform-provider-unifi
 
-go 1.22
+go 1.22.0
 
 toolchain go1.22.2
 
@@ -83,7 +83,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
-	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/cloudflare/circl v1.5.0 // indirect
 	github.com/compose-spec/compose-go/v2 v2.1.3 // indirect
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/containerd/containerd v1.7.18 // indirect
