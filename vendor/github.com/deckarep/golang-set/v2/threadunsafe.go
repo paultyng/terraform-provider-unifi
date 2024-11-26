@@ -93,6 +93,11 @@ func (s threadUnsafeSet[T]) Contains(v ...T) bool {
 	return true
 }
 
+func (s threadUnsafeSet[T]) ContainsOne(v T) bool {
+	_, ok := s[v]
+	return ok
+}
+
 func (s threadUnsafeSet[T]) ContainsAny(v ...T) bool {
 	for _, val := range v {
 		if _, ok := s[val]; ok {
@@ -161,6 +166,10 @@ func (s threadUnsafeSet[T]) Intersect(other Set[T]) Set[T] {
 		}
 	}
 	return intersection
+}
+
+func (s threadUnsafeSet[T]) IsEmpty() bool {
+	return s.Cardinality() == 0
 }
 
 func (s threadUnsafeSet[T]) IsProperSubset(other Set[T]) bool {
