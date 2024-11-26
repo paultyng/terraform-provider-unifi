@@ -16,7 +16,7 @@ type Site struct {
 	Name        string `json:"name"`
 	Description string `json:"desc"`
 
-	//Role string `json:"role"`
+	// Role string `json:"role"`
 }
 
 func (c *Client) ListSites(ctx context.Context) ([]Site, error) {
@@ -35,7 +35,6 @@ func (c *Client) ListSites(ctx context.Context) ([]Site, error) {
 
 func (c *Client) GetSite(ctx context.Context, id string) (*Site, error) {
 	sites, err := c.ListSites(ctx)
-
 	if err != nil {
 		return nil, err
 	}

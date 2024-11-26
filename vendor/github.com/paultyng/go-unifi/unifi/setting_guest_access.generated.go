@@ -29,6 +29,7 @@ type SettingGuestAccess struct {
 
 	AllowedSubnet                          string   `json:"allowed_subnet_,omitempty"`
 	Auth                                   string   `json:"auth,omitempty"` // none|hotspot|facebook_wifi|custom
+	AuthUrl                                string   `json:"auth_url,omitempty"`
 	AuthorizeUseSandbox                    bool     `json:"authorize_use_sandbox"`
 	CustomIP                               string   `json:"custom_ip"` // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
 	EcEnabled                              bool     `json:"ec_enabled"`
@@ -52,20 +53,27 @@ type SettingGuestAccess struct {
 	PaymentEnabled                         bool     `json:"payment_enabled"`
 	PaypalUseSandbox                       bool     `json:"paypal_use_sandbox"`
 	PortalCustomized                       bool     `json:"portal_customized"`
+	PortalCustomizedAuthenticationText     string   `json:"portal_customized_authentication_text,omitempty"`
 	PortalCustomizedBgColor                string   `json:"portal_customized_bg_color"` // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
 	PortalCustomizedBgImageEnabled         bool     `json:"portal_customized_bg_image_enabled"`
 	PortalCustomizedBgImageFilename        string   `json:"portal_customized_bg_image_filename,omitempty"`
 	PortalCustomizedBgImageTile            bool     `json:"portal_customized_bg_image_tile"`
+	PortalCustomizedBgType                 string   `json:"portal_customized_bg_type,omitempty"`     // color|image|gallery
 	PortalCustomizedBoxColor               string   `json:"portal_customized_box_color"`             // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
 	PortalCustomizedBoxLinkColor           string   `json:"portal_customized_box_link_color"`        // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
 	PortalCustomizedBoxOpacity             int      `json:"portal_customized_box_opacity,omitempty"` // ^[1-9][0-9]?$|^100$|^$
+	PortalCustomizedBoxRADIUS              int      `json:"portal_customized_box_radius,omitempty"`  // [0-9]|[1-4][0-9]|50
 	PortalCustomizedBoxTextColor           string   `json:"portal_customized_box_text_color"`        // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
 	PortalCustomizedButtonColor            string   `json:"portal_customized_button_color"`          // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
-	PortalCustomizedButtonTextColor        string   `json:"portal_customized_button_text_color"`     // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
-	PortalCustomizedLanguages              []string `json:"portal_customized_languages,omitempty"`   // ^[a-z]{2}(_[A-Z]{2})*$
-	PortalCustomizedLinkColor              string   `json:"portal_customized_link_color"`            // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
+	PortalCustomizedButtonText             string   `json:"portal_customized_button_text,omitempty"`
+	PortalCustomizedButtonTextColor        string   `json:"portal_customized_button_text_color"`   // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
+	PortalCustomizedLanguages              []string `json:"portal_customized_languages,omitempty"` // ^[a-z]{2}([_-][a-zA-Z]{2,4})*$
+	PortalCustomizedLinkColor              string   `json:"portal_customized_link_color"`          // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
 	PortalCustomizedLogoEnabled            bool     `json:"portal_customized_logo_enabled"`
 	PortalCustomizedLogoFilename           string   `json:"portal_customized_logo_filename,omitempty"`
+	PortalCustomizedLogoPosition           string   `json:"portal_customized_logo_position,omitempty"` // left|center|right
+	PortalCustomizedLogoSize               int      `json:"portal_customized_logo_size,omitempty"`     // 6[4-9]|[7-9][0-9]|1[0-8][0-9]|19[0-2]
+	PortalCustomizedSuccessText            string   `json:"portal_customized_success_text,omitempty"`
 	PortalCustomizedTextColor              string   `json:"portal_customized_text_color"` // ^#[a-zA-Z0-9]{6}$|^#[a-zA-Z0-9]{3}$|^$
 	PortalCustomizedTitle                  string   `json:"portal_customized_title,omitempty"`
 	PortalCustomizedTos                    string   `json:"portal_customized_tos,omitempty"`
@@ -91,8 +99,7 @@ type SettingGuestAccess struct {
 	RestrictedDNSEnabled                   bool     `json:"restricted_dns_enabled"`
 	RestrictedDNSServers                   []string `json:"restricted_dns_servers,omitempty"` // ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^$
 	RestrictedSubnet                       string   `json:"restricted_subnet_,omitempty"`
-	SettingPreference                      string   `json:"setting_preference,omitempty"` // auto|manual
-	TemplateEngine                         string   `json:"template_engine,omitempty"`    // jsp|angular
+	TemplateEngine                         string   `json:"template_engine,omitempty"` // jsp|angular
 	VoucherCustomized                      bool     `json:"voucher_customized"`
 	VoucherEnabled                         bool     `json:"voucher_enabled"`
 	WechatAppID                            string   `json:"wechat_app_id"`
@@ -125,6 +132,8 @@ func (dst *SettingGuestAccess) UnmarshalJSON(b []byte) error {
 		ExpireNumber               emptyStringInt `json:"expire_number"`
 		ExpireUnit                 emptyStringInt `json:"expire_unit"`
 		PortalCustomizedBoxOpacity emptyStringInt `json:"portal_customized_box_opacity"`
+		PortalCustomizedBoxRADIUS  emptyStringInt `json:"portal_customized_box_radius"`
+		PortalCustomizedLogoSize   emptyStringInt `json:"portal_customized_logo_size"`
 		RADIUSDisconnectPort       emptyStringInt `json:"radius_disconnect_port"`
 
 		*Alias
@@ -139,6 +148,8 @@ func (dst *SettingGuestAccess) UnmarshalJSON(b []byte) error {
 	dst.ExpireNumber = int(aux.ExpireNumber)
 	dst.ExpireUnit = int(aux.ExpireUnit)
 	dst.PortalCustomizedBoxOpacity = int(aux.PortalCustomizedBoxOpacity)
+	dst.PortalCustomizedBoxRADIUS = int(aux.PortalCustomizedBoxRADIUS)
+	dst.PortalCustomizedLogoSize = int(aux.PortalCustomizedLogoSize)
 	dst.RADIUSDisconnectPort = int(aux.RADIUSDisconnectPort)
 
 	return nil
