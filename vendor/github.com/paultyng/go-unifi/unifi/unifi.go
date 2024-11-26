@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -95,7 +94,7 @@ func (c *Client) setAPIUrlStyle(ctx context.Context) error {
 	// see https://github.com/unifi-poller/unifi/blob/4dc44f11f61a2e08bf7ec5b20c71d5bced837b5d/unifi.go#L101-L104
 	// and https://github.com/unifi-poller/unifi/commit/43a6b225031a28f2b358f52d03a7217c7b524143
 
-	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -114,7 +113,7 @@ func (c *Client) setAPIUrlStyle(ctx context.Context) error {
 		return err
 	}
 	defer resp.Body.Close()
-	_, _ = io.Copy(ioutil.Discard, resp.Body)
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode == http.StatusOK {
 		// the new API returns a 200 for a / request
@@ -226,7 +225,7 @@ func (c *Client) do(ctx context.Context, method, relativeURL string, reqBody int
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 
 	if c.csrf != "" {
-		req.Header.Set("X-CSRF-Token", c.csrf)
+		req.Header.Set("X-Csrf-Token", c.csrf)
 	}
 
 	resp, err := c.c.Do(req)
@@ -239,11 +238,11 @@ func (c *Client) do(ctx context.Context, method, relativeURL string, reqBody int
 		return &NotFoundError{}
 	}
 
-	if csrf := resp.Header.Get("x-csrf-token"); csrf != "" {
-		c.csrf = resp.Header.Get("x-csrf-token")
+	if csrf := resp.Header.Get("X-Csrf-Token"); csrf != "" {
+		c.csrf = resp.Header.Get("X-Csrf-Token")
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		errBody := struct {
 			Meta meta `json:"meta"`
 			Data []struct {
