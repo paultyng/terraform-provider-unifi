@@ -3,7 +3,10 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math/rand"
 	"regexp"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -61,9 +64,11 @@ func resourceFirewallRule() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"WAN_IN", "WAN_OUT", "WAN_LOCAL", "LAN_IN", "LAN_OUT", "LAN_LOCAL", "GUEST_IN", "GUEST_OUT", "GUEST_LOCAL", "WANv6_IN", "WANv6_OUT", "WANv6_LOCAL", "LANv6_IN", "LANv6_OUT", "LANv6_LOCAL", "GUESTv6_IN", "GUESTv6_OUT", "GUESTv6_LOCAL"}, false),
 			},
 			"rule_index": {
-				Description: "The index of the rule. Must be >= 2000 < 3000 or >= 4000 < 5000.",
-				Type:        schema.TypeInt,
-				Required:    true,
+				Description:  "The index of the rule. Must be >= 2000 < 3000 or >= 4000 < 5000.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.Any(validation.IntBetween(2000, 2999), validation.IntBetween(4000, 4999)),
 				// 2[0-9]{3}|4[0-9]{3}
 			},
 			"protocol": {
@@ -212,7 +217,7 @@ func resourceFirewallRule() *schema.Resource {
 func resourceFirewallRuleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
-	req, err := resourceFirewallRuleGetResourceData(d)
+	req, err := resourceFirewallRuleGetResourceData(ctx, d, c)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -237,7 +242,7 @@ func resourceFirewallRuleCreate(ctx context.Context, d *schema.ResourceData, met
 	return resourceFirewallRuleSetResourceData(resp, d, site)
 }
 
-func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.FirewallRule, error) {
+func resourceFirewallRuleGetResourceData(ctx context.Context, d *schema.ResourceData, c *client) (*unifi.FirewallRule, error) {
 	srcFirewallGroupIDs, err := setToStringSlice(d.Get("src_firewall_group_ids").(*schema.Set))
 	if err != nil {
 		return nil, err
@@ -248,12 +253,26 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 		return nil, err
 	}
 
+	site := d.Get("site").(string)
+	if site == "" {
+		site = c.site
+	}
+
+	ruleset := d.Get("ruleset").(string)
+	ruleIndex := d.Get("rule_index").(int)
+	if ruleIndex == 0 {
+		ruleIndex, err = findFreeIndex(ctx, c, site, ruleset)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &unifi.FirewallRule{
 		Enabled:          d.Get("enabled").(bool),
 		Name:             d.Get("name").(string),
 		Action:           d.Get("action").(string),
-		Ruleset:          d.Get("ruleset").(string),
-		RuleIndex:        d.Get("rule_index").(int),
+		Ruleset:          ruleset,
+		RuleIndex:        ruleIndex,
 		Protocol:         d.Get("protocol").(string),
 		ProtocolV6:       d.Get("protocol_v6").(string),
 		ICMPTypename:     d.Get("icmp_typename").(string),
@@ -280,6 +299,42 @@ func resourceFirewallRuleGetResourceData(d *schema.ResourceData) (*unifi.Firewal
 		DstNetworkID:        d.Get("dst_network_id").(string),
 		DstFirewallGroupIDs: dstFirewallGroupIDs,
 	}, nil
+}
+
+func findFreeIndex(ctx context.Context, c *client, site, ruleset string) (int, error) {
+	rules, err := c.c.ListFirewallRule(ctx, site)
+	if err != nil {
+		return 0, err
+	}
+	rules = filterRulesByRuleset(rules, ruleset)
+	rand.Seed(time.Now().UnixNano())
+	maxTries := 1000
+	for i := 0; i < maxTries; i++ {
+		index := rand.Intn(1000) + 2000
+		if !isIndexTaken(index, rules) {
+			return index, nil
+		}
+	}
+	return 0, fmt.Errorf("failed to find a free index after %d tries", maxTries)
+}
+
+func filterRulesByRuleset(rules []unifi.FirewallRule, ruleset string) []unifi.FirewallRule {
+	var filteredRules []unifi.FirewallRule
+	for _, rule := range rules {
+		if rule.Ruleset == ruleset {
+			filteredRules = append(filteredRules, rule)
+		}
+	}
+	return filteredRules
+}
+
+func isIndexTaken(index int, rules []unifi.FirewallRule) bool {
+	for _, rule := range rules {
+		if rule.RuleIndex == index {
+			return true
+		}
+	}
+	return false
 }
 
 func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.ResourceData, site string) diag.Diagnostics {
@@ -343,7 +398,7 @@ func resourceFirewallRuleRead(ctx context.Context, d *schema.ResourceData, meta 
 func resourceFirewallRuleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client)
 
-	req, err := resourceFirewallRuleGetResourceData(d)
+	req, err := resourceFirewallRuleGetResourceData(ctx, d, c)
 	if err != nil {
 		return diag.FromErr(err)
 	}

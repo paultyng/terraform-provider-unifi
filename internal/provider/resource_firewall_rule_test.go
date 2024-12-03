@@ -1,13 +1,36 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/paultyng/go-unifi/unifi"
 )
+
+func testAccCheckFirewallRuleDestroy(s *terraform.State) error {
+	ctx := context.Background()
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "unifi_firewall_rule" {
+			continue
+		}
+
+		rule, err := testClient.GetFirewallRule(ctx, rs.Primary.Attributes["site"], rs.Primary.ID)
+		if rule != nil {
+			return fmt.Errorf("Firewall rule still exists with ID %v", rs.Primary.ID)
+		}
+		if _, ok := err.(*unifi.NotFoundError); !ok {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func TestAccFirewallRule_basic(t *testing.T) {
 	name := acctest.RandomWithPrefix("tfacc")
@@ -15,7 +38,7 @@ func TestAccFirewallRule_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
-		// TODO: CheckDestroy: ,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirewallRuleConfig(name, true),
@@ -42,6 +65,7 @@ func TestAccFirewallRule_port(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirewallRuleConfigWithPort(name),
@@ -61,6 +85,7 @@ func TestAccFirewallRule_icmp(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirewallRuleConfigWithICMP(name),
@@ -76,7 +101,7 @@ func TestAccFirewallRule_multiple_address_groups(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
-		// TODO: CheckDestroy: ,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccFirewallRuleConfigMultipleAddressGroups(name),
@@ -92,7 +117,7 @@ func TestAccFirewallRule_multiple_port_groups(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
-		// TODO: CheckDestroy: ,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccFirewallRuleConfigMultiplePortGroups(name),
@@ -108,7 +133,7 @@ func TestAccFirewallRule_address_and_port_group(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
-		// TODO: CheckDestroy: ,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirewallRuleConfigAddressAndPortGroup(name),
@@ -127,7 +152,7 @@ func TestAccFirewallRule_IPv6_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
-		// TODO: CheckDestroy: ,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirewallRuleConfigIPv6(name),
@@ -143,9 +168,26 @@ func TestAccFirewallRule_IPv6_dst_port(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirewallRuleConfigIPv6WithPort(name),
+			},
+			importStep("unifi_firewall_rule.test"),
+		},
+	})
+}
+
+func TestAccFirewallRule_computed_index(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		CheckDestroy:      testAccCheckFirewallRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFirewallRuleConfigNoIndex(name),
 			},
 			importStep("unifi_firewall_rule.test"),
 		},
@@ -363,6 +405,29 @@ resource "unifi_firewall_rule" "test" {
 	src_address_ipv6 = "fd6a:37be:e364::1/64"
 	dst_address_ipv6 = "fd6a:37be:e364::2/64"
 	dst_port    = 53
+}
+`, name)
+}
+
+func testAccFirewallRuleConfigNoIndex(name string) string {
+	return fmt.Sprintf(`
+resource "unifi_firewall_group" "test" {
+	name = "%[1]s"
+	type = "address-group"
+
+	members = ["192.168.1.1", "192.168.1.2"]
+}
+
+resource "unifi_firewall_rule" "test" {
+	name    = "%[1]s"
+	action  = "accept"
+	ruleset = "LAN_IN"
+
+	protocol = "all"
+
+	src_firewall_group_ids = [unifi_firewall_group.test.id]
+
+	dst_address = "192.168.1.1"
 }
 `, name)
 }
