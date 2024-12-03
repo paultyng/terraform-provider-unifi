@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// using an additional lock to the one around the resource to avoid deadlocking accidentally
+// using an additional lock to the one around the resource to avoid deadlocking accidentally.
 var settingUsgLock = sync.Mutex{}
 
 func TestAccSettingUsg_mdns_v6(t *testing.T) {
