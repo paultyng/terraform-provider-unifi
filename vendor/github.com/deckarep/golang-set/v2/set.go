@@ -62,6 +62,13 @@ type Set[T comparable] interface {
 	// are all in the set.
 	Contains(val ...T) bool
 
+	// ContainsOne returns whether the given item
+	// is in the set.
+	//
+	// Contains may cause the argument to escape to the heap.
+	// See: https://github.com/deckarep/golang-set/issues/118
+	ContainsOne(val T) bool
+
 	// ContainsAny returns whether at least one of the
 	// given items are in the set.
 	ContainsAny(val ...T) bool
@@ -96,6 +103,9 @@ type Set[T comparable] interface {
 	// of the method. Otherwise, Intersect will
 	// panic.
 	Intersect(other Set[T]) Set[T]
+
+	// IsEmpty determines if there are elements in the set.
+	IsEmpty() bool
 
 	// IsProperSubset determines if every element in this set is in
 	// the other set but the two sets are not equal.
@@ -169,7 +179,7 @@ type Set[T comparable] interface {
 	//
 	// Note that the argument to Union must be of the
 	// same type as the receiver of the method.
-	// Otherwise, IsSuperset will panic.
+	// Otherwise, Union will panic.
 	Union(other Set[T]) Set[T]
 
 	// Pop removes and returns an arbitrary item from the set.
