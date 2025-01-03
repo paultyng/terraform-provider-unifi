@@ -53,6 +53,7 @@ func TestAccSite_basic(t *testing.T) {
 	})
 }
 
+//nolint:unused
 func testAccCheckSiteResourceDestroy(s *terraform.State) error {
 	sites, err := testClient.ListSites(context.Background())
 	if err != nil {
