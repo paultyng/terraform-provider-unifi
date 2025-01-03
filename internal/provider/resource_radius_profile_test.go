@@ -2,21 +2,23 @@ package provider
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccRadiusProfile_basic(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRadiusProfileConfig("test"),
+				Config: testAccRadiusProfileConfig(name),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_radius_profile.test", "name", "test"),
+					resource.TestCheckResourceAttr("unifi_radius_profile.test", "name", name),
 				),
 			},
 			importStep("unifi_radius_profile.test"),
@@ -25,15 +27,16 @@ func TestAccRadiusProfile_basic(t *testing.T) {
 }
 
 func TestAccRadiusProfile_servers(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRadiusProfileConfigServer(),
+				Config: testAccRadiusProfileConfigServer(name),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("unifi_radius_profile.test", "name", "test"),
+					resource.TestCheckResourceAttr("unifi_radius_profile.test", "name", name),
 				),
 			},
 			importStep("unifi_radius_profile.test"),
@@ -61,10 +64,10 @@ func TestAccRadiusProfile_importByName(t *testing.T) {
 	})
 }
 
-func testAccRadiusProfileConfigServer() string {
-	return `
+func testAccRadiusProfileConfigServer(name string) string {
+	return fmt.Sprintf(`
 resource "unifi_radius_profile" "test" {
-	name = "test"
+	name = "%s"
 	auth_server {
 		ip = "192.168.1.1"
 		xsecret = "securepw1"
@@ -86,7 +89,7 @@ resource "unifi_radius_profile" "test" {
 	use_usg_acct_server = false
 	use_usg_auth_server = false
 }
-`
+`, name)
 }
 
 func testAccRadiusProfileConfig(name string) string {
