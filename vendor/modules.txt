@@ -387,7 +387,7 @@ github.com/daixiang0/gci/pkg/utils
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/deckarep/golang-set/v2 v2.3.1
+# github.com/deckarep/golang-set/v2 v2.7.0
 ## explicit; go 1.18
 github.com/deckarep/golang-set/v2
 # github.com/denis-tingaikin/go-header v0.4.3
