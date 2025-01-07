@@ -52,6 +52,7 @@ resource "unifi_network" "wan" {
 ### Optional
 
 - `dhcp_dns` (List of String) Specifies the IPv4 addresses for the DNS server to be returned from the DHCP server. Leave blank to disable this feature.
+- `dhcp_ntp` (List of String) Specified the IPv4 addresses for the NTP servers to be returned from the DHCP server in response to an Option 42 (NTP Servers) request. Leave blank to disable this feature.
 - `dhcp_enabled` (Boolean) Specifies whether DHCP is enabled or not on this network.
 - `dhcp_lease` (Number) Specifies the lease time for DHCP addresses in seconds. Defaults to `86400`.
 - `dhcp_relay_enabled` (Boolean) Specifies whether DHCP relay is enabled or not on this network.
