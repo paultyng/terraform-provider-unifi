@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"net"
 	"regexp"
 	"strings"
@@ -56,7 +57,7 @@ func TestAccUser_basic(t *testing.T) {
 func TestAccUser_fixed_ip(t *testing.T) {
 	mac, unallocateTestMac := allocateTestMac(t)
 	defer unallocateTestMac()
-
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
 
 	ip, err := cidr.Host(subnet, 1)
@@ -70,7 +71,7 @@ func TestAccUser_fixed_ip(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUserConfig(mac, "tfacc", "tfacc fixed ip"),
+				Config: testAccUserConfig(mac, name, "tfacc fixed ip"),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "fixed_ip", ""),
@@ -78,7 +79,7 @@ func TestAccUser_fixed_ip(t *testing.T) {
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_fixedIP(subnet, vlan, mac, &ip),
+				Config: testAccUserConfig_fixedIP(name, subnet, vlan, mac, &ip),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "fixed_ip", ip.String()),
@@ -89,7 +90,7 @@ func TestAccUser_fixed_ip(t *testing.T) {
 				// this passes the network again even though its not used
 				// to avoid a destroy order of operations issue, can
 				// maybe work it out some other way
-				Config: testAccUserConfig_network(subnet, vlan) + testAccUserConfig(mac, "tfacc", "tfacc fixed ip"),
+				Config: testAccUserConfig_network(name, subnet, vlan) + testAccUserConfig(mac, name, "tfacc fixed ip"),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "fixed_ip", ""),
@@ -103,6 +104,7 @@ func TestAccUser_fixed_ip(t *testing.T) {
 func TestAccUser_blocking(t *testing.T) {
 	mac, unallocateTestMac := allocateTestMac(t)
 	defer unallocateTestMac()
+	name := acctest.RandomWithPrefix("tfacc")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
@@ -110,7 +112,7 @@ func TestAccUser_blocking(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUserConfig_block(mac, false),
+				Config: testAccUserConfig_block(mac, name, false),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "blocked", "false"),
@@ -118,7 +120,7 @@ func TestAccUser_blocking(t *testing.T) {
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_block(mac, true),
+				Config: testAccUserConfig_block(mac, name, true),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "blocked", "true"),
@@ -126,7 +128,7 @@ func TestAccUser_blocking(t *testing.T) {
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_block(mac, false),
+				Config: testAccUserConfig_block(mac, name, false),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "blocked", "false"),
@@ -140,6 +142,7 @@ func TestAccUser_blocking(t *testing.T) {
 func TestAccUser_existing_mac_allow(t *testing.T) {
 	mac, unallocateTestMac := allocateTestMac(t)
 	defer unallocateTestMac()
+	name := acctest.RandomWithPrefix("tfacc")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -147,7 +150,7 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 
 			_, err := testClient.CreateUser(context.Background(), "default", &unifi.User{
 				MAC:  mac,
-				Name: "tfacc-existing",
+				Name: name,
 				Note: "tfacc-existing",
 			})
 			if err != nil && strings.Contains(err.Error(), "api.Err.MacUsed") {
@@ -162,7 +165,7 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUserConfig_existing(mac, "tfacc", "tfacc note", true, true),
+				Config: testAccUserConfig_existing(mac, name, "tfacc note", true, true),
 				Check: resource.ComposeTestCheckFunc(
 					// testCheckNetworkExists(t, "name"),
 					resource.TestCheckResourceAttr("unifi_user.test", "note", "tfacc note"),
@@ -175,10 +178,11 @@ func TestAccUser_existing_mac_allow(t *testing.T) {
 
 func TestAccUser_existing_mac_deny(t *testing.T) {
 	mac, unallocateTestMac := allocateTestMac(t)
+	name := acctest.RandomWithPrefix("tfacc")
 
 	_, err := testClient.CreateUser(context.Background(), "default", &unifi.User{
 		MAC:  mac,
-		Name: "tfacc-existing",
+		Name: name,
 		Note: "tfacc-existing",
 	})
 	if err != nil {
@@ -199,7 +203,7 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccUserConfig_existing(mac, "tfacc", "tfacc note", false, false),
+				Config:      testAccUserConfig_existing(mac, name, "tfacc note", false, false),
 				ExpectError: regexp.MustCompile(`api\.err\.MacUsed`),
 			},
 		},
@@ -209,27 +213,28 @@ func TestAccUser_existing_mac_deny(t *testing.T) {
 func TestAccUser_fingerprint(t *testing.T) {
 	mac, unallocateTestMac := allocateTestMac(t)
 	defer unallocateTestMac()
+	name := acctest.RandomWithPrefix("tfacc")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testCheckUserDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUserConfig_fingerprint(mac, "tfacc", 123),
+				Config: testAccUserConfig_fingerprint(mac, name, 123),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "123"),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_fingerprint(mac, "tfacc", 456),
+				Config: testAccUserConfig_fingerprint(mac, name, 456),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "456"),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig(mac, "tfacc", ""),
+				Config: testAccUserConfig(mac, name, ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "dev_id_override", "0"),
 				),
@@ -242,6 +247,7 @@ func TestAccUser_fingerprint(t *testing.T) {
 func TestAccUser_localdns(t *testing.T) {
 	mac, unallocateTestMac := allocateTestMac(t)
 	defer unallocateTestMac()
+	name := acctest.RandomWithPrefix("tfacc")
 
 	subnet, vlan := getTestVLAN(t)
 
@@ -259,21 +265,21 @@ func TestAccUser_localdns(t *testing.T) {
 		CheckDestroy:      testCheckUserDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUserConfig(mac, "tfacc", ""),
+				Config: testAccUserConfig(mac, name, ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", ""),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_localdns(subnet, vlan, mac, "tfacc", "resource.example.com", &ip),
+				Config: testAccUserConfig_localdns(subnet, vlan, mac, name, "resource.example.com", &ip),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", "resource.example.com"),
 				),
 			},
 			userImportStep("unifi_user.test"),
 			{
-				Config: testAccUserConfig_localdns(subnet, vlan, mac, "tfacc", "", &ip),
+				Config: testAccUserConfig_localdns(subnet, vlan, mac, name, "", &ip),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("unifi_user.test", "local_dns_record", ""),
 				),
@@ -314,44 +320,44 @@ resource "unifi_user" "test" {
 `, mac, name, note)
 }
 
-func testAccUserConfig_network(subnet *net.IPNet, vlan int) string {
+func testAccUserConfig_network(name string, subnet *net.IPNet, vlan int) string {
 	return fmt.Sprintf(`
 resource "unifi_network" "test" {
-	name    = "tfaccfixedip"
+	name    = "%[1]s"
 	purpose = "corporate"
 
-	vlan_id      = %[2]d
-	subnet       = "%[1]s"
-	dhcp_start   = cidrhost("%[1]s", 6)
-	dhcp_stop    = cidrhost("%[1]s", 254)
+	vlan_id      = %[3]d
+	subnet       = "%[2]s"
+	dhcp_start   = cidrhost("%[2]s", 6)
+	dhcp_stop    = cidrhost("%[2]s", 254)
 	dhcp_enabled = true
 }
-`, subnet, vlan)
+`, name, subnet, vlan)
 }
 
-func testAccUserConfig_fixedIP(subnet *net.IPNet, vlan int, mac string, ip *net.IP) string {
-	return fmt.Sprintf(testAccUserConfig_network(subnet, vlan)+`
+func testAccUserConfig_fixedIP(name string, subnet *net.IPNet, vlan int, mac string, ip *net.IP) string {
+	return fmt.Sprintf(testAccUserConfig_network(name, subnet, vlan)+`
 resource "unifi_user" "test" {
 	mac  = "%[1]s"
-	name = "tfacc"
-	note = "tfacc fixed ip"
+	name = "%[2]s"
+	note = "%[2]s fixed ip"
 
-	fixed_ip   = "%[2]s"
+	fixed_ip   = "%[3]s"
 	network_id = unifi_network.test.id
 }
-`, mac, ip)
+`, mac, name, ip)
 }
 
-func testAccUserConfig_block(mac string, blocked bool) string {
+func testAccUserConfig_block(mac, name string, blocked bool) string {
 	return fmt.Sprintf(`
 resource "unifi_user" "test" {
-	mac  = "%s"
-	name = "tfacc"
-	note = "tfacc block %t"
+	mac  = "%[1]s"
+	name = "%[2]s"
+	note = "%[2]s block %[3]t"
 
-	blocked = %t
+	blocked = %[3]t
 }
-`, mac, blocked, blocked)
+`, mac, name, blocked)
 }
 
 func testAccUserConfig_existing(mac, name, note string, allow, skip bool) string {
@@ -378,7 +384,7 @@ resource "unifi_user" "test" {
 }
 
 func testAccUserConfig_localdns(subnet *net.IPNet, vlan int, mac, name string, localDnsRecord string, ip *net.IP) string {
-	return fmt.Sprintf(testAccUserConfig_network(subnet, vlan)+`
+	return fmt.Sprintf(testAccUserConfig_network(name, subnet, vlan)+`
 resource "unifi_user" "test" {
 	mac             = "%[1]s"
 	name            = "%[2]s"

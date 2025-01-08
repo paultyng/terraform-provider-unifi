@@ -36,7 +36,7 @@ func TestAccDataAccount_mac(t *testing.T) {
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataMacAccountConfig(mac),
+				Config: testAccDataAccountConfig(mac, mac),
 				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
@@ -57,20 +57,4 @@ depends_on = [
   ]
 }
 `, name, password)
-}
-
-func testAccDataMacAccountConfig(mac string) string {
-	return fmt.Sprintf(`
-resource "unifi_account" "test" {
-	name = "%[1]s"
-	password = "%[1]s"
-}
-
-data "unifi_account" "test" {
-	name = "%[1]s"
-depends_on = [
-    unifi_account.test
-  ]
-}
-`, mac)
 }

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -12,6 +13,7 @@ import (
 func TestAccDataUser_default(t *testing.T) {
 	mac, unallocateTestMac := allocateTestMac(t)
 	defer unallocateTestMac()
+	name := acctest.RandomWithPrefix("tfacc")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -19,8 +21,8 @@ func TestAccDataUser_default(t *testing.T) {
 
 			_, err := testClient.CreateUser(context.Background(), "default", &unifi.User{
 				MAC:  mac,
-				Name: "tfacc-User-Data",
-				Note: "tfacc-User-Data",
+				Name: name,
+				Note: name,
 			})
 			if err != nil {
 				t.Fatal(err)

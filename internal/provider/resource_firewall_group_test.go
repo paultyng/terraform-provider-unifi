@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"regexp"
 	"strings"
 	"testing"
@@ -10,20 +11,21 @@ import (
 )
 
 func TestAccFirewallGroup_port_group(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirewallGroupConfig("testpg", "port-group", nil),
+				Config: testAccFirewallGroupConfig(name, "port-group", nil),
 				// Check:  resource.ComposeTestCheckFunc(
 				// // testCheckFirewallGroupExists(t, "name"),
 				// ),
 			},
 			importStep("unifi_firewall_group.test"),
 			{
-				Config: testAccFirewallGroupConfig("testpg", "port-group", []string{"80", "443"}),
+				Config: testAccFirewallGroupConfig(name, "port-group", []string{"80", "443"}),
 			},
 			importStep("unifi_firewall_group.test"),
 		},
@@ -31,24 +33,25 @@ func TestAccFirewallGroup_port_group(t *testing.T) {
 }
 
 func TestAccFirewallGroup_address_group(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
 		// TODO: CheckDestroy: ,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirewallGroupConfig("testag", "address-group", nil),
+				Config: testAccFirewallGroupConfig(name, "address-group", nil),
 				// Check:  resource.ComposeTestCheckFunc(
 				// // testCheckFirewallGroupExists(t, "name"),
 				// ),
 			},
 			importStep("unifi_firewall_group.test"),
 			{
-				Config: testAccFirewallGroupConfig("testag", "address-group", []string{"10.0.0.1", "10.0.0.2"}),
+				Config: testAccFirewallGroupConfig(name, "address-group", []string{"10.0.0.1", "10.0.0.2"}),
 			},
 			importStep("unifi_firewall_group.test"),
 			{
-				Config: testAccFirewallGroupConfig("testag", "address-group", []string{"10.0.0.0/24"}),
+				Config: testAccFirewallGroupConfig(name, "address-group", []string{"10.0.0.0/24"}),
 			},
 			importStep("unifi_firewall_group.test"),
 		},

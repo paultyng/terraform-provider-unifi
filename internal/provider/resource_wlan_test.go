@@ -11,7 +11,9 @@ import (
 )
 
 func TestAccWLAN_wpapsk(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -22,9 +24,9 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_wpapsk(subnet, vlan, "disabled"),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "disabled"),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -33,7 +35,9 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 }
 
 func TestAccWLAN_open(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -44,23 +48,23 @@ func TestAccWLAN_open(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_open(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_open(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_open_mac_filter(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_open_mac_filter(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_open(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_open(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -69,7 +73,9 @@ func TestAccWLAN_open(t *testing.T) {
 }
 
 func TestAccWLAN_change_security_and_pmf(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -80,37 +86,37 @@ func TestAccWLAN_change_security_and_pmf(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_wpapsk(subnet, vlan, "disabled"),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "disabled"),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_open(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_open(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_wpapsk(subnet, vlan, "optional"),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "optional"),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_wpapsk(subnet, vlan, "required"),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "required"),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_wpapsk(subnet, vlan, "disabled"),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "disabled"),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -119,7 +125,9 @@ func TestAccWLAN_change_security_and_pmf(t *testing.T) {
 }
 
 func TestAccWLAN_schedule(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -130,17 +138,17 @@ func TestAccWLAN_schedule(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_schedule(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_schedule(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			// remove schedule
 			{
-				Config: testAccWLANConfig_open(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_open(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -149,6 +157,7 @@ func TestAccWLAN_schedule(t *testing.T) {
 }
 
 func TestAccWLAN_wpaeap(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -161,9 +170,9 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_wpaeap(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpaeap(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -172,7 +181,9 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 }
 
 func TestAccWLAN_wlan_band(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -183,9 +194,9 @@ func TestAccWLAN_wlan_band(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_wlan_band(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wlan_band(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -194,7 +205,9 @@ func TestAccWLAN_wlan_band(t *testing.T) {
 }
 
 func TestAccWLAN_no2ghz_oui(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -205,9 +218,9 @@ func TestAccWLAN_no2ghz_oui(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_no2ghz_oui(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_no2ghz_oui(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -264,7 +277,9 @@ func TestAccWLAN_bss_transition(t *testing.T) {
 }
 
 func TestAccWLAN_uapsd(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -275,9 +290,9 @@ func TestAccWLAN_uapsd(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_uapsd(subnet, vlan),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_uapsd(name, subnet, vlan),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -310,7 +325,9 @@ func TestAccWLAN_fast_roaming_enabled(t *testing.T) {
 }
 
 func TestAccWLAN_wpa3(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			preCheck(t)
@@ -324,23 +341,23 @@ func TestAccWLAN_wpa3(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_wpa3(subnet, vlan, false, "required"),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpa3(name, subnet, vlan, false, "required"),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_wpa3(subnet, vlan, true, "optional"),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpa3(name, subnet, vlan, true, "optional"),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_wpa3(subnet, vlan, false, "required"),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_wpa3(name, subnet, vlan, false, "required"),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -349,7 +366,9 @@ func TestAccWLAN_wpa3(t *testing.T) {
 }
 
 func TestAccWLAN_minimum_data_rate(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
 	subnet, vlan := getTestVLAN(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { preCheck(t) },
 		ProviderFactories: providerFactories,
@@ -360,37 +379,37 @@ func TestAccWLAN_minimum_data_rate(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWLANConfig_minimum_data_rate(subnet, vlan, 5500, 18000),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 5500, 18000),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_minimum_data_rate(subnet, vlan, 1000, 18000),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 1000, 18000),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_minimum_data_rate(subnet, vlan, 0, 0),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 0, 0),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_minimum_data_rate(subnet, vlan, 6000, 9000),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 6000, 9000),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
-				Config: testAccWLANConfig_minimum_data_rate(subnet, vlan, 18000, 6000),
-				Check:  resource.ComposeTestCheckFunc(
-				// testCheckNetworkExists(t, "name"),
+				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 18000, 6000),
+				Check: resource.ComposeTestCheckFunc(
+					// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -398,21 +417,24 @@ func TestAccWLAN_minimum_data_rate(t *testing.T) {
 	})
 }
 
-func testAccWLANConfig_wpapsk(subnet *net.IPNet, vlan int, pmf string) string {
+func testAccWLANBaseConfig(name string, subnet *net.IPNet, vlan int) string {
 	return fmt.Sprintf(`
 data "unifi_ap_group" "default" {}
 
 data "unifi_user_group" "default" {}
 
 resource "unifi_network" "test" {
-	name    = "tfacc"
+	name    = "%[1]s"
 	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
+	subnet  = "%[2]s"
+    vlan_id = "%[3]d"
+}`, name, subnet, vlan)
 }
 
+func testAccWLANConfig_wpapsk(name string, subnet *net.IPNet, vlan int, pmf string) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name          = "tfacc-wpapsk"
+	name          = "%[1]s-wpapsk"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
 	ap_group_ids  = [data.unifi_ap_group.default.id]
@@ -421,17 +443,13 @@ resource "unifi_wlan" "test" {
 	
 	multicast_enhance = true
 
-	pmf_mode = %[3]q
+	pmf_mode = %[2]q
 }
-`, subnet, vlan, pmf)
+`, name, pmf)
 }
 
-func testAccWLANConfig_wpaeap(subnet *net.IPNet, vlan int) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
+func testAccWLANConfig_wpaeap(name string, subnet *net.IPNet, vlan int) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 data "unifi_radius_profile" "default" {}
 
 resource "unifi_setting_radius" "this" {
@@ -439,15 +457,8 @@ resource "unifi_setting_radius" "this" {
 	secret  = "securepw"
 }
 
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
-}
-
 resource "unifi_wlan" "test" {
-	name          = "tfacc-wpapsk"
+	name          = "%[1]s-wpapsk"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
 	ap_group_ids  = [data.unifi_ap_group.default.id]
@@ -456,47 +467,25 @@ resource "unifi_wlan" "test" {
 
 	radius_profile_id = data.unifi_radius_profile.default.id
 }
-`, subnet, vlan)
+`, name)
 }
 
-func testAccWLANConfig_open(subnet *net.IPNet, vlan int) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
-}
-
+func testAccWLANConfig_open(name string, subnet *net.IPNet, vlan int) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name          = "tfacc-open"
+	name          = "%[1]s-open"
 	network_id    = unifi_network.test.id
 	ap_group_ids  = [data.unifi_ap_group.default.id]
 	user_group_id = data.unifi_user_group.default.id
 	security      = "open"
 }
-`, subnet, vlan)
+`, name)
 }
 
-func testAccWLANConfig_schedule(subnet *net.IPNet, vlan int) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
-}
-
+func testAccWLANConfig_schedule(name string, subnet *net.IPNet, vlan int) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name          = "tfacc-open-schedule"
+	name          = "%[1]s-sched"
 	network_id    = unifi_network.test.id
 	ap_group_ids  = [data.unifi_ap_group.default.id]
 	user_group_id = data.unifi_user_group.default.id
@@ -528,24 +517,13 @@ resource "unifi_wlan" "test" {
 		duration    = 60*1
 	}
 }
-`, subnet, vlan)
+`, name)
 }
 
-func testAccWLANConfig_open_mac_filter(subnet *net.IPNet, vlan int) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
-}
-
+func testAccWLANConfig_open_mac_filter(name string, subnet *net.IPNet, vlan int) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name          = "tfacc-open"
+	name          = "%[1]s-open"
 	network_id    = unifi_network.test.id
 	ap_group_ids  = [data.unifi_ap_group.default.id]
 	user_group_id = data.unifi_user_group.default.id
@@ -555,24 +533,13 @@ resource "unifi_wlan" "test" {
 	mac_filter_list    = ["ab:cd:ef:12:34:56"]
 	mac_filter_policy  = "allow"
 }
-`, subnet, vlan)
+`, name)
 }
 
-func testAccWLANConfig_wlan_band(subnet *net.IPNet, vlan int) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
-}
-
+func testAccWLANConfig_wlan_band(name string, subnet *net.IPNet, vlan int) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name              = "tfacc-wpapsk"
+	name              = "%[1]s-wpapsk"
 	network_id        = unifi_network.test.id
 	passphrase        = "12345678"
 	ap_group_ids      = [data.unifi_ap_group.default.id]
@@ -581,24 +548,13 @@ resource "unifi_wlan" "test" {
 	wlan_band         = "5g"
 	multicast_enhance = true
 }
-`, subnet, vlan)
+`, name)
 }
 
-func testAccWLANConfig_no2ghz_oui(subnet *net.IPNet, vlan int) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
-}
-
+func testAccWLANConfig_no2ghz_oui(name string, subnet *net.IPNet, vlan int) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name              = "tfacc-wpapsk"
+	name              = "%[1]s-wpapsk"
 	network_id        = unifi_network.test.id
 	passphrase        = "12345678"
 	ap_group_ids      = [data.unifi_ap_group.default.id]
@@ -607,74 +563,41 @@ resource "unifi_wlan" "test" {
 	no2ghz_oui        = false
 	multicast_enhance = true
 }
-`, subnet, vlan)
+`, name)
 }
 
 func testAccWLANConfig_proxy_arp(name string, subnet *net.IPNet, vlan int, proxyArp bool) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-  name    = "%[1]s"
-	purpose = "corporate"
-	subnet  = "%[2]s"
-	vlan_id = %[3]d
-}
-
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
 	name          = "%[1]s"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
-  ap_group_ids  = [data.unifi_ap_group.default.id]
-  user_group_id = data.unifi_user_group.default.id
+    ap_group_ids  = [data.unifi_ap_group.default.id]
+    user_group_id = data.unifi_user_group.default.id
 	security      = "wpapsk"
-	proxy_arp     = %[4]t
+	proxy_arp     = %[2]t
 }
-`, name, subnet, vlan, proxyArp)
+`, name, proxyArp)
 }
 
 func testAccWLANConfig_bss_transition(name string, subnet *net.IPNet, vlan int, bssTransition bool) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "%[1]s"
-	purpose = "corporate"
-	subnet  = "%[2]s"
-	vlan_id = %[3]d
-}
-
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
 	name           = "%[1]s"
 	network_id     = unifi_network.test.id
 	passphrase     = "12345678"
-  ap_group_ids   = [data.unifi_ap_group.default.id]
-  user_group_id  = data.unifi_user_group.default.id
+    ap_group_ids   = [data.unifi_ap_group.default.id]
+    user_group_id  = data.unifi_user_group.default.id
 	security       = "wpapsk"
-	bss_transition = %[4]t
+	bss_transition = %[2]t
 }
-`, name, subnet, vlan, bssTransition)
-}
-
-func testAccWLANConfig_uapsd(subnet *net.IPNet, vlan int) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
+`, name, bssTransition)
 }
 
+func testAccWLANConfig_uapsd(name string, subnet *net.IPNet, vlan int) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name          = "tfacc-wpapsk"
+	name          = "%[1]s-wpapsk"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
 	ap_group_ids  = [data.unifi_ap_group.default.id]
@@ -682,49 +605,27 @@ resource "unifi_wlan" "test" {
 	security      = "wpapsk"
 	uapsd         = true
 }
-`, subnet, vlan)
+`, name)
 }
 
 func testAccWLANConfig_fast_roaming_enabled(name string, subnet *net.IPNet, vlan int, fastRoamingEnabled bool) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "%[1]s"
-	purpose = "corporate"
-	subnet  = "%[2]s"
-	vlan_id = %[3]d
-}
-
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
 	name                 = "%[1]s"
 	network_id           = unifi_network.test.id
 	passphrase           = "12345678"
-  ap_group_ids         = [data.unifi_ap_group.default.id]
-  user_group_id        = data.unifi_user_group.default.id
+    ap_group_ids         = [data.unifi_ap_group.default.id]
+    user_group_id        = data.unifi_user_group.default.id
 	security             = "wpapsk"
-	fast_roaming_enabled = %[4]t
+	fast_roaming_enabled = %[2]t
 }
-`, name, subnet, vlan, fastRoamingEnabled)
-}
-
-func testAccWLANConfig_wpa3(subnet *net.IPNet, vlan int, wpa3Transition bool, pmf string) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
+`, name, fastRoamingEnabled)
 }
 
+func testAccWLANConfig_wpa3(name string, subnet *net.IPNet, vlan int, wpa3Transition bool, pmf string) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name          = "tfacc-wpapsk"
+	name          = "%[1]s-wpapsk"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
 	ap_group_ids  = [data.unifi_ap_group.default.id]
@@ -732,27 +633,16 @@ resource "unifi_wlan" "test" {
 	security      = "wpapsk"
 
 	wpa3_support    = true
-	wpa3_transition = %[3]t
-	pmf_mode        = %[4]q
+	wpa3_transition = %[2]t
+	pmf_mode        = %[3]q
 }
-`, subnet, vlan, wpa3Transition, pmf)
-}
-
-func testAccWLANConfig_minimum_data_rate(subnet *net.IPNet, vlan int, min2g int, min5g int) string {
-	return fmt.Sprintf(`
-data "unifi_ap_group" "default" {}
-
-data "unifi_user_group" "default" {}
-
-resource "unifi_network" "test" {
-	name    = "tfacc"
-	purpose = "corporate"
-	subnet  = "%[1]s"
-	vlan_id = %[2]d
+`, name, wpa3Transition, pmf)
 }
 
+func testAccWLANConfig_minimum_data_rate(name string, subnet *net.IPNet, vlan int, min2g int, min5g int) string {
+	return testAccWLANBaseConfig(name, subnet, vlan) + fmt.Sprintf(`
 resource "unifi_wlan" "test" {
-	name          = "tfacc-wpapsk"
+	name          = "%[1]s-wpapsk"
 	network_id    = unifi_network.test.id
 	passphrase    = "12345678"
 	ap_group_ids  = [data.unifi_ap_group.default.id]
@@ -761,8 +651,8 @@ resource "unifi_wlan" "test" {
 
 	multicast_enhance = true
 
-	minimum_data_rate_2g_kbps = %[3]d
-	minimum_data_rate_5g_kbps = %[4]d
+	minimum_data_rate_2g_kbps = %[2]d
+	minimum_data_rate_5g_kbps = %[3]d
 }
-`, subnet, vlan, min2g, min5g)
+`, name, min2g, min5g)
 }
