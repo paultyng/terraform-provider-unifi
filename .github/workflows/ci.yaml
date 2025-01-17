@@ -29,6 +29,6 @@ jobs:
           go-version-file: "go.mod"
           check-latest: true
 
-      - uses: "golangci/golangci-lint-action@v6.1.1"
+      - uses: "golangci/golangci-lint-action@v6.2.0"
         with:
           skip-pkg-cache: true
