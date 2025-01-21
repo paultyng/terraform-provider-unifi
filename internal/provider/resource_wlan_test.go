@@ -25,8 +25,8 @@ func TestAccWLAN_wpapsk(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "disabled"),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -49,22 +49,22 @@ func TestAccWLAN_open(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_open(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_open_mac_filter(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_open(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -87,36 +87,36 @@ func TestAccWLAN_change_security_and_pmf(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "disabled"),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_open(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "optional"),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "required"),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_wpapsk(name, subnet, vlan, "disabled"),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -139,16 +139,16 @@ func TestAccWLAN_schedule(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_schedule(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			// remove schedule
 			{
 				Config: testAccWLANConfig_open(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -171,8 +171,8 @@ func TestAccWLAN_wpaeap(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_wpaeap(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -195,8 +195,8 @@ func TestAccWLAN_wlan_band(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_wlan_band(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -219,8 +219,8 @@ func TestAccWLAN_no2ghz_oui(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_no2ghz_oui(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -291,8 +291,8 @@ func TestAccWLAN_uapsd(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_uapsd(name, subnet, vlan),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -342,22 +342,22 @@ func TestAccWLAN_wpa3(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_wpa3(name, subnet, vlan, false, "required"),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_wpa3(name, subnet, vlan, true, "optional"),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_wpa3(name, subnet, vlan, false, "required"),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
@@ -380,36 +380,36 @@ func TestAccWLAN_minimum_data_rate(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 5500, 18000),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 1000, 18000),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 0, 0),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 6000, 9000),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),
 			{
 				Config: testAccWLANConfig_minimum_data_rate(name, subnet, vlan, 18000, 6000),
-				Check: resource.ComposeTestCheckFunc(
-					// testCheckNetworkExists(t, "name"),
+				Check:  resource.ComposeTestCheckFunc(
+				// testCheckNetworkExists(t, "name"),
 				),
 			},
 			importStep("unifi_wlan.test"),

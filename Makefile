@@ -12,4 +12,4 @@ build:
 
 .PHONY: testacc
 testacc:
-	TF_ACC=1 go test $(TEST) -v -count $(TEST_COUNT) -timeout $(TEST_TIMEOUT) $(TESTARGS)
+	TF_ACC=1 go test $(TEST) -test.parallel 2 -v -count $(TEST_COUNT) -timeout $(TEST_TIMEOUT) $(TESTARGS)
