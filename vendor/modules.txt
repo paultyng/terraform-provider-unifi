@@ -1498,7 +1498,7 @@ github.com/t-yuki/gocover-cobertura
 # github.com/tdakkota/asciicheck v0.2.0
 ## explicit; go 1.18
 github.com/tdakkota/asciicheck
-# github.com/testcontainers/testcontainers-go v0.34.0
+# github.com/testcontainers/testcontainers-go v0.35.0
 ## explicit; go 1.22
 github.com/testcontainers/testcontainers-go
 github.com/testcontainers/testcontainers-go/exec
