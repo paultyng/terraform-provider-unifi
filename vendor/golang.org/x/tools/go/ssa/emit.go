@@ -46,7 +46,7 @@ func emitNew(f *Function, typ types.Type, pos token.Pos, comment string) *Alloc 
 // emits an Alloc instruction for it.
 //
 // (Use this function or emitNew for synthetic variables;
-// for source-level variables, use emitLocalVar.)
+// for source-level variables in the same function, use emitLocalVar.)
 func emitLocal(f *Function, t types.Type, pos token.Pos, comment string) *Alloc {
 	local := emitAlloc(f, t, pos, comment)
 	f.Locals = append(f.Locals, local)
@@ -249,7 +249,7 @@ func emitConv(f *Function, val Value, typ types.Type) Value {
 		// non-parameterized, as they are the set of runtime types.
 		t := val.Type()
 		if f.typeparams.Len() == 0 || !f.Prog.isParameterized(t) {
-			addRuntimeType(f.Prog, t)
+			addMakeInterfaceType(f.Prog, t)
 		}
 
 		mi := &MakeInterface{X: val}
@@ -603,20 +603,11 @@ func createRecoverBlock(f *Function) {
 	f.currentBlock = f.Recover
 
 	var results []Value
-	if f.namedResults != nil {
-		// Reload NRPs to form value tuple.
-		for _, r := range f.namedResults {
-			results = append(results, emitLoad(f, r))
-		}
-	} else {
-		R := f.Signature.Results()
-		for i, n := 0, R.Len(); i < n; i++ {
-			T := R.At(i).Type()
-
-			// Return zero value of each result type.
-			results = append(results, zeroConst(T))
-		}
+	// Reload NRPs to form value tuple.
+	for _, nr := range f.results {
+		results = append(results, emitLoad(f, nr))
 	}
+
 	f.emit(&Return{Results: results})
 
 	f.currentBlock = saved
