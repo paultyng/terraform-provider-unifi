@@ -11,20 +11,17 @@ import (
 // DeferRule lints unused params in functions.
 type DeferRule struct {
 	allow map[string]bool
-	sync.Mutex
+
+	configureOnce sync.Once
 }
 
 func (r *DeferRule) configure(arguments lint.Arguments) {
-	r.Lock()
-	if r.allow == nil {
-		r.allow = r.allowFromArgs(arguments)
-	}
-	r.Unlock()
+	r.allow = r.allowFromArgs(arguments)
 }
 
 // Apply applies the rule to given file.
 func (r *DeferRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
-	r.configure(arguments)
+	r.configureOnce.Do(func() { r.configure(arguments) })
 
 	var failures []lint.Failure
 	onFailure := func(failure lint.Failure) {
@@ -111,7 +108,7 @@ func (w lintDeferRule) Visit(node ast.Node) ast.Visitor {
 			// but it is very likely to be a misunderstanding of defer's behavior around arguments.
 			w.newFailure("recover must be called inside a deferred function, this is executing recover immediately", n, 1, "logic", "immediate-recover")
 		}
-
+		return nil // no need to analyze the arguments of the function call
 	case *ast.DeferStmt:
 		if isIdent(n.Call.Fun, "recover") {
 			// defer recover()

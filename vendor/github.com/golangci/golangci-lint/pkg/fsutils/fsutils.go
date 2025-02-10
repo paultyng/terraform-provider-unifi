@@ -12,10 +12,12 @@ func IsDir(filename string) bool {
 	return err == nil && fi.IsDir()
 }
 
-var cachedWd string
-var cachedWdError error
-var getWdOnce sync.Once
-var useCache = true
+var (
+	cachedWd      string
+	cachedWdError error
+	getWdOnce     sync.Once
+	useCache      = true
+)
 
 func UseWdCache(use bool) {
 	useCache = use
@@ -59,7 +61,7 @@ func EvalSymlinks(path string) (string, error) {
 	}
 
 	var er evalSymlinkRes
-	er.path, er.err = filepath.EvalSymlinks(path)
+	er.path, er.err = evalSymlinks(path)
 	evalSymlinkCache.Store(path, er)
 
 	return er.path, er.err

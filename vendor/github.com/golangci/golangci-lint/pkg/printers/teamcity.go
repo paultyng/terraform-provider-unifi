@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/golangci/golangci-lint/pkg/result"
 )
@@ -88,8 +87,8 @@ type InspectionType struct {
 }
 
 func (i InspectionType) Print(w io.Writer, escaper *strings.Replacer) (int, error) {
-	return fmt.Fprintf(w, "##teamcity[InspectionType id='%s' name='%s' description='%s' category='%s']\n",
-		limit(i.id, smallLimit), limit(i.name, smallLimit), limit(escaper.Replace(i.description), largeLimit), limit(i.category, smallLimit))
+	return fmt.Fprintf(w, "##teamcity[inspectionType id='%s' name='%s' description='%s' category='%s']\n",
+		cutVal(i.id, smallLimit), cutVal(i.name, smallLimit), cutVal(escaper.Replace(i.description), largeLimit), cutVal(i.category, smallLimit))
 }
 
 // InspectionInstance reports a specific defect, warning, error message.
@@ -105,18 +104,16 @@ type InspectionInstance struct {
 
 func (i InspectionInstance) Print(w io.Writer, replacer *strings.Replacer) (int, error) {
 	return fmt.Fprintf(w, "##teamcity[inspection typeId='%s' message='%s' file='%s' line='%d' SEVERITY='%s']\n",
-		limit(i.typeID, smallLimit),
-		limit(replacer.Replace(i.message), largeLimit),
-		limit(i.file, largeLimit),
+		cutVal(i.typeID, smallLimit),
+		cutVal(replacer.Replace(i.message), largeLimit),
+		cutVal(i.file, largeLimit),
 		i.line, strings.ToUpper(i.severity))
 }
 
-func limit(s string, max int) string {
-	var size, count int
-	for i := 0; i < max && count < len(s); i++ {
-		_, size = utf8.DecodeRuneInString(s[count:])
-		count += size
+func cutVal(s string, limit int) string {
+	runes := []rune(s)
+	if len(runes) > limit {
+		return string(runes[:limit])
 	}
-
-	return s[:count]
+	return s
 }

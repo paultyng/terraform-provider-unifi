@@ -31,11 +31,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/securego/gosec/v2/analyzers"
-	"github.com/securego/gosec/v2/issue"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/buildssa"
 	"golang.org/x/tools/go/packages"
+
+	"github.com/securego/gosec/v2/analyzers"
+	"github.com/securego/gosec/v2/issue"
 )
 
 // LoadMode controls the amount of details to return when loading the packages
@@ -54,8 +55,6 @@ const LoadMode = packages.NeedName |
 const externalSuppressionJustification = "Globally suppressed."
 
 const aliasOfAllRules = "*"
-
-var generatedCodePattern = regexp.MustCompile(`^// Code generated .* DO NOT EDIT\.$`)
 
 type ignore struct {
 	start        int
@@ -123,7 +122,7 @@ func (i ignores) get(file string, line string) map[string][]issue.SuppressionInf
 	start, end := i.parseLine(line)
 	if is, ok := i[file]; ok {
 		for _, i := range is {
-			if i.start <= start && i.end >= end {
+			if i.start <= start && i.end >= end || start <= i.start && end >= i.end {
 				return i.suppressions
 			}
 		}
@@ -183,7 +182,7 @@ type Analyzer struct {
 	showIgnored       bool
 	trackSuppressions bool
 	concurrency       int
-	analyzerList      []*analysis.Analyzer
+	analyzerSet       *analyzers.AnalyzerSet
 	mu                sync.Mutex
 }
 
@@ -214,7 +213,7 @@ func NewAnalyzer(conf Config, tests bool, excludeGenerated bool, trackSuppressio
 		concurrency:       concurrency,
 		excludeGenerated:  excludeGenerated,
 		trackSuppressions: trackSuppressions,
-		analyzerList:      analyzers.BuildDefaultAnalyzers(),
+		analyzerSet:       analyzers.NewAnalyzerSet(),
 	}
 }
 
@@ -234,6 +233,15 @@ func (gosec *Analyzer) LoadRules(ruleDefinitions map[string]RuleBuilder, ruleSup
 	for id, def := range ruleDefinitions {
 		r, nodes := def(id, gosec.config)
 		gosec.ruleset.Register(r, ruleSuppressed[id], nodes...)
+	}
+}
+
+// LoadAnalyzers instantiates all the analyzers to be used when analyzing source
+// packages
+func (gosec *Analyzer) LoadAnalyzers(analyzerDefinitions map[string]analyzers.AnalyzerDefinition, analyzerSuppressed map[string]bool) {
+	for id, def := range analyzerDefinitions {
+		r := def.Create(def.ID, def.Description)
+		gosec.analyzerSet.Register(r, analyzerSuppressed[id])
 	}
 }
 
@@ -376,7 +384,7 @@ func (gosec *Analyzer) CheckRules(pkg *packages.Package) {
 		if filepath.Ext(checkedFile) != ".go" {
 			continue
 		}
-		if gosec.excludeGenerated && isGeneratedFile(file) {
+		if gosec.excludeGenerated && ast.IsGenerated(file) {
 			gosec.logger.Println("Ignoring generated file:", checkedFile)
 			continue
 		}
@@ -391,7 +399,6 @@ func (gosec *Analyzer) CheckRules(pkg *packages.Package) {
 		gosec.context.PkgFiles = pkg.Syntax
 		gosec.context.Imports = NewImportTracker()
 		gosec.context.PassedValues = make(map[string]interface{})
-		gosec.context.Ignores = newIgnores()
 		gosec.updateIgnores()
 		ast.Walk(gosec, file)
 		gosec.stats.NumFiles++
@@ -414,7 +421,10 @@ func (gosec *Analyzer) CheckAnalyzers(pkg *packages.Package) {
 			SSA:    ssaResult.(*buildssa.SSA),
 		},
 	}
-	for _, analyzer := range gosec.analyzerList {
+
+	generatedFiles := gosec.generatedFiles(pkg)
+
+	for _, analyzer := range gosec.analyzerSet.Analyzers {
 		pass := &analysis.Pass{
 			Analyzer:          analyzer,
 			Fset:              pkg.Fset,
@@ -441,11 +451,31 @@ func (gosec *Analyzer) CheckAnalyzers(pkg *packages.Package) {
 		if result != nil {
 			if passIssues, ok := result.([]*issue.Issue); ok {
 				for _, iss := range passIssues {
+					if gosec.excludeGenerated {
+						if _, ok := generatedFiles[iss.File]; ok {
+							continue
+						}
+					}
 					gosec.updateIssues(iss)
 				}
 			}
 		}
 	}
+}
+
+func (gosec *Analyzer) generatedFiles(pkg *packages.Package) map[string]bool {
+	generatedFiles := map[string]bool{}
+	for _, file := range pkg.Syntax {
+		if ast.IsGenerated(file) {
+			fp := pkg.Fset.File(file.Pos())
+			if fp == nil {
+				// skip files which cannot be located
+				continue
+			}
+			generatedFiles[fp.Name()] = true
+		}
+	}
+	return generatedFiles
 }
 
 // buildSSA runs the SSA pass which builds the SSA representation of the package. It handles gracefully any panic.
@@ -475,17 +505,6 @@ func (gosec *Analyzer) buildSSA(pkg *packages.Package) (interface{}, error) {
 	}
 
 	return ssaPass.Analyzer.Run(ssaPass)
-}
-
-func isGeneratedFile(file *ast.File) bool {
-	for _, comment := range file.Comments {
-		for _, row := range comment.List {
-			if generatedCodePattern.MatchString(row.Text) {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // ParseErrors parses the errors from given package
@@ -557,8 +576,8 @@ func (gosec *Analyzer) ignore(n ast.Node) map[string]issue.SuppressionInfo {
 
 		for _, group := range groups {
 			comment := strings.TrimSpace(group.Text())
-			foundDefaultTag := strings.HasPrefix(comment, noSecDefaultTag) || regexp.MustCompile("\n *"+noSecDefaultTag).Match([]byte(comment))
-			foundAlternativeTag := strings.HasPrefix(comment, noSecAlternativeTag) || regexp.MustCompile("\n *"+noSecAlternativeTag).Match([]byte(comment))
+			foundDefaultTag := strings.HasPrefix(comment, noSecDefaultTag) || regexp.MustCompile("\n *"+noSecDefaultTag).MatchString(comment)
+			foundAlternativeTag := strings.HasPrefix(comment, noSecAlternativeTag) || regexp.MustCompile("\n *"+noSecAlternativeTag).MatchString(comment)
 
 			if foundDefaultTag || foundAlternativeTag {
 				gosec.stats.NumNosec++
@@ -656,7 +675,7 @@ func (gosec *Analyzer) getSuppressionsAtLineInFile(file string, line string, id 
 	suppressions := append(generalSuppressions, ruleSuppressions...)
 
 	// Track external suppressions of this rule.
-	if gosec.ruleset.IsRuleSuppressed(id) {
+	if gosec.ruleset.IsRuleSuppressed(id) || gosec.analyzerSet.IsSuppressed(id) {
 		ignored = true
 		suppressions = append(suppressions, issue.SuppressionInfo{
 			Kind:          "external",
@@ -695,4 +714,5 @@ func (gosec *Analyzer) Reset() {
 	gosec.issues = make([]*issue.Issue, 0, 16)
 	gosec.stats = &Metrics{}
 	gosec.ruleset = NewRuleSet()
+	gosec.analyzerSet = analyzers.NewAnalyzerSet()
 }
