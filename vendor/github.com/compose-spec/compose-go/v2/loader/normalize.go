@@ -18,6 +18,7 @@ package loader
 
 import (
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
@@ -52,14 +53,14 @@ func Normalize(dict map[string]any, env types.Mapping) (map[string]any, error) {
 				}
 
 				if a, ok := build["args"]; ok {
-					build["args"], _ = resolve(a, fn)
+					build["args"], _ = resolve(a, fn, false)
 				}
 
 				service["build"] = build
 			}
 
 			if e, ok := service["environment"]; ok {
-				service["environment"], _ = resolve(e, fn)
+				service["environment"], _ = resolve(e, fn, true)
 			}
 
 			var dependsOn map[string]any
@@ -102,6 +103,17 @@ func Normalize(dict map[string]any, env types.Mapping) (map[string]any, error) {
 				}
 			}
 
+			if v, ok := service["volumes"]; ok {
+				volumes := v.([]any)
+				for i, volume := range volumes {
+					vol := volume.(map[string]any)
+					target := vol["target"].(string)
+					vol["target"] = path.Clean(target)
+					volumes[i] = vol
+				}
+				service["volumes"] = volumes
+			}
+
 			if n, ok := service["volumes_from"]; ok {
 				volumesFrom := n.([]any)
 				for _, v := range volumesFrom {
@@ -123,9 +135,9 @@ func Normalize(dict map[string]any, env types.Mapping) (map[string]any, error) {
 			}
 			services[name] = service
 		}
+
 		dict["services"] = services
 	}
-
 	setNameFromKey(dict)
 
 	return dict, nil
@@ -178,12 +190,12 @@ func normalizeNetworks(dict map[string]any) {
 	}
 }
 
-func resolve(a any, fn func(s string) (string, bool)) (any, bool) {
+func resolve(a any, fn func(s string) (string, bool), keepEmpty bool) (any, bool) {
 	switch v := a.(type) {
 	case []any:
 		var resolved []any
 		for _, val := range v {
-			if r, ok := resolve(val, fn); ok {
+			if r, ok := resolve(val, fn, keepEmpty); ok {
 				resolved = append(resolved, r)
 			}
 		}
@@ -197,6 +209,8 @@ func resolve(a any, fn func(s string) (string, bool)) (any, bool) {
 			}
 			if s, ok := fn(key); ok {
 				resolved[key] = s
+			} else if keepEmpty {
+				resolved[key] = nil
 			}
 		}
 		return resolved, true
@@ -204,6 +218,9 @@ func resolve(a any, fn func(s string) (string, bool)) (any, bool) {
 		if !strings.Contains(v, "=") {
 			if val, ok := fn(v); ok {
 				return fmt.Sprintf("%s=%s", v, val), true
+			}
+			if keepEmpty {
+				return v, true
 			}
 			return "", false
 		}
