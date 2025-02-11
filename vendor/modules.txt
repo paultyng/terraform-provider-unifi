@@ -1659,7 +1659,7 @@ github.com/testcontainers/testcontainers-go/internal/config
 github.com/testcontainers/testcontainers-go/internal/core
 github.com/testcontainers/testcontainers-go/internal/core/network
 github.com/testcontainers/testcontainers-go/wait
-# github.com/testcontainers/testcontainers-go/modules/compose v0.34.0
+# github.com/testcontainers/testcontainers-go/modules/compose v0.35.0
 ## explicit; go 1.22
 github.com/testcontainers/testcontainers-go/modules/compose
 # github.com/tetafro/godot v1.4.20

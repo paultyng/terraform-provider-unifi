@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.3.0
 	github.com/paultyng/go-unifi v1.32.0
 	github.com/testcontainers/testcontainers-go v0.35.0
-	github.com/testcontainers/testcontainers-go/modules/compose v0.34.0
+	github.com/testcontainers/testcontainers-go/modules/compose v0.35.0
 )
 
 require (
