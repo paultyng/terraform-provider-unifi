@@ -892,8 +892,8 @@ github.com/tenntenn/modver v1.0.1/go.mod h1:bePIyQPb7UeioSRkw3Q0XeMhYZSMx9B8ePqg
 github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3/go.mod h1:ON8b8w4BN/kE1EOhwT0o+d62W65a6aPw1nouo9LMgyY=
 github.com/testcontainers/testcontainers-go v0.35.0 h1:uADsZpTKFAtp8SLK+hMwSaa+X+JiERHtd4sQAFmXeMo=
 github.com/testcontainers/testcontainers-go v0.35.0/go.mod h1:oEVBj5zrfJTrgjwONs1SsRbnBtH9OKl+IGl3UMcr2B4=
-github.com/testcontainers/testcontainers-go/modules/compose v0.34.0 h1:DrpbkHLvPhf4DIatCe6POzIMsT+c/VnbdO2zV+qAVoQ=
-github.com/testcontainers/testcontainers-go/modules/compose v0.34.0/go.mod h1:Fr6tIXogKQlYOPcKieJz0XGfYtcAw2FQLHFiTXXOXmQ=
+github.com/testcontainers/testcontainers-go/modules/compose v0.35.0 h1:bqtmGQ1VprJp3LedAbkSpwCDffjrc2LuZ9AoiAKBmSI=
+github.com/testcontainers/testcontainers-go/modules/compose v0.35.0/go.mod h1:7b6Mpri9NZYC3Nd4PZ+qpP5O6Q/N8mFvk4TjeLwwksw=
 github.com/tetafro/godot v1.4.20 h1:z/p8Ek55UdNvzt4TFn2zx2KscpW4rWqcnUrdmvWJj7E=
 github.com/tetafro/godot v1.4.20/go.mod h1:2oVxTBSftRTh4+MVfUaUXR6bn2GDXCaMcOG4Dk3rfio=
 github.com/theupdateframework/notary v0.7.0 h1:QyagRZ7wlSpjT5N2qQAh/pN+DVqgekv4DzbAiAiEL3c=
