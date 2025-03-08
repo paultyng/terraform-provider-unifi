@@ -48,6 +48,12 @@ jobs:
           go-version-file: "go.mod"
           check-latest: true
 
+      # Pre-install Teraform, so that test cases don't try installing their temporary copy
+      # See https://github.com/hashicorp/terraform-plugin-testing/issues/429
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_wrapper: false
+
       # The acceptance tests sometimes timeout for some unknown reason.
       - name: TF acceptance tests
         uses: "nick-fields/retry@v3"
