@@ -435,6 +435,83 @@ func TestAccNetwork_mdns(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_dhcpguard(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	subnet, vlan := getTestVLAN(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkConfigDHCPGuard(name, subnet, vlan, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcpguard_enabled", "true"),
+				),
+			},
+			importStep("unifi_network.test"),
+			{
+				Config: testAccNetworkConfigDHCPGuard(name, subnet, vlan, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcpguard_enabled", "false"),
+				),
+			},
+			importStep("unifi_network.test"),
+		},
+	})
+}
+
+func TestAccNetwork_dhcpServerIPs(t *testing.T) {
+	name := acctest.RandomWithPrefix("tfacc")
+	subnet, vlan := getTestVLAN(t)
+	dhcpServerIPs := []string{"192.168.1.1", "192.168.1.2"}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { preCheck(t) },
+		ProviderFactories: providerFactories,
+		// TODO: CheckDestroy: ,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkConfigDHCPServerIPs(name, subnet, vlan, dhcpServerIPs),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_server_ips.#", strconv.Itoa(len(dhcpServerIPs))),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_server_ips.0", dhcpServerIPs[0]),
+					resource.TestCheckResourceAttr("unifi_network.test", "dhcp_server_ips.1", dhcpServerIPs[1]),
+				),
+			},
+			importStep("unifi_network.test"),
+		},
+	})
+}
+
+func testAccNetworkConfigDHCPServerIPs(name string, subnet *net.IPNet, vlan int, dhcpServerIPs []string) string {
+	return fmt.Sprintf(`
+locals {
+    subnet  = "%[2]s"
+    vlan_id = %[3]d
+}
+
+resource "unifi_network" "test" {
+    name    = "%[1]s"
+    purpose = "corporate"
+
+    subnet          = local.subnet
+    vlan_id         = local.vlan_id
+    domain_name     = "foo.local"
+    dhcp_server_ips = %[4]s
+}
+`, name, subnet, vlan, formatDHCPServerIPs(dhcpServerIPs))
+}
+
+func formatDHCPServerIPs(ips []string) string {
+	var formattedIPs []string
+	for _, ip := range ips {
+		formattedIPs = append(formattedIPs, fmt.Sprintf(`"%s"`, ip))
+	}
+	return fmt.Sprintf("[%s]", strings.Join(formattedIPs, ", "))
+}
+
 // TODO: ipv6 prefix delegation test
 
 func quoteStrings(src []string) []string {
@@ -516,7 +593,7 @@ resource "unifi_network" "test" {
 
 	ipv6_interface_type = "%[4]s"
 	ipv6_static_subnet  = "%[5]s"
-	ipv6_ra_enable      = true
+	ipv6_ra_enabled     = true
 }
 `, name, subnet, vlan, ipv6Type, ipv6Subnet)
 }
@@ -692,4 +769,24 @@ resource "unifi_network" "test" {
 	multicast_dns = %[4]t
 }
 `, name, subnet, vlan, mdns)
+}
+
+func testAccNetworkConfigDHCPGuard(name string, subnet *net.IPNet, vlan int, dhcpGuard bool) string {
+	return fmt.Sprintf(`
+locals {
+    subnet  = "%[2]s"
+    vlan_id = %[3]d
+}
+
+resource "unifi_network" "test" {
+    name    = "%[1]s"
+    purpose = "corporate"
+
+    subnet      = local.subnet
+    vlan_id     = local.vlan_id
+    domain_name = "foo.local"
+    
+    dhcpguard_enabled = %[4]t
+}
+`, name, subnet, vlan, dhcpGuard)
 }
