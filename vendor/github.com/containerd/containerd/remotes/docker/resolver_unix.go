@@ -1,4 +1,4 @@
-//go:build !linux
+//go:build !windows
 
 /*
    Copyright The containerd Authors.
@@ -16,10 +16,13 @@
    limitations under the License.
 */
 
-package userns
+package docker
 
-// RunningInUserNS is a stub for non-Linux systems
-// Always returns false
-func RunningInUserNS() bool {
-	return false
+import (
+	"errors"
+	"syscall"
+)
+
+func isConnError(err error) bool {
+	return errors.Is(err, syscall.ECONNREFUSED)
 }

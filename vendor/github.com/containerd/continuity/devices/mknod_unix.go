@@ -1,3 +1,5 @@
+//go:build !(freebsd || windows)
+
 /*
    Copyright The containerd Authors.
 
@@ -14,14 +16,10 @@
    limitations under the License.
 */
 
-package platforms
+package devices
 
-// DefaultString returns the default string specifier for the platform.
-func DefaultString() string {
-	return Format(DefaultSpec())
-}
+import "golang.org/x/sys/unix"
 
-// DefaultStrict returns strict form of Default.
-func DefaultStrict() MatchComparer {
-	return OnlyStrict(DefaultSpec())
+func mknod(path string, mode uint32, dev uint64) (err error) {
+	return unix.Mknod(path, mode, int(dev))
 }

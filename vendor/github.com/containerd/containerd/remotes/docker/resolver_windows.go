@@ -1,3 +1,5 @@
+//go:build windows
+
 /*
    Copyright The containerd Authors.
 
@@ -14,29 +16,15 @@
    limitations under the License.
 */
 
-package platforms
+package docker
 
 import (
-	"fmt"
+	"errors"
+	"syscall"
 
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/sys/windows"
 )
 
-// NewMatcher returns a Windows matcher that will match on osVersionPrefix if
-// the platform is Windows otherwise use the default matcher
-func newDefaultMatcher(platform specs.Platform) Matcher {
-	prefix := prefix(platform.OSVersion)
-	return windowsmatcher{
-		Platform:        platform,
-		osVersionPrefix: prefix,
-		defaultMatcher: &matcher{
-			Platform: Normalize(platform),
-		},
-	}
-}
-
-func GetWindowsOsVersion() string {
-	major, minor, build := windows.RtlGetNtVersionNumbers()
-	return fmt.Sprintf("%d.%d.%d", major, minor, build)
+func isConnError(err error) bool {
+	return errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, windows.WSAECONNREFUSED)
 }
