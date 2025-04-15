@@ -25,6 +25,9 @@ var defaultValues = map[tree.Path]transformFunc{}
 func init() {
 	defaultValues["services.*.build"] = defaultBuildContext
 	defaultValues["services.*.secrets.*"] = defaultSecretMount
+	defaultValues["services.*.ports.*"] = portDefaults
+	defaultValues["services.*.deploy.resources.reservations.devices.*"] = deviceRequestDefaults
+	defaultValues["services.*.gpus.*"] = deviceRequestDefaults
 }
 
 // SetDefaultValues transforms a compose model to set default values to missing attributes
