@@ -31,7 +31,6 @@ type vizGraph map[*types.ServiceConfig][]*types.ServiceConfig
 func (s *composeService) Viz(_ context.Context, project *types.Project, opts api.VizOptions) (string, error) {
 	graph := make(vizGraph)
 	for _, service := range project.Services {
-		service := service
 		graph[&service] = make([]*types.ServiceConfig, 0, len(service.DependsOn))
 		for dependencyName := range service.DependsOn {
 			// no error should be returned since dependencyName should exist
@@ -88,7 +87,7 @@ func addNodes(graphBuilder *strings.Builder, graph vizGraph, projectName string,
 			graphBuilder.WriteString("<br/><br/><b>Ports:</b>")
 			for _, portConfig := range serviceNode.Ports {
 				graphBuilder.WriteString("<br/>")
-				if len(portConfig.HostIP) > 0 {
+				if portConfig.HostIP != "" {
 					graphBuilder.WriteString(portConfig.HostIP)
 					graphBuilder.WriteByte(':')
 				}

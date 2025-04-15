@@ -27,8 +27,8 @@ import (
 )
 
 // checkConsistency validate a compose model is consistent
-func checkConsistency(project *types.Project) error {
-	for _, s := range project.Services {
+func checkConsistency(project *types.Project) error { //nolint:gocyclo
+	for name, s := range project.Services {
 		if s.Build == nil && s.Image == "" {
 			return fmt.Errorf("service %q has neither an image nor a build context specified: %w", s.Name, errdefs.ErrInvalid)
 		}
@@ -36,6 +36,18 @@ func checkConsistency(project *types.Project) error {
 		if s.Build != nil {
 			if s.Build.DockerfileInline != "" && s.Build.Dockerfile != "" {
 				return fmt.Errorf("service %q declares mutualy exclusive dockerfile and dockerfile_inline: %w", s.Name, errdefs.ErrInvalid)
+			}
+
+			for add, c := range s.Build.AdditionalContexts {
+				if target, ok := strings.CutPrefix(c, types.ServicePrefix); ok {
+					t, err := project.GetService(target)
+					if err != nil {
+						return fmt.Errorf("service %q declares unknown service %q as additional contexts %s", name, target, add)
+					}
+					if t.Build == nil {
+						return fmt.Errorf("service %q declares non-buildable service %q as additional contexts %s", name, target, add)
+					}
+				}
 			}
 
 			if len(s.Build.Platforms) > 0 && s.Platform != "" {
@@ -155,11 +167,10 @@ func checkConsistency(project *types.Project) error {
 
 		if s.Develop != nil && s.Develop.Watch != nil {
 			for _, watch := range s.Develop.Watch {
-				if watch.Action != types.WatchActionRebuild && watch.Target == "" {
+				if watch.Target == "" && watch.Action != types.WatchActionRebuild && watch.Action != types.WatchActionRestart {
 					return fmt.Errorf("services.%s.develop.watch: target is required for non-rebuild actions: %w", s.Name, errdefs.ErrInvalid)
 				}
 			}
-
 		}
 	}
 

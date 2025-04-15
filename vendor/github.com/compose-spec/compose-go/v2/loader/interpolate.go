@@ -27,7 +27,6 @@ import (
 )
 
 var interpolateTypeCastMapping = map[tree.Path]interp.Cast{
-	servicePath("configs", tree.PathMatchList, "mode"):             toInt,
 	servicePath("cpu_count"):                                       toInt64,
 	servicePath("cpu_percent"):                                     toFloat,
 	servicePath("cpu_period"):                                      toInt64,
@@ -53,7 +52,6 @@ var interpolateTypeCastMapping = map[tree.Path]interp.Cast{
 	servicePath("privileged"):                                      toBoolean,
 	servicePath("read_only"):                                       toBoolean,
 	servicePath("scale"):                                           toInt,
-	servicePath("secrets", tree.PathMatchList, "mode"):             toInt,
 	servicePath("stdin_open"):                                      toBoolean,
 	servicePath("tty"):                                             toBoolean,
 	servicePath("ulimits", tree.PathMatchAll):                      toInt,
@@ -64,6 +62,7 @@ var interpolateTypeCastMapping = map[tree.Path]interp.Cast{
 	iPath("networks", tree.PathMatchAll, "external"):               toBoolean,
 	iPath("networks", tree.PathMatchAll, "internal"):               toBoolean,
 	iPath("networks", tree.PathMatchAll, "attachable"):             toBoolean,
+	iPath("networks", tree.PathMatchAll, "enable_ipv4"):            toBoolean,
 	iPath("networks", tree.PathMatchAll, "enable_ipv6"):            toBoolean,
 	iPath("volumes", tree.PathMatchAll, "external"):                toBoolean,
 	iPath("secrets", tree.PathMatchAll, "external"):                toBoolean,

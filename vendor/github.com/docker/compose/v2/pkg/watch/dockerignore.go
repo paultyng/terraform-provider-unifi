@@ -18,10 +18,13 @@ package watch
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/internal/paths"
 	"github.com/moby/patternmatcher"
 	"github.com/moby/patternmatcher/ignorefile"
@@ -61,13 +64,31 @@ func (i dockerPathMatcher) MatchesEntireDir(f string) (bool, error) {
 	return true, nil
 }
 
-func LoadDockerIgnore(repoRoot string) (*dockerPathMatcher, error) {
+func LoadDockerIgnore(build *types.BuildConfig) (PathMatcher, error) {
+	if build == nil {
+		return EmptyMatcher{}, nil
+	}
+	repoRoot := build.Context
 	absRoot, err := filepath.Abs(repoRoot)
 	if err != nil {
 		return nil, err
 	}
 
-	patterns, err := readDockerignorePatterns(absRoot)
+	// first try Dockerfile-specific ignore-file
+	f, err := os.Open(filepath.Join(repoRoot, build.Dockerfile+".dockerignore"))
+	if os.IsNotExist(err) {
+		// defaults to a global .dockerignore
+		f, err = os.Open(filepath.Join(repoRoot, ".dockerignore"))
+		if os.IsNotExist(err) {
+			return NewDockerPatternMatcher(repoRoot, nil)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = f.Close() }()
+
+	patterns, err := readDockerignorePatterns(f)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +132,15 @@ func NewDockerPatternMatcher(repoRoot string, patterns []string) (*dockerPathMat
 		return nil, err
 	}
 
+	// Check if "*" is present in patterns
+	hasAllPattern := slices.Contains(patterns, "*")
+	if hasAllPattern {
+		// Remove all non-exclusion patterns (those that don't start with '!')
+		patterns = slices.DeleteFunc(patterns, func(p string) bool {
+			return p != "" && p[0] != '!' // Only keep exclusion patterns
+		})
+	}
+
 	pm, err := patternmatcher.New(absPatterns(absRoot, patterns))
 	if err != nil {
 		return nil, err
@@ -122,19 +152,8 @@ func NewDockerPatternMatcher(repoRoot string, patterns []string) (*dockerPathMat
 	}, nil
 }
 
-func readDockerignorePatterns(repoRoot string) ([]string, error) {
-	var excludes []string
-
-	f, err := os.Open(filepath.Join(repoRoot, ".dockerignore"))
-	switch {
-	case os.IsNotExist(err):
-		return excludes, nil
-	case err != nil:
-		return nil, err
-	}
-	defer func() { _ = f.Close() }()
-
-	patterns, err := ignorefile.ReadAll(f)
+func readDockerignorePatterns(r io.Reader) ([]string, error) {
+	patterns, err := ignorefile.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("error reading .dockerignore: %w", err)
 	}

@@ -5,7 +5,7 @@ package buildx.controller.v1;
 import "github.com/moby/buildkit/api/services/control/control.proto";
 import "github.com/moby/buildkit/sourcepolicy/pb/policy.proto";
 
-option go_package = "pb";
+option go_package = "github.com/docker/buildx/controller/pb";
 
 service Controller {
   rpc Build(BuildRequest) returns (BuildResponse);
@@ -21,7 +21,7 @@ service Controller {
 }
 
 message ListProcessesRequest {
-  string Ref = 1;
+  string SessionID = 1;
 }
 
 message ListProcessesResponse {
@@ -34,7 +34,7 @@ message ProcessInfo {
 }
 
 message DisconnectProcessRequest {
-  string Ref = 1;
+  string SessionID = 1;
   string ProcessID = 2;
 }
 
@@ -42,14 +42,14 @@ message DisconnectProcessResponse {
 }
 
 message BuildRequest {
-  string Ref = 1;
+  string SessionID = 1;
   BuildOptions Options = 2;
 }
 
 message BuildOptions {
   string ContextPath = 1;
   string DockerfileName = 2;
-  PrintFunc PrintFunc = 3;
+  CallFunc CallFunc = 3;
   map<string, string> NamedContexts = 4;
 
   repeated string Allow = 5;
@@ -80,7 +80,7 @@ message BuildOptions {
   string Ref = 29;
   string GroupRef = 30;
   repeated string Annotations = 31;
-  bool WithProvenanceResponse = 32;
+  string ProvenanceResponseMode = 32;
 }
 
 message ExportEntry {
@@ -111,14 +111,14 @@ message Secret {
   string Env = 3;
 }
 
-message PrintFunc {
+message CallFunc {
   string Name = 1;
   string Format = 2;
   bool IgnoreStatus = 3;
 }
 
 message InspectRequest {
-  string Ref = 1;
+  string SessionID = 1;
 }
 
 message InspectResponse {
@@ -140,13 +140,13 @@ message BuildResponse {
 }
 
 message DisconnectRequest {
-  string Ref = 1;
+  string SessionID = 1;
 }
 
 message DisconnectResponse {}
 
 message ListRequest {
-  string Ref = 1;
+  string SessionID = 1;
 }
 
 message ListResponse {
@@ -161,7 +161,7 @@ message InputMessage {
 }
 
 message InputInitMessage {
-  string Ref = 1;
+  string SessionID = 1;
 }
 
 message DataMessage {
@@ -186,7 +186,7 @@ message Message {
 }
 
 message InitMessage {
-  string Ref = 1;
+  string SessionID = 1;
 
   // If ProcessID already exists in the server, it tries to connect to it
   // instead of invoking the new one. In this case, InvokeConfig will be ignored.
@@ -227,7 +227,7 @@ message SignalMessage {
 }
 
 message StatusRequest {
-  string Ref = 1;
+  string SessionID = 1;
 }
 
 message StatusResponse {

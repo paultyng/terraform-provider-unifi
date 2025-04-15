@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	moby "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/docker/compose/v2/pkg/api"
@@ -57,24 +57,23 @@ func (s *composeService) kill(ctx context.Context, projectName string, options a
 		containers = containers.filter(isService(project.ServiceNames()...))
 	}
 	if len(containers) == 0 {
-		fmt.Fprintf(s.stdinfo(), "no container to kill")
+		_, _ = fmt.Fprintf(s.stdinfo(), "no container to kill")
 		return nil
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
-	containers.
-		forEach(func(container moby.Container) {
-			eg.Go(func() error {
-				eventName := getContainerProgressName(container)
-				w.Event(progress.KillingEvent(eventName))
-				err := s.apiClient().ContainerKill(ctx, container.ID, options.Signal)
-				if err != nil {
-					w.Event(progress.ErrorMessageEvent(eventName, "Error while Killing"))
-					return err
-				}
-				w.Event(progress.KilledEvent(eventName))
-				return nil
-			})
+	containers.forEach(func(ctr container.Summary) {
+		eg.Go(func() error {
+			eventName := getContainerProgressName(ctr)
+			w.Event(progress.KillingEvent(eventName))
+			err := s.apiClient().ContainerKill(ctx, ctr.ID, options.Signal)
+			if err != nil {
+				w.Event(progress.ErrorMessageEvent(eventName, "Error while Killing"))
+				return err
+			}
+			w.Event(progress.KilledEvent(eventName))
+			return nil
 		})
+	})
 	return eg.Wait()
 }

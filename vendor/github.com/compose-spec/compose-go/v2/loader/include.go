@@ -50,16 +50,17 @@ func loadIncludeConfig(source any) ([]types.IncludeConfig, error) {
 	return requires, err
 }
 
-func ApplyInclude(ctx context.Context, configDetails types.ConfigDetails, model map[string]any, options *Options, included []string) error {
+func ApplyInclude(ctx context.Context, workingDir string, environment types.Mapping, model map[string]any, options *Options, included []string) error {
 	includeConfig, err := loadIncludeConfig(model["include"])
 	if err != nil {
 		return err
 	}
+
 	for _, r := range includeConfig {
 		for _, listener := range options.Listeners {
 			listener("include", map[string]any{
 				"path":       r.Path,
-				"workingdir": configDetails.WorkingDir,
+				"workingdir": workingDir,
 			})
 		}
 
@@ -83,7 +84,7 @@ func ApplyInclude(ctx context.Context, configDetails types.ConfigDetails, model 
 						r.ProjectDirectory = filepath.Dir(path)
 					case !filepath.IsAbs(r.ProjectDirectory):
 						relworkingdir = loader.Dir(r.ProjectDirectory)
-						r.ProjectDirectory = filepath.Join(configDetails.WorkingDir, r.ProjectDirectory)
+						r.ProjectDirectory = filepath.Join(workingDir, r.ProjectDirectory)
 
 					default:
 						relworkingdir = r.ProjectDirectory
@@ -117,7 +118,7 @@ func ApplyInclude(ctx context.Context, configDetails types.ConfigDetails, model 
 			envFile := []string{}
 			for _, f := range r.EnvFile {
 				if !filepath.IsAbs(f) {
-					f = filepath.Join(configDetails.WorkingDir, f)
+					f = filepath.Join(workingDir, f)
 					s, err := os.Stat(f)
 					if err != nil {
 						return err
@@ -131,7 +132,7 @@ func ApplyInclude(ctx context.Context, configDetails types.ConfigDetails, model 
 			r.EnvFile = envFile
 		}
 
-		envFromFile, err := dotenv.GetEnvFromFile(configDetails.Environment, r.EnvFile)
+		envFromFile, err := dotenv.GetEnvFromFile(environment, r.EnvFile)
 		if err != nil {
 			return err
 		}
@@ -139,7 +140,7 @@ func ApplyInclude(ctx context.Context, configDetails types.ConfigDetails, model 
 		config := types.ConfigDetails{
 			WorkingDir:  relworkingdir,
 			ConfigFiles: types.ToConfigFiles(r.Path),
-			Environment: configDetails.Environment.Clone().Merge(envFromFile),
+			Environment: environment.Clone().Merge(envFromFile),
 		}
 		loadOptions.Interpolate = &interp.Options{
 			Substitute:      options.Interpolate.Substitute,

@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/command/completion"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/opts"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
@@ -54,7 +52,7 @@ func NewExecCommand(dockerCli command.Cli) *cobra.Command {
 			options.Command = args[1:]
 			return RunExec(cmd.Context(), dockerCli, containerIDorName, options)
 		},
-		ValidArgsFunction: completion.ContainerNames(dockerCli, false, func(ctr types.Container) bool {
+		ValidArgsFunction: completion.ContainerNames(dockerCli, false, func(ctr container.Summary) bool {
 			return ctr.State != "paused"
 		}),
 		Annotations: map[string]string{
@@ -79,24 +77,20 @@ func NewExecCommand(dockerCli command.Cli) *cobra.Command {
 	flags.StringVarP(&options.Workdir, "workdir", "w", "", "Working directory inside the container")
 	flags.SetAnnotation("workdir", "version", []string{"1.35"})
 
-	_ = cmd.RegisterFlagCompletionFunc("env", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return os.Environ(), cobra.ShellCompDirectiveNoFileComp
-	})
-	_ = cmd.RegisterFlagCompletionFunc("env-file", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return nil, cobra.ShellCompDirectiveDefault // _filedir
-	})
+	_ = cmd.RegisterFlagCompletionFunc("env", completion.EnvVarNames)
+	_ = cmd.RegisterFlagCompletionFunc("env-file", completion.FileNames)
 
 	return cmd
 }
 
 // RunExec executes an `exec` command
-func RunExec(ctx context.Context, dockerCli command.Cli, containerIDorName string, options ExecOptions) error {
-	execOptions, err := parseExec(options, dockerCli.ConfigFile())
+func RunExec(ctx context.Context, dockerCLI command.Cli, containerIDorName string, options ExecOptions) error {
+	execOptions, err := parseExec(options, dockerCLI.ConfigFile())
 	if err != nil {
 		return err
 	}
 
-	apiClient := dockerCli.Client()
+	apiClient := dockerCLI.Client()
 
 	// We need to check the tty _before_ we do the ContainerExecCreate, because
 	// otherwise if we error out we will leak execIDs on the server (and
@@ -106,12 +100,12 @@ func RunExec(ctx context.Context, dockerCli command.Cli, containerIDorName strin
 		return err
 	}
 	if !execOptions.Detach {
-		if err := dockerCli.In().CheckTty(execOptions.AttachStdin, execOptions.Tty); err != nil {
+		if err := dockerCLI.In().CheckTty(execOptions.AttachStdin, execOptions.Tty); err != nil {
 			return err
 		}
 	}
 
-	fillConsoleSize(execOptions, dockerCli)
+	fillConsoleSize(execOptions, dockerCLI)
 
 	response, err := apiClient.ContainerExecCreate(ctx, containerIDorName, *execOptions)
 	if err != nil {
@@ -130,7 +124,7 @@ func RunExec(ctx context.Context, dockerCli command.Cli, containerIDorName strin
 			ConsoleSize: execOptions.ConsoleSize,
 		})
 	}
-	return interactiveExec(ctx, dockerCli, execOptions, execID)
+	return interactiveExec(ctx, dockerCLI, execOptions, execID)
 }
 
 func fillConsoleSize(execOptions *container.ExecOptions, dockerCli command.Cli) {

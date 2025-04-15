@@ -7,7 +7,7 @@ import (
 
 	"github.com/docker/buildx/util/progress"
 	"github.com/docker/cli/cli/command"
-	"github.com/docker/docker/client"
+	dockerclient "github.com/docker/docker/client"
 )
 
 // Client represents an active docker object.
@@ -24,7 +24,7 @@ func NewClient(cli command.Cli) *Client {
 }
 
 // API returns a new docker API client.
-func (c *Client) API(name string) (client.APIClient, error) {
+func (c *Client) API(name string) (dockerclient.APIClient, error) {
 	if name == "" {
 		name = c.cli.CurrentContext()
 	}
@@ -41,7 +41,6 @@ func (c *Client) LoadImage(ctx context.Context, name string, status progress.Wri
 	pr, pw := io.Pipe()
 	done := make(chan struct{})
 
-	ctx, cancel := context.WithCancel(ctx)
 	var w *waitingWriter
 	w = &waitingWriter{
 		PipeWriter: pw,
@@ -53,7 +52,7 @@ func (c *Client) LoadImage(ctx context.Context, name string, status progress.Wri
 				w.mu.Unlock()
 			}
 
-			resp, err := dapi.ImageLoad(ctx, pr, false)
+			resp, err := dapi.ImageLoad(ctx, pr)
 			defer close(done)
 			if err != nil {
 				handleErr(err)
@@ -67,8 +66,7 @@ func (c *Client) LoadImage(ctx context.Context, name string, status progress.Wri
 				handleErr(err)
 			}
 		},
-		done:   done,
-		cancel: cancel,
+		done: done,
 	}
 	return w, func() {
 		pr.Close()
@@ -101,12 +99,11 @@ func (c *Client) features(ctx context.Context, name string) map[Feature]bool {
 
 type waitingWriter struct {
 	*io.PipeWriter
-	f      func()
-	once   sync.Once
-	mu     sync.Mutex
-	err    error
-	done   chan struct{}
-	cancel func()
+	f    func()
+	once sync.Once
+	mu   sync.Mutex
+	err  error
+	done chan struct{}
 }
 
 func (w *waitingWriter) Write(dt []byte) (int, error) {

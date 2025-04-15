@@ -1,5 +1,5 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.21
+//go:build go1.22
 
 package types
 
@@ -207,6 +207,7 @@ type ServiceConfig struct {
 	Tty             bool                             `mapstructure:"tty" yaml:"tty,omitempty" json:"tty,omitempty"`
 	Ulimits         map[string]*UlimitsConfig        `yaml:",omitempty" json:"ulimits,omitempty"`
 	User            string                           `yaml:",omitempty" json:"user,omitempty"`
+	OomScoreAdj     int64                            `yaml:",omitempty" json:"oom_score_adj,omitempty"`
 	UserNSMode      string                           `mapstructure:"userns_mode" yaml:"userns_mode,omitempty" json:"userns_mode,omitempty"`
 	Volumes         []ServiceVolumeConfig            `yaml:",omitempty" json:"volumes,omitempty"`
 	WorkingDir      string                           `mapstructure:"working_dir" yaml:"working_dir,omitempty" json:"working_dir,omitempty"`
@@ -397,6 +398,7 @@ type ServiceVolumeConfig struct {
 	Consistency string                `yaml:",omitempty" json:"consistency,omitempty"`
 	Bind        *ServiceVolumeBind    `yaml:",omitempty" json:"bind,omitempty"`
 	Volume      *ServiceVolumeVolume  `yaml:",omitempty" json:"volume,omitempty"`
+	Image       *ServiceVolumeImage   `yaml:",omitempty" json:"image,omitempty"`
 	Tmpfs       *ServiceVolumeTmpfs   `yaml:",omitempty" json:"tmpfs,omitempty"`
 	Cluster     *ServiceVolumeCluster `yaml:",omitempty" json:"cluster,omitempty"`
 }
@@ -408,7 +410,13 @@ type ServiceVolumeBind struct {
 
 // ServiceVolumeVolume are options for a service volume of type volume
 type ServiceVolumeVolume struct {
-	NoCopy bool `mapstructure:"nocopy" yaml:"nocopy,omitempty" json:"nocopy,omitempty"`
+	NoCopy  bool   `mapstructure:"nocopy" yaml:"nocopy,omitempty" json:"nocopy,omitempty"`
+	Subpath string `mapstructure:"subpath" yaml:"subpath,omitempty" json:"subpath,omitempty"`
+}
+
+// ServiceVolumeImage are options for a service volume of type image
+type ServiceVolumeImage struct {
+	Subpath string `mapstructure:"subpath" yaml:"subpath,omitempty" json:"subpath,omitempty"`
 }
 
 // ServiceVolumeTmpfs are options for a service volume of type tmpfs

@@ -93,7 +93,7 @@ func (s *composeService) prepareRun(ctx context.Context, project *types.Project,
 	}
 
 	if !opts.NoDeps {
-		if err := s.waitDependencies(ctx, project, service.Name, service.DependsOn, observedState); err != nil {
+		if err := s.waitDependencies(ctx, project, service.Name, service.DependsOn, observedState, 0); err != nil {
 			return "", err
 		}
 	}
@@ -104,12 +104,12 @@ func (s *composeService) prepareRun(ctx context.Context, project *types.Project,
 		Labels:            mergeLabels(service.Labels, service.CustomLabels),
 	}
 
-	err = newConvergence(project.ServiceNames(), observedState, s).resolveServiceReferences(&service)
+	err = newConvergence(project.ServiceNames(), observedState, nil, nil, s).resolveServiceReferences(&service)
 	if err != nil {
 		return "", err
 	}
 
-	created, err := s.createContainer(ctx, project, service, service.ContainerName, 1, createOpts)
+	created, err := s.createContainer(ctx, project, service, service.ContainerName, -1, createOpts)
 	if err != nil {
 		return "", err
 	}
@@ -124,7 +124,7 @@ func applyRunOptions(project *types.Project, service *types.ServiceConfig, opts 
 	if len(opts.Command) > 0 {
 		service.Command = opts.Command
 	}
-	if len(opts.User) > 0 {
+	if opts.User != "" {
 		service.User = opts.User
 	}
 
@@ -136,7 +136,7 @@ func applyRunOptions(project *types.Project, service *types.ServiceConfig, opts 
 		service.CapDrop = append(service.CapDrop, opts.CapDrop...)
 		service.CapAdd = utils.Remove(service.CapAdd, opts.CapDrop...)
 	}
-	if len(opts.WorkingDir) > 0 {
+	if opts.WorkingDir != "" {
 		service.WorkingDir = opts.WorkingDir
 	}
 	if opts.Entrypoint != nil {

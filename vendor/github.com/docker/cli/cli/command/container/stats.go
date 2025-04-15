@@ -1,7 +1,9 @@
 package container
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -16,7 +18,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -237,16 +238,16 @@ func RunStats(ctx context.Context, dockerCLI command.Cli, options *StatsOptions)
 		// make sure each container get at least one valid stat data
 		waitFirst.Wait()
 
-		var errs []string
+		var errs []error
 		cStats.mu.RLock()
 		for _, c := range cStats.cs {
 			if err := c.GetError(); err != nil {
-				errs = append(errs, err.Error())
+				errs = append(errs, err)
 			}
 		}
 		cStats.mu.RUnlock()
-		if len(errs) > 0 {
-			return errors.New(strings.Join(errs, "\n"))
+		if err := errors.Join(errs...); err != nil {
+			return err
 		}
 	}
 
@@ -264,31 +265,50 @@ func RunStats(ctx context.Context, dockerCLI command.Cli, options *StatsOptions)
 		// so we unlikely hit this code in practice.
 		daemonOSType = dockerCLI.ServerInfo().OSType
 	}
+
+	// Buffer to store formatted stats text.
+	// Once formatted, it will be printed in one write to avoid screen flickering.
+	var statsTextBuffer bytes.Buffer
+
 	statsCtx := formatter.Context{
-		Output: dockerCLI.Out(),
+		Output: &statsTextBuffer,
 		Format: NewStatsFormat(format, daemonOSType),
-	}
-	cleanScreen := func() {
-		if !options.NoStream {
-			_, _ = fmt.Fprint(dockerCLI.Out(), "\033[2J")
-			_, _ = fmt.Fprint(dockerCLI.Out(), "\033[H")
-		}
 	}
 
 	var err error
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	for range ticker.C {
-		cleanScreen()
 		var ccStats []StatsEntry
 		cStats.mu.RLock()
 		for _, c := range cStats.cs {
 			ccStats = append(ccStats, c.GetStatistics())
 		}
 		cStats.mu.RUnlock()
+
+		if !options.NoStream {
+			// Start by moving the cursor to the top-left
+			_, _ = fmt.Fprint(&statsTextBuffer, "\033[H")
+		}
+
 		if err = statsFormatWrite(statsCtx, ccStats, daemonOSType, !options.NoTrunc); err != nil {
 			break
 		}
+
+		if !options.NoStream {
+			for _, line := range strings.Split(statsTextBuffer.String(), "\n") {
+				// In case the new text is shorter than the one we are writing over,
+				// we'll append the "erase line" escape sequence to clear the remaining text.
+				_, _ = fmt.Fprintln(&statsTextBuffer, line, "\033[K")
+			}
+
+			// We might have fewer containers than before, so let's clear the remaining text
+			_, _ = fmt.Fprint(&statsTextBuffer, "\033[J")
+		}
+
+		_, _ = fmt.Fprint(dockerCLI.Out(), statsTextBuffer.String())
+		statsTextBuffer.Reset()
+
 		if len(cStats.cs) == 0 && !showAll {
 			break
 		}

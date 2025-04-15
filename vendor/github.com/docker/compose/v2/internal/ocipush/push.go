@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"time"
 
-	pusherrors "github.com/containerd/containerd/remotes/errors"
+	pusherrors "github.com/containerd/containerd/v2/core/remotes/errors"
 	"github.com/distribution/reference"
 	"github.com/docker/buildx/util/imagetools"
 	"github.com/docker/compose/v2/pkg/api"
@@ -54,6 +54,8 @@ const (
 	// 	> an artifactType field, and tooling to work with artifacts should
 	//	> fallback to the config.mediaType value.
 	ComposeEmptyConfigMediaType = "application/vnd.docker.compose.config.empty.v1+json"
+	// ComposeEnvFileMediaType is the media type for each Env File layer in the image manifest.
+	ComposeEnvFileMediaType = "application/vnd.docker.compose.envfile"
 )
 
 // clientAuthStatusCodes are client (4xx) errors that are authentication
@@ -81,6 +83,18 @@ func DescriptorForComposeFile(path string, content []byte) v1.Descriptor {
 	}
 }
 
+func DescriptorForEnvFile(path string, content []byte) v1.Descriptor {
+	return v1.Descriptor{
+		MediaType: ComposeEnvFileMediaType,
+		Digest:    digest.FromString(string(content)),
+		Size:      int64(len(content)),
+		Annotations: map[string]string{
+			"com.docker.compose.version": api.ComposeVersion,
+			"com.docker.compose.envfile": filepath.Base(path),
+		},
+	}
+}
+
 func PushManifest(
 	ctx context.Context,
 	resolver *imagetools.Resolver,
@@ -88,6 +102,10 @@ func PushManifest(
 	layers []Pushable,
 	ociVersion api.OCIVersion,
 ) error {
+	// Check if we need an extra empty layer for the manifest config
+	if ociVersion == api.OCIVersion1_1 || ociVersion == "" {
+		layers = append(layers, Pushable{Descriptor: v1.DescriptorEmptyJSON, Data: []byte("{}")})
+	}
 	// prepare to push the manifest by pushing the layers
 	layerDescriptors := make([]v1.Descriptor, len(layers))
 	for i := range layers {
@@ -179,7 +197,7 @@ func generateManifest(layers []v1.Descriptor, ociCompat api.OCIVersion) ([]Pusha
 		config = v1.DescriptorEmptyJSON
 		artifactType = ComposeProjectArtifactType
 		// N.B. the descriptor has the data embedded in it
-		toPush = append(toPush, Pushable{Descriptor: config, Data: nil})
+		toPush = append(toPush, Pushable{Descriptor: config, Data: make([]byte, len(config.Data))})
 	default:
 		return nil, fmt.Errorf("unsupported OCI version: %s", ociCompat)
 	}

@@ -89,7 +89,7 @@ func (scs simpleCredentialStore) RefreshToken(*url.URL, string) string {
 	return scs.auth.IdentityToken
 }
 
-func (scs simpleCredentialStore) SetRefreshToken(*url.URL, string, string) {}
+func (simpleCredentialStore) SetRefreshToken(*url.URL, string, string) {}
 
 // GetNotaryRepository returns a NotaryRepository which stores all the
 // information needed to operate on a notary repository.
@@ -157,7 +157,6 @@ func GetNotaryRepository(in io.Reader, out io.Writer, userAgent string, repoInfo
 	scope := auth.RepositoryScope{
 		Repository: repoInfo.Name.Name(),
 		Actions:    actions,
-		Class:      repoInfo.Class, // TODO(thaJeztah): Class is no longer needed for plugins and can likely be removed; see https://github.com/docker/cli/pull/4114#discussion_r1145430825
 	}
 	creds := simpleCredentialStore{auth: *authConfig}
 	tokenHandlerOptions := auth.TokenHandlerOptions{
