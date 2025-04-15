@@ -1,5 +1,3 @@
-//go:build !windows
-
 /*
    Copyright The containerd Authors.
 
@@ -16,19 +14,20 @@
    limitations under the License.
 */
 
-package platforms
+package fs
 
 import (
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"fmt"
+	"io/fs"
+	"syscall"
+	"time"
 )
 
-// NewMatcher returns the default Matcher for containerd
-func newDefaultMatcher(platform specs.Platform) Matcher {
-	return &matcher{
-		Platform: Normalize(platform),
+func Atime(st fs.FileInfo) (time.Time, error) {
+	stSys, ok := st.Sys().(*syscall.Win32FileAttributeData)
+	if !ok {
+		return time.Time{}, fmt.Errorf("expected st.Sys() to be *syscall.Win32FileAttributeData, got %T", st.Sys())
 	}
-}
-
-func GetWindowsOsVersion() string {
-	return ""
+	// ref: https://github.com/golang/go/blob/go1.19.2/src/os/types_windows.go#L230
+	return time.Unix(0, stSys.LastAccessTime.Nanoseconds()), nil
 }
