@@ -1,14 +1,16 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.21
+//go:build go1.22
 
 package schema
 
 import (
 	"embed"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
+	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -20,9 +22,18 @@ const (
 
 type portsFormatChecker struct{}
 
-func (checker portsFormatChecker) IsFormat(_ any) bool {
-	// TODO: implement this
-	return true
+func (checker portsFormatChecker) IsFormat(input any) bool {
+	var portSpec string
+
+	switch p := input.(type) {
+	case string:
+		portSpec = p
+	case *big.Rat:
+		portSpec = strings.Split(p.String(), "/")[0]
+	}
+
+	_, err := nat.ParsePortSpec(portSpec)
+	return err == nil
 }
 
 type durationFormatChecker struct{}
@@ -37,7 +48,6 @@ func (checker durationFormatChecker) IsFormat(input any) bool {
 }
 
 func init() {
-	gojsonschema.FormatCheckers.Add("expose", portsFormatChecker{})
 	gojsonschema.FormatCheckers.Add("ports", portsFormatChecker{})
 	gojsonschema.FormatCheckers.Add("duration", durationFormatChecker{})
 }
