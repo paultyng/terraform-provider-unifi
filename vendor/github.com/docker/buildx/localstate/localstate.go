@@ -6,14 +6,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 
-	"github.com/docker/docker/pkg/ioutils"
+	"github.com/docker/buildx/util/confutil"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
 const (
+	version  = 2
 	refsDir  = "refs"
 	groupDir = "__group__"
 )
@@ -21,46 +23,41 @@ const (
 type State struct {
 	// Target is the name of the invoked target (default if empty)
 	Target string
-	// LocalPath is the absolute path to the context
+	// LocalPath is the absolute path to the context or remote context
 	LocalPath string
-	// DockerfilePath is the absolute path to the Dockerfile
+	// DockerfilePath is the absolute path to the Dockerfile or relative if
+	// context is remote
 	DockerfilePath string
 	// GroupRef is the ref of the state group that this ref belongs to
 	GroupRef string `json:",omitempty"`
 }
 
 type StateGroup struct {
-	// Definition is the raw representation of the group (bake definition)
-	Definition []byte
 	// Targets are the targets invoked
 	Targets []string `json:",omitempty"`
-	// Inputs are the user inputs (bake overrides)
-	Inputs []string `json:",omitempty"`
 	// Refs are used to track all the refs that belong to the same group
 	Refs []string
 }
 
 type LocalState struct {
-	root string
+	cfg *confutil.Config
 }
 
-func New(root string) (*LocalState, error) {
-	if root == "" {
-		return nil, errors.Errorf("root dir empty")
+func New(cfg *confutil.Config) (*LocalState, error) {
+	if cfg.Dir() == "" {
+		return nil, errors.Errorf("config dir empty")
 	}
-	if err := os.MkdirAll(filepath.Join(root, refsDir), 0700); err != nil {
+	if err := cfg.MkdirAll(refsDir, 0700); err != nil {
 		return nil, err
 	}
-	return &LocalState{
-		root: root,
-	}, nil
+	return &LocalState{cfg: cfg}, nil
 }
 
 func (ls *LocalState) ReadRef(builderName, nodeName, id string) (*State, error) {
 	if err := ls.validate(builderName, nodeName, id); err != nil {
 		return nil, err
 	}
-	dt, err := os.ReadFile(filepath.Join(ls.root, refsDir, builderName, nodeName, id))
+	dt, err := os.ReadFile(filepath.Join(ls.cfg.Dir(), refsDir, builderName, nodeName, id))
 	if err != nil {
 		return nil, err
 	}
@@ -75,19 +72,23 @@ func (ls *LocalState) SaveRef(builderName, nodeName, id string, st State) error 
 	if err := ls.validate(builderName, nodeName, id); err != nil {
 		return err
 	}
-	refDir := filepath.Join(ls.root, refsDir, builderName, nodeName)
-	if err := os.MkdirAll(refDir, 0700); err != nil {
+	refDir := filepath.Join(refsDir, builderName, nodeName)
+	if err := ls.cfg.MkdirAll(refDir, 0700); err != nil {
 		return err
 	}
 	dt, err := json.Marshal(st)
 	if err != nil {
 		return err
 	}
-	return ioutils.AtomicWriteFile(filepath.Join(refDir, id), dt, 0600)
+	return ls.cfg.AtomicWriteFile(filepath.Join(refDir, id), dt, 0644)
+}
+
+func (ls *LocalState) GroupDir() string {
+	return filepath.Join(ls.cfg.Dir(), refsDir, groupDir)
 }
 
 func (ls *LocalState) ReadGroup(id string) (*StateGroup, error) {
-	dt, err := os.ReadFile(filepath.Join(ls.root, refsDir, groupDir, id))
+	dt, err := os.ReadFile(filepath.Join(ls.GroupDir(), id))
 	if err != nil {
 		return nil, err
 	}
@@ -99,15 +100,15 @@ func (ls *LocalState) ReadGroup(id string) (*StateGroup, error) {
 }
 
 func (ls *LocalState) SaveGroup(id string, stg StateGroup) error {
-	refDir := filepath.Join(ls.root, refsDir, groupDir)
-	if err := os.MkdirAll(refDir, 0700); err != nil {
+	refDir := filepath.Join(refsDir, groupDir)
+	if err := ls.cfg.MkdirAll(refDir, 0700); err != nil {
 		return err
 	}
 	dt, err := json.Marshal(stg)
 	if err != nil {
 		return err
 	}
-	return ioutils.AtomicWriteFile(filepath.Join(refDir, id), dt, 0600)
+	return ls.cfg.AtomicWriteFile(filepath.Join(refDir, id), dt, 0600)
 }
 
 func (ls *LocalState) RemoveBuilder(builderName string) error {
@@ -115,7 +116,7 @@ func (ls *LocalState) RemoveBuilder(builderName string) error {
 		return errors.Errorf("builder name empty")
 	}
 
-	dir := filepath.Join(ls.root, refsDir, builderName)
+	dir := filepath.Join(ls.cfg.Dir(), refsDir, builderName)
 	if _, err := os.Lstat(dir); err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -146,7 +147,7 @@ func (ls *LocalState) RemoveBuilderNode(builderName string, nodeName string) err
 		return errors.Errorf("node name empty")
 	}
 
-	dir := filepath.Join(ls.root, refsDir, builderName, nodeName)
+	dir := filepath.Join(ls.cfg.Dir(), refsDir, builderName, nodeName)
 	if _, err := os.Lstat(dir); err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -207,7 +208,7 @@ func (ls *LocalState) removeGroup(id string) error {
 	if id == "" {
 		return errors.Errorf("group ref empty")
 	}
-	f := filepath.Join(ls.root, refsDir, groupDir, id)
+	f := filepath.Join(ls.GroupDir(), id)
 	if _, err := os.Lstat(f); err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -228,4 +229,17 @@ func (ls *LocalState) validate(builderName, nodeName, id string) error {
 		return errors.Errorf("ref ID empty")
 	}
 	return nil
+}
+
+func (ls *LocalState) readVersion() int {
+	if vdt, err := os.ReadFile(filepath.Join(ls.cfg.Dir(), refsDir, "version")); err == nil {
+		if v, err := strconv.Atoi(string(vdt)); err == nil {
+			return v
+		}
+	}
+	return 1
+}
+
+func (ls *LocalState) writeVersion(version int) error {
+	return ls.cfg.AtomicWriteFile(filepath.Join(refsDir, "version"), []byte(strconv.Itoa(version)), 0600)
 }

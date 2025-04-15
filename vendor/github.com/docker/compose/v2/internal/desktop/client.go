@@ -27,10 +27,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/docker/compose/v2/internal"
 	"github.com/docker/compose/v2/internal/memnet"
 	"github.com/r3labs/sse"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
+
+// identify this client in the logs
+var userAgent = "compose/" + internal.Version
 
 // Client for integration with Docker Desktop features.
 type Client struct {
@@ -76,6 +80,7 @@ func (c *Client) Ping(ctx context.Context) (*PingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -105,6 +110,7 @@ func (c *Client) FeatureFlags(ctx context.Context) (FeatureFlagResponse, error) 
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -135,6 +141,7 @@ func (c *Client) GetFileSharesConfig(ctx context.Context) (*GetFileSharesConfigR
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -166,10 +173,11 @@ type CreateFileShareResponse struct {
 func (c *Client) CreateFileShare(ctx context.Context, r CreateFileShareRequest) (*CreateFileShareResponse, error) {
 	rawBody, _ := json.Marshal(r)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, backendURL("/mutagen/file-shares"), bytes.NewReader(rawBody))
-	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -212,6 +220,7 @@ func (c *Client) ListFileShares(ctx context.Context) ([]FileShareSession, error)
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -236,6 +245,7 @@ func (c *Client) DeleteFileShare(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
@@ -268,6 +278,7 @@ func (c *Client) StreamFileShares(ctx context.Context) (<-chan EventMessage[[]Fi
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err

@@ -8,13 +8,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/content/proxy"
+	"github.com/containerd/containerd/v2/core/content"
+	"github.com/containerd/containerd/v2/core/content/proxy"
 	"github.com/docker/buildx/util/confutil"
 	"github.com/docker/buildx/util/progress"
 	controlapi "github.com/moby/buildkit/api/services/control"
 	"github.com/moby/buildkit/client"
 	provenancetypes "github.com/moby/buildkit/solver/llbsolver/provenance/types"
+	digest "github.com/opencontainers/go-digest"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -29,8 +30,7 @@ type provenanceBuilder struct {
 	ID string `json:"id,omitempty"`
 }
 
-func setRecordProvenance(ctx context.Context, c *client.Client, sr *client.SolveResponse, ref string, pw progress.Writer) error {
-	mode := confutil.MetadataProvenance()
+func setRecordProvenance(ctx context.Context, c *client.Client, sr *client.SolveResponse, ref string, mode confutil.MetadataProvenanceMode, pw progress.Writer) error {
 	if mode == confutil.MetadataProvenanceModeDisabled {
 		return nil
 	}
@@ -125,8 +125,8 @@ func lookupProvenance(res *controlapi.BuildResultInfo) *ocispecs.Descriptor {
 	for _, a := range res.Attestations {
 		if a.MediaType == "application/vnd.in-toto+json" && strings.HasPrefix(a.Annotations["in-toto.io/predicate-type"], "https://slsa.dev/provenance/") {
 			return &ocispecs.Descriptor{
-				Digest:      a.Digest,
-				Size:        a.Size_,
+				Digest:      digest.Digest(a.Digest),
+				Size:        a.Size,
 				MediaType:   a.MediaType,
 				Annotations: a.Annotations,
 			}

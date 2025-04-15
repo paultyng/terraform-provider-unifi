@@ -8,13 +8,12 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/images"
-	"github.com/containerd/containerd/platforms"
-	"github.com/containerd/containerd/remotes"
+	"github.com/containerd/containerd/v2/core/content"
+	"github.com/containerd/containerd/v2/core/images"
+	"github.com/containerd/containerd/v2/core/remotes"
 	"github.com/containerd/errdefs"
+	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
-	"github.com/docker/buildx/util/buildflags"
 	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	"github.com/moby/buildkit/util/contentutil"
 	"github.com/opencontainers/go-digest"
@@ -29,7 +28,7 @@ type Source struct {
 	Ref  reference.Named
 }
 
-func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann []string, preferIndex bool) ([]byte, ocispec.Descriptor, error) {
+func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann map[exptypes.AnnotationKey]string, preferIndex bool) ([]byte, ocispec.Descriptor, error) {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	dts := make([][]byte, len(srcs))
@@ -152,11 +151,7 @@ func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann []string, pr
 	// annotations are only allowed on OCI indexes
 	indexAnnotation := make(map[string]string)
 	if mt == ocispec.MediaTypeImageIndex {
-		annotations, err := buildflags.ParseAnnotations(ann)
-		if err != nil {
-			return nil, ocispec.Descriptor{}, err
-		}
-		for k, v := range annotations {
+		for k, v := range ann {
 			switch k.Type {
 			case exptypes.AnnotationIndex:
 				indexAnnotation[k.Key] = v

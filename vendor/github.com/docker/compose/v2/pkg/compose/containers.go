@@ -25,13 +25,12 @@ import (
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
 	"github.com/docker/compose/v2/pkg/utils"
-	moby "github.com/docker/docker/api/types"
-	containerType "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 )
 
 // Containers is a set of moby Container
-type Containers []moby.Container
+type Containers []container.Summary
 
 type oneOff int
 
@@ -44,7 +43,7 @@ const (
 func (s *composeService) getContainers(ctx context.Context, project string, oneOff oneOff, all bool, selectedServices ...string) (Containers, error) {
 	var containers Containers
 	f := getDefaultFilters(project, oneOff, selectedServices...)
-	containers, err := s.apiClient().ContainerList(ctx, containerType.ListOptions{
+	containers, err := s.apiClient().ContainerList(ctx, container.ListOptions{
 		Filters: filters.NewArgs(f...),
 		All:     all,
 	})
@@ -73,77 +72,93 @@ func getDefaultFilters(projectName string, oneOff oneOff, selectedServices ...st
 	return f
 }
 
-func (s *composeService) getSpecifiedContainer(ctx context.Context, projectName string, oneOff oneOff, all bool, serviceName string, containerIndex int) (moby.Container, error) {
+func (s *composeService) getSpecifiedContainer(ctx context.Context, projectName string, oneOff oneOff, all bool, serviceName string, containerIndex int) (container.Summary, error) {
 	defaultFilters := getDefaultFilters(projectName, oneOff, serviceName)
 	if containerIndex > 0 {
 		defaultFilters = append(defaultFilters, containerNumberFilter(containerIndex))
 	}
-	containers, err := s.apiClient().ContainerList(ctx, containerType.ListOptions{
+	containers, err := s.apiClient().ContainerList(ctx, container.ListOptions{
 		Filters: filters.NewArgs(
 			defaultFilters...,
 		),
 		All: all,
 	})
 	if err != nil {
-		return moby.Container{}, err
+		return container.Summary{}, err
 	}
 	if len(containers) < 1 {
 		if containerIndex > 0 {
-			return moby.Container{}, fmt.Errorf("service %q is not running container #%d", serviceName, containerIndex)
+			return container.Summary{}, fmt.Errorf("service %q is not running container #%d", serviceName, containerIndex)
 		}
-		return moby.Container{}, fmt.Errorf("service %q is not running", serviceName)
+		return container.Summary{}, fmt.Errorf("service %q is not running", serviceName)
 	}
+
+	// Sort by container number first, then put one-off containers at the end
 	sort.Slice(containers, func(i, j int) bool {
-		x, _ := strconv.Atoi(containers[i].Labels[api.ContainerNumberLabel])
-		y, _ := strconv.Atoi(containers[j].Labels[api.ContainerNumberLabel])
-		return x < y
+		numberLabelX, _ := strconv.Atoi(containers[i].Labels[api.ContainerNumberLabel])
+		numberLabelY, _ := strconv.Atoi(containers[j].Labels[api.ContainerNumberLabel])
+		IsOneOffLabelTrueX := containers[i].Labels[api.OneoffLabel] == "True"
+		IsOneOffLabelTrueY := containers[j].Labels[api.OneoffLabel] == "True"
+
+		if numberLabelX == numberLabelY {
+			return !IsOneOffLabelTrueX && IsOneOffLabelTrueY
+		}
+
+		return numberLabelX < numberLabelY
 	})
-	container := containers[0]
-	return container, nil
+	return containers[0], nil
 }
 
 // containerPredicate define a predicate we want container to satisfy for filtering operations
-type containerPredicate func(c moby.Container) bool
+type containerPredicate func(c container.Summary) bool
+
+func matches(c container.Summary, predicates ...containerPredicate) bool {
+	for _, predicate := range predicates {
+		if !predicate(c) {
+			return false
+		}
+	}
+	return true
+}
 
 func isService(services ...string) containerPredicate {
-	return func(c moby.Container) bool {
+	return func(c container.Summary) bool {
 		service := c.Labels[api.ServiceLabel]
 		return utils.StringContains(services, service)
 	}
 }
 
 func isRunning() containerPredicate {
-	return func(c moby.Container) bool {
+	return func(c container.Summary) bool {
 		return c.State == "running"
-	}
-}
-
-func isNotService(services ...string) containerPredicate {
-	return func(c moby.Container) bool {
-		service := c.Labels[api.ServiceLabel]
-		return !utils.StringContains(services, service)
 	}
 }
 
 // isOrphaned is a predicate to select containers without a matching service definition in compose project
 func isOrphaned(project *types.Project) containerPredicate {
 	services := append(project.ServiceNames(), project.DisabledServiceNames()...)
-	return func(c moby.Container) bool {
+	return func(c container.Summary) bool {
+		// One-off container
+		v, ok := c.Labels[api.OneoffLabel]
+		if ok && v == "True" {
+			return c.State == ContainerExited || c.State == ContainerDead
+		}
+		// Service that is not defined in the compose model
 		service := c.Labels[api.ServiceLabel]
 		return !utils.StringContains(services, service)
 	}
 }
 
-func isNotOneOff(c moby.Container) bool {
+func isNotOneOff(c container.Summary) bool {
 	v, ok := c.Labels[api.OneoffLabel]
 	return !ok || v == "False"
 }
 
 // filter return Containers with elements to match predicate
-func (containers Containers) filter(predicate containerPredicate) Containers {
+func (containers Containers) filter(predicates ...containerPredicate) Containers {
 	var filtered Containers
 	for _, c := range containers {
-		if predicate(c) {
+		if matches(c, predicates...) {
 			filtered = append(filtered, c)
 		}
 	}
@@ -158,7 +173,7 @@ func (containers Containers) names() []string {
 	return names
 }
 
-func (containers Containers) forEach(fn func(moby.Container)) {
+func (containers Containers) forEach(fn func(container.Summary)) {
 	for _, c := range containers {
 		fn(c)
 	}

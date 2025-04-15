@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/docker/cli/opts"
 	"github.com/docker/compose/v2/pkg/utils"
 )
 
@@ -90,6 +91,12 @@ type Service interface {
 	Wait(ctx context.Context, projectName string, options WaitOptions) (int64, error)
 	// Scale manages numbers of container instances running per service
 	Scale(ctx context.Context, project *types.Project, options ScaleOptions) error
+	// Export a service container's filesystem as a tar archive
+	Export(ctx context.Context, projectName string, options ExportOptions) error
+	// Create a new image from a service container's changes
+	Commit(ctx context.Context, projectName string, options CommitOptions) error
+	// Generate generates a Compose Project from existing containers
+	Generate(ctx context.Context, options GenerateOptions) (*types.Project, error)
 }
 
 type ScaleOptions struct {
@@ -121,6 +128,7 @@ const WatchLogger = "#watch"
 type WatchOptions struct {
 	Build *BuildOptions
 	LogTo LogConsumer
+	Prune bool
 }
 
 // BuildOptions group options of the Build API
@@ -195,10 +203,12 @@ type CreateOptions struct {
 	RecreateDependencies string
 	// Inherit reuse anonymous volumes from previous container
 	Inherit bool
-	// Timeout set delay to wait for container to gracelfuly stop before sending SIGKILL
+	// Timeout set delay to wait for container to gracefully stop before sending SIGKILL
 	Timeout *time.Duration
 	// QuietPull makes the pulling process quiet
 	QuietPull bool
+	// AssumeYes assume "yes" as answer to all prompts and run non-interactively
+	AssumeYes bool
 }
 
 // StartOptions group options of the Start API
@@ -288,6 +298,7 @@ type ConfigOptions struct {
 type PushOptions struct {
 	Quiet          bool
 	IgnoreFailures bool
+	ImageMandatory bool
 }
 
 // PullOptions group options of the Pull API
@@ -409,6 +420,8 @@ const (
 // PublishOptions group options of the Publish API
 type PublishOptions struct {
 	ResolveImageDigests bool
+	WithEnvironment     bool
+	AssumeYes           bool
 
 	OCIVersion OCIVersion
 }
@@ -420,7 +433,6 @@ func (e Event) String() string {
 		attr = append(attr, fmt.Sprintf("%s=%s", k, v))
 	}
 	return fmt.Sprintf("%s container %s %s (%s)\n", t, e.Status, e.Container, strings.Join(attr, ", "))
-
 }
 
 // ListOptions group options of the ls API
@@ -511,6 +523,8 @@ type ContainerProcSummary struct {
 	Name      string
 	Processes [][]string
 	Titles    []string
+	Service   string
+	Replica   string
 }
 
 // ImageSummary holds container image description
@@ -520,6 +534,7 @@ type ImageSummary struct {
 	Repository    string
 	Tag           string
 	Size          int64
+	LastTagTime   time.Time
 }
 
 // ServiceStatus hold status about a service
@@ -550,6 +565,33 @@ type PauseOptions struct {
 	Services []string
 	// Project is the compose project used to define this app. Might be nil if user ran command just with project name
 	Project *types.Project
+}
+
+// ExportOptions group options of the Export API
+type ExportOptions struct {
+	Service string
+	Index   int
+	Output  string
+}
+
+// CommitOptions group options of the Commit API
+type CommitOptions struct {
+	Service   string
+	Reference string
+
+	Pause   bool
+	Comment string
+	Author  string
+	Changes opts.ListOpts
+
+	Index int
+}
+
+type GenerateOptions struct {
+	// ProjectName to set in the Compose file
+	ProjectName string
+	// Containers passed in the command line to be used as reference for service definition
+	Containers []string
 }
 
 const (
@@ -627,6 +669,8 @@ const (
 	ContainerEventExit
 	// UserCancel user cancelled compose up, we are stopping containers
 	UserCancel
+	// HookEventLog is a ContainerEvent of type log on stdout by service hook
+	HookEventLog
 )
 
 // Separator is used for naming components
