@@ -66,6 +66,12 @@ func resourcePortProfile() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 			},
+			"excluded_networkconf_ids": {
+				Description: "The IDs of networks to block traffic for this port profile.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"forward": {
 				Description:  "The type forwarding to use for the port profile. Can be `all`, `native`, `customize` or `disabled`.",
 				Type:         schema.TypeString,
@@ -232,13 +238,6 @@ func resourcePortProfile() *schema.Resource {
 				Optional:    true,
 				Default:     true,
 			},
-			// TODO: renamed to tagged_network_ids
-			"tagged_networkconf_ids": {
-				Description: "The IDs of networks to tag traffic with for the port profile.",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
 			// TODO: rename to voice_network_id
 			"voice_networkconf_id": {
 				Description: "The ID of network to use as the voice network on the port profile.",
@@ -277,7 +276,7 @@ func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProf
 		return nil, err
 	}
 
-	taggedNetworkconfIds, err := setToStringSlice(d.Get("tagged_networkconf_ids").(*schema.Set))
+	excludedNetworkIds, err := setToStringSlice(d.Get("excluded_networkconf_ids").(*schema.Set))
 	if err != nil {
 		return nil, err
 	}
@@ -289,6 +288,7 @@ func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProf
 		EgressRateLimitKbps:          d.Get("egress_rate_limit_kbps").(int),
 		EgressRateLimitKbpsEnabled:   d.Get("egress_rate_limit_kbps_enabled").(bool),
 		Forward:                      d.Get("forward").(string),
+		ExcludedNetworkIDs:           excludedNetworkIds,
 		FullDuplex:                   d.Get("full_duplex").(bool),
 		Isolation:                    d.Get("isolation").(bool),
 		LldpmedEnabled:               d.Get("lldpmed_enabled").(bool),
@@ -315,7 +315,6 @@ func resourcePortProfileGetResourceData(d *schema.ResourceData) (*unifi.PortProf
 		StormctrlUcastLevel:          d.Get("stormctrl_ucast_level").(int),
 		StormctrlUcastRate:           d.Get("stormctrl_ucast_rate").(int),
 		StpPortMode:                  d.Get("stp_port_mode").(bool),
-		TaggedNetworkIDs:             taggedNetworkconfIds,
 		VoiceNetworkID:               d.Get("voice_networkconf_id").(string),
 	}, nil
 }
@@ -328,6 +327,7 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	d.Set("egress_rate_limit_kbps", resp.EgressRateLimitKbps)
 	d.Set("egress_rate_limit_kbps_enabled", resp.EgressRateLimitKbpsEnabled)
 	d.Set("forward", resp.Forward)
+	d.Set("excluded_networkconf_ids", stringSliceToSet(resp.ExcludedNetworkIDs))
 	d.Set("full_duplex", resp.FullDuplex)
 	d.Set("isolation", resp.Isolation)
 	d.Set("lldpmed_enabled", resp.LldpmedEnabled)
@@ -354,7 +354,6 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	d.Set("stormctrl_ucast_level", resp.StormctrlUcastLevel)
 	d.Set("stormctrl_ucast_rate", resp.StormctrlUcastRate)
 	d.Set("stp_port_mode", resp.StpPortMode)
-	d.Set("tagged_networkconf_ids", stringSliceToSet(resp.TaggedNetworkIDs))
 	d.Set("voice_networkconf_id", resp.VoiceNetworkID)
 
 	return nil

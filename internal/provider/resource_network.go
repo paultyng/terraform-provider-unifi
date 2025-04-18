@@ -97,6 +97,12 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 				Default:     "LAN",
 			},
+			"network_isolation_enabled": {
+				Description: "Specifies whether this network should be not allowed to access other local networks.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 			"dhcp_start": {
 				Description:  "The IPv4 address where the DHCP range of addresses starts.",
 				Type:         schema.TypeString,
@@ -249,12 +255,6 @@ func resourceNetwork() *schema.Resource {
 			},
 			"internet_access_enabled": {
 				Description: "Specifies whether this network should be allowed to access the internet or not.",
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-			},
-			"intra_network_access_enabled": {
-				Description: "Specifies whether this network should be allowed to access other local networks or not.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
@@ -415,22 +415,23 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 	}
 
 	return &unifi.Network{
-		Name:              d.Get("name").(string),
-		Purpose:           d.Get("purpose").(string),
-		VLAN:              vlan,
-		IPSubnet:          cidrOneBased(d.Get("subnet").(string)),
-		NetworkGroup:      d.Get("network_group").(string),
-		DHCPDStart:        d.Get("dhcp_start").(string),
-		DHCPDStop:         d.Get("dhcp_stop").(string),
-		DHCPDEnabled:      d.Get("dhcp_enabled").(bool),
-		DHCPDLeaseTime:    d.Get("dhcp_lease").(int),
-		DHCPDBootEnabled:  d.Get("dhcpd_boot_enabled").(bool),
-		DHCPDBootServer:   d.Get("dhcpd_boot_server").(string),
-		DHCPDBootFilename: d.Get("dhcpd_boot_filename").(string),
-		DHCPRelayEnabled:  d.Get("dhcp_relay_enabled").(bool),
-		DomainName:        d.Get("domain_name").(string),
-		IGMPSnooping:      d.Get("igmp_snooping").(bool),
-		MdnsEnabled:       d.Get("multicast_dns").(bool),
+		Name:                    d.Get("name").(string),
+		Purpose:                 d.Get("purpose").(string),
+		VLAN:                    vlan,
+		IPSubnet:                cidrOneBased(d.Get("subnet").(string)),
+		NetworkGroup:            d.Get("network_group").(string),
+		NetworkIsolationEnabled: d.Get("network_isolation_enabled").(bool),
+		DHCPDStart:              d.Get("dhcp_start").(string),
+		DHCPDStop:               d.Get("dhcp_stop").(string),
+		DHCPDEnabled:            d.Get("dhcp_enabled").(bool),
+		DHCPDLeaseTime:          d.Get("dhcp_lease").(int),
+		DHCPDBootEnabled:        d.Get("dhcpd_boot_enabled").(bool),
+		DHCPDBootServer:         d.Get("dhcpd_boot_server").(string),
+		DHCPDBootFilename:       d.Get("dhcpd_boot_filename").(string),
+		DHCPRelayEnabled:        d.Get("dhcp_relay_enabled").(bool),
+		DomainName:              d.Get("domain_name").(string),
+		IGMPSnooping:            d.Get("igmp_snooping").(bool),
+		MdnsEnabled:             d.Get("multicast_dns").(bool),
 
 		DHCPDDNSEnabled: len(dhcpDNS) > 0,
 		// this is kinda hacky but ¯\_(ツ)_/¯
@@ -466,8 +467,7 @@ func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*
 		IPV6RaPriority:          d.Get("ipv6_ra_priority").(string),
 		IPV6RaValidLifetime:     d.Get("ipv6_ra_valid_lifetime").(int),
 
-		InternetAccessEnabled:     d.Get("internet_access_enabled").(bool),
-		IntraNetworkAccessEnabled: d.Get("intra_network_access_enabled").(bool),
+		InternetAccessEnabled: d.Get("internet_access_enabled").(bool),
 
 		WANIP:           d.Get("wan_ip").(string),
 		WANType:         d.Get("wan_type").(string),
@@ -567,6 +567,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("vlan_id", vlan)
 	d.Set("subnet", cidrZeroBased(resp.IPSubnet))
 	d.Set("network_group", resp.NetworkGroup)
+	d.Set("network_isolation_enabled", resp.NetworkIsolationEnabled)
 
 	d.Set("dhcp_dns", dhcpDNS)
 	d.Set("dhcp_enabled", resp.DHCPDEnabled)
@@ -586,7 +587,6 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	d.Set("domain_name", resp.DomainName)
 	d.Set("igmp_snooping", resp.IGMPSnooping)
 	d.Set("internet_access_enabled", resp.InternetAccessEnabled)
-	d.Set("intra_network_access_enabled", resp.IntraNetworkAccessEnabled)
 	d.Set("ipv6_interface_type", resp.IPV6InterfaceType)
 	d.Set("ipv6_pd_interface", resp.IPV6PDInterface)
 	d.Set("ipv6_pd_prefixid", resp.IPV6PDPrefixid)

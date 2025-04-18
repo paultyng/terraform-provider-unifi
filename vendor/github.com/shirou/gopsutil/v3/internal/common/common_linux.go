@@ -12,13 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 )
-
-// cachedBootTime must be accessed via atomic.Load/StoreUint64
-var cachedBootTime uint64
 
 func DoSysctrl(mib string) ([]string, error) {
 	cmd := exec.Command("sysctl", "-n", mib)
@@ -60,14 +56,7 @@ func NumProcsWithContext(ctx context.Context) (uint64, error) {
 	return cnt, nil
 }
 
-func BootTimeWithContext(ctx context.Context, enableCache bool) (uint64, error) {
-	if enableCache {
-		t := atomic.LoadUint64(&cachedBootTime)
-		if t != 0 {
-			return t, nil
-		}
-	}
-
+func BootTimeWithContext(ctx context.Context) (uint64, error) {
 	system, role, err := VirtualizationWithContext(ctx)
 	if err != nil {
 		return 0, err
@@ -83,13 +72,7 @@ func BootTimeWithContext(ctx context.Context, enableCache bool) (uint64, error) 
 	}
 
 	if useStatFile {
-		t, err := readBootTimeStat(ctx)
-		if err != nil {
-			return 0, err
-		}
-		if enableCache {
-			atomic.StoreUint64(&cachedBootTime, t)
-		}
+		return readBootTimeStat(ctx)
 	}
 
 	filename := HostProcWithContext(ctx, "uptime")
@@ -107,11 +90,6 @@ func BootTimeWithContext(ctx context.Context, enableCache bool) (uint64, error) 
 	}
 	currentTime := float64(time.Now().UnixNano()) / float64(time.Second)
 	t := currentTime - b
-
-	if enableCache {
-		atomic.StoreUint64(&cachedBootTime, uint64(t))
-	}
-
 	return uint64(t), nil
 }
 
@@ -329,7 +307,7 @@ func GetOSReleaseWithContext(ctx context.Context) (platform string, version stri
 		switch field[0] {
 		case "ID": // use ID for lowercase
 			platform = trimQuotes(field[1])
-		case "VERSION_ID":
+		case "VERSION":
 			version = trimQuotes(field[1])
 		}
 	}
