@@ -73,7 +73,7 @@ func resourceDynamicDNS() *schema.Resource {
 	}
 }
 
-func resourceDynamicDNSCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDynamicDNSCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceDynamicDNSGetResourceData(d)
@@ -124,7 +124,7 @@ func resourceDynamicDNSSetResourceData(resp *unifi.DynamicDNS, d *schema.Resourc
 	return nil
 }
 
-func resourceDynamicDNSRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDynamicDNSRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -146,7 +146,7 @@ func resourceDynamicDNSRead(ctx context.Context, d *schema.ResourceData, meta in
 	return resourceDynamicDNSSetResourceData(resp, d, site)
 }
 
-func resourceDynamicDNSUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDynamicDNSUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceDynamicDNSGetResourceData(d)
@@ -170,7 +170,7 @@ func resourceDynamicDNSUpdate(ctx context.Context, d *schema.ResourceData, meta 
 	return resourceDynamicDNSSetResourceData(resp, d, site)
 }
 
-func resourceDynamicDNSDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDynamicDNSDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()

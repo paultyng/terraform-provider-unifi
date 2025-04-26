@@ -56,7 +56,7 @@ func resourceFirewallGroup() *schema.Resource {
 	}
 }
 
-func resourceFirewallGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceFirewallGroupCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceFirewallGroupGetResourceData(d)
@@ -106,7 +106,7 @@ func resourceFirewallGroupSetResourceData(resp *unifi.FirewallGroup, d *schema.R
 	return nil
 }
 
-func resourceFirewallGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceFirewallGroupRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -128,7 +128,7 @@ func resourceFirewallGroupRead(ctx context.Context, d *schema.ResourceData, meta
 	return resourceFirewallGroupSetResourceData(resp, d, site)
 }
 
-func resourceFirewallGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceFirewallGroupUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceFirewallGroupGetResourceData(d)
@@ -152,7 +152,7 @@ func resourceFirewallGroupUpdate(ctx context.Context, d *schema.ResourceData, me
 	return resourceFirewallGroupSetResourceData(resp, d, site)
 }
 
-func resourceFirewallGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceFirewallGroupDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()

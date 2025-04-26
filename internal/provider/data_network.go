@@ -278,7 +278,7 @@ func dataNetwork() *schema.Resource {
 	}
 }
 
-func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataNetworkRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)

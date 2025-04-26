@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"slices"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -80,7 +81,7 @@ func resourceDNSRecord() *schema.Resource {
 	}
 }
 
-func resourceDNSRecordCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDNSRecordCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceDNSRecordGetResourceData(d)
@@ -132,7 +133,7 @@ func resourceDNSRecordSetResourceData(resp *unifi.DNSRecord, d *schema.ResourceD
 	return nil
 }
 
-func resourceDNSRecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDNSRecordRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -142,19 +143,27 @@ func resourceDNSRecordRead(ctx context.Context, d *schema.ResourceData, meta int
 		site = c.site
 	}
 
-	resp, err := c.c.GetDNSRecord(ctx, site, id)
-	if _, ok := err.(*unifi.NotFoundError); ok {
-		d.SetId("")
-		return nil
-	}
+	resp, err := c.c.ListDNSRecord(ctx, site)
+
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	return resourceDNSRecordSetResourceData(resp, d, site)
+	i := slices.IndexFunc(resp, func(r unifi.DNSRecord) bool {
+		return r.ID == id
+	})
+
+	if i == -1 {
+		d.SetId("")
+		return nil
+	}
+
+	rec := resp[i]
+
+	return resourceDNSRecordSetResourceData(&rec, d, site)
 }
 
-func resourceDNSRecordUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDNSRecordUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceDNSRecordGetResourceData(d)
@@ -178,7 +187,7 @@ func resourceDNSRecordUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	return resourceDNSRecordSetResourceData(resp, d, site)
 }
 
-func resourceDNSRecordDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDNSRecordDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()

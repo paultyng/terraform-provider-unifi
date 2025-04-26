@@ -35,7 +35,7 @@ func dataRADIUSProfile() *schema.Resource {
 	}
 }
 
-func dataRADIUSProfileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataRADIUSProfileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)

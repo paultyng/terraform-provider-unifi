@@ -437,7 +437,7 @@ func resourceNetwork() *schema.Resource {
 	}
 }
 
-func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceNetworkGetResourceData(d, meta)
@@ -460,19 +460,19 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceNetworkSetResourceData(resp, d, site)
 }
 
-func resourceNetworkGetResourceData(d *schema.ResourceData, meta interface{}) (*unifi.Network, error) {
+func resourceNetworkGetResourceData(d *schema.ResourceData, meta any) (*unifi.Network, error) {
 	// c := meta.(*client)
 
 	vlan := d.Get("vlan_id").(int)
-	dhcpDNS, err := listToStringSlice(d.Get("dhcp_dns").([]interface{}))
+	dhcpDNS, err := listToStringSlice(d.Get("dhcp_dns").([]any))
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert dhcp_dns to string slice: %w", err)
 	}
-	dhcpV6DNS, err := listToStringSlice(d.Get("dhcp_v6_dns").([]interface{}))
+	dhcpV6DNS, err := listToStringSlice(d.Get("dhcp_v6_dns").([]any))
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert dhcp_v6_dns to string slice: %w", err)
 	}
-	wanDNS, err := listToStringSlice(d.Get("wan_dns").([]interface{}))
+	wanDNS, err := listToStringSlice(d.Get("wan_dns").([]any))
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert wan_dns to string slice: %w", err)
 	}
@@ -695,7 +695,7 @@ func resourceNetworkSetResourceData(resp *unifi.Network, d *schema.ResourceData,
 	return nil
 }
 
-func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -717,7 +717,7 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, meta inter
 	return resourceNetworkSetResourceData(resp, d, site)
 }
 
-func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceNetworkGetResourceData(d, meta)
@@ -740,7 +740,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceNetworkSetResourceData(resp, d, site)
 }
 
-func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)
@@ -757,7 +757,7 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, meta int
 	return diag.FromErr(err)
 }
 
-func importNetwork(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func importNetwork(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	c := meta.(*client)
 	id := d.Id()
 	site := d.Get("site").(string)

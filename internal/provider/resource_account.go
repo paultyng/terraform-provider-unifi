@@ -72,7 +72,7 @@ func resourceAccount() *schema.Resource {
 	}
 }
 
-func resourceAccountCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceAccountCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceAccountGetResourceData(d)
@@ -95,7 +95,7 @@ func resourceAccountCreate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceAccountSetResourceData(resp, d, site)
 }
 
-func resourceAccountUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceAccountUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -119,7 +119,7 @@ func resourceAccountUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceAccountSetResourceData(resp, d, site)
 }
 
-func resourceAccountDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceAccountDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	//name := d.Get("name").(string)
@@ -136,7 +136,7 @@ func resourceAccountDelete(ctx context.Context, d *schema.ResourceData, meta int
 	return diag.FromErr(err)
 }
 
-func resourceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceAccountRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()

@@ -108,7 +108,7 @@ func New(version string) func() *schema.Provider {
 }
 
 func configure(version string, p *schema.Provider) schema.ConfigureContextFunc {
-	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		user := d.Get("username").(string)
 		pass := d.Get("password").(string)
 		baseURL := d.Get("api_url").(string)

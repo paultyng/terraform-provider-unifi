@@ -100,7 +100,7 @@ func resourcePortForward() *schema.Resource {
 	}
 }
 
-func resourcePortForwardCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePortForwardCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourcePortForwardGetResourceData(d)
@@ -151,7 +151,7 @@ func resourcePortForwardSetResourceData(resp *unifi.PortForward, d *schema.Resou
 	return nil
 }
 
-func resourcePortForwardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePortForwardRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -172,7 +172,7 @@ func resourcePortForwardRead(ctx context.Context, d *schema.ResourceData, meta i
 	return resourcePortForwardSetResourceData(resp, d, site)
 }
 
-func resourcePortForwardUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePortForwardUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourcePortForwardGetResourceData(d)
@@ -196,7 +196,7 @@ func resourcePortForwardUpdate(ctx context.Context, d *schema.ResourceData, meta
 	return resourcePortForwardSetResourceData(resp, d, site)
 }
 
-func resourcePortForwardDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePortForwardDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()

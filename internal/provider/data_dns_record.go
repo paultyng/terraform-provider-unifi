@@ -64,7 +64,7 @@ func dataDNSRecord() *schema.Resource {
 	}
 }
 
-func dataDNSRecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataDNSRecordRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)

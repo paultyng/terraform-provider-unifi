@@ -13,8 +13,8 @@ import (
 
 var resourceSettingUsgLock = sync.Mutex{}
 
-func resourceSettingUsgLocker(f func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics) func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics {
-	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSettingUsgLocker(f func(context.Context, *schema.ResourceData, any) diag.Diagnostics) func(context.Context, *schema.ResourceData, any) diag.Diagnostics {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		resourceSettingUsgLock.Lock()
 		defer resourceSettingUsgLock.Unlock()
 		return f(ctx, d, meta)
@@ -89,7 +89,7 @@ func resourceSettingUsg() *schema.Resource {
 	}
 }
 
-func resourceSettingUsgUpdateResourceData(d *schema.ResourceData, meta interface{}, setting *unifi.SettingUsg) error {
+func resourceSettingUsgUpdateResourceData(d *schema.ResourceData, meta any, setting *unifi.SettingUsg) error {
 	c := meta.(*client)
 
 	//nolint // GetOkExists is deprecated, but using here:
@@ -105,7 +105,7 @@ func resourceSettingUsgUpdateResourceData(d *schema.ResourceData, meta interface
 	setting.FirewallLanDefaultLog = d.Get("firewall_lan_default_log").(bool)
 	setting.FirewallWANDefaultLog = d.Get("firewall_wan_default_log").(bool)
 
-	dhcpRelay, err := listToStringSlice(d.Get("dhcp_relay_servers").([]interface{}))
+	dhcpRelay, err := listToStringSlice(d.Get("dhcp_relay_servers").([]any))
 	if err != nil {
 		return fmt.Errorf("unable to convert dhcp_relay_servers to string slice: %w", err)
 	}
@@ -118,7 +118,7 @@ func resourceSettingUsgUpdateResourceData(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceSettingUsgUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSettingUsgUpsert(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -145,7 +145,7 @@ func resourceSettingUsgUpsert(ctx context.Context, d *schema.ResourceData, meta 
 	return resourceSettingUsgSetResourceData(resp, d, meta, site)
 }
 
-func resourceSettingUsgSetResourceData(resp *unifi.SettingUsg, d *schema.ResourceData, meta interface{}, site string) diag.Diagnostics {
+func resourceSettingUsgSetResourceData(resp *unifi.SettingUsg, d *schema.ResourceData, meta any, site string) diag.Diagnostics {
 	d.Set("site", site)
 	d.Set("multicast_dns_enabled", resp.MdnsEnabled)
 	d.Set("firewall_guest_default_log", resp.FirewallGuestDefaultLog)
@@ -170,7 +170,7 @@ func resourceSettingUsgSetResourceData(resp *unifi.SettingUsg, d *schema.Resourc
 	return nil
 }
 
-func resourceSettingUsgRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSettingUsgRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)

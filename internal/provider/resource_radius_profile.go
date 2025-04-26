@@ -144,10 +144,10 @@ func resourceRadiusProfile() *schema.Resource {
 	}
 }
 
-func setToAuthServers(set []interface{}) ([]unifi.RADIUSProfileAuthServers, error) {
+func setToAuthServers(set []any) ([]unifi.RADIUSProfileAuthServers, error) {
 	var authServers []unifi.RADIUSProfileAuthServers
 	for _, item := range set {
-		data, ok := item.(map[string]interface{})
+		data, ok := item.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("unexpected data in block")
 		}
@@ -160,10 +160,10 @@ func setToAuthServers(set []interface{}) ([]unifi.RADIUSProfileAuthServers, erro
 	return authServers, nil
 }
 
-func setToAcctServers(set []interface{}) ([]unifi.RADIUSProfileAcctServers, error) {
+func setToAcctServers(set []any) ([]unifi.RADIUSProfileAcctServers, error) {
 	var acctServers []unifi.RADIUSProfileAcctServers
 	for _, item := range set {
-		data, ok := item.(map[string]interface{})
+		data, ok := item.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("unexpected data in block")
 		}
@@ -176,7 +176,7 @@ func setToAcctServers(set []interface{}) ([]unifi.RADIUSProfileAcctServers, erro
 	return acctServers, nil
 }
 
-func toAuthServer(data map[string]interface{}) (unifi.RADIUSProfileAuthServers, error) {
+func toAuthServer(data map[string]any) (unifi.RADIUSProfileAuthServers, error) {
 	return unifi.RADIUSProfileAuthServers{
 		IP:      data["ip"].(string),
 		Port:    data["port"].(int),
@@ -184,7 +184,7 @@ func toAuthServer(data map[string]interface{}) (unifi.RADIUSProfileAuthServers, 
 	}, nil
 }
 
-func toAcctServer(data map[string]interface{}) (unifi.RADIUSProfileAcctServers, error) {
+func toAcctServer(data map[string]any) (unifi.RADIUSProfileAcctServers, error) {
 	return unifi.RADIUSProfileAcctServers{
 		IP:      data["ip"].(string),
 		Port:    data["port"].(int),
@@ -192,8 +192,8 @@ func toAcctServer(data map[string]interface{}) (unifi.RADIUSProfileAcctServers, 
 	}, nil
 }
 
-func setFromAuthServers(authServers []unifi.RADIUSProfileAuthServers) ([]map[string]interface{}, error) {
-	list := make([]map[string]interface{}, 0, len(authServers))
+func setFromAuthServers(authServers []unifi.RADIUSProfileAuthServers) ([]map[string]any, error) {
+	list := make([]map[string]any, 0, len(authServers))
 	for _, authServer := range authServers {
 		v, err := fromAuthServer(authServer)
 		if err != nil {
@@ -204,8 +204,8 @@ func setFromAuthServers(authServers []unifi.RADIUSProfileAuthServers) ([]map[str
 	return list, nil
 }
 
-func setFromAcctServers(acctServers []unifi.RADIUSProfileAcctServers) ([]map[string]interface{}, error) {
-	list := make([]map[string]interface{}, 0, len(acctServers))
+func setFromAcctServers(acctServers []unifi.RADIUSProfileAcctServers) ([]map[string]any, error) {
+	list := make([]map[string]any, 0, len(acctServers))
 	for _, acctServer := range acctServers {
 		v, err := fromAcctServer(acctServer)
 		if err != nil {
@@ -216,23 +216,23 @@ func setFromAcctServers(acctServers []unifi.RADIUSProfileAcctServers) ([]map[str
 	return list, nil
 }
 
-func fromAuthServer(sshKey unifi.RADIUSProfileAuthServers) (map[string]interface{}, error) {
-	return map[string]interface{}{
+func fromAuthServer(sshKey unifi.RADIUSProfileAuthServers) (map[string]any, error) {
+	return map[string]any{
 		"ip":      sshKey.IP,
 		"port":    sshKey.Port,
 		"xsecret": sshKey.XSecret,
 	}, nil
 }
 
-func fromAcctServer(sshKey unifi.RADIUSProfileAcctServers) (map[string]interface{}, error) {
-	return map[string]interface{}{
+func fromAcctServer(sshKey unifi.RADIUSProfileAcctServers) (map[string]any, error) {
+	return map[string]any{
 		"ip":      sshKey.IP,
 		"port":    sshKey.Port,
 		"xsecret": sshKey.XSecret,
 	}, nil
 }
 
-func resourceRadiusProfileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRadiusProfileCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 	req, err := resourceRadiusProfileGetResourceData(d)
 	if err != nil {
@@ -253,11 +253,11 @@ func resourceRadiusProfileCreate(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceRadiusProfileGetResourceData(d *schema.ResourceData) (*unifi.RADIUSProfile, error) {
-	authServers, err := setToAuthServers(d.Get("auth_server").([]interface{}))
+	authServers, err := setToAuthServers(d.Get("auth_server").([]any))
 	if err != nil {
 		return nil, fmt.Errorf("unable to auth_server ssh_key block: %w", err)
 	}
-	acctServers, err := setToAcctServers(d.Get("acct_server").([]interface{}))
+	acctServers, err := setToAcctServers(d.Get("acct_server").([]any))
 	if err != nil {
 		return nil, fmt.Errorf("unable to acct_server ssh_key block: %w", err)
 	}
@@ -300,7 +300,7 @@ func resourceRadiusProfileSetResourceData(resp *unifi.RADIUSProfile, d *schema.R
 	return nil
 }
 
-func resourceRadiusProfileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRadiusProfileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -321,7 +321,7 @@ func resourceRadiusProfileRead(ctx context.Context, d *schema.ResourceData, meta
 	return resourceRadiusProfileSetResourceData(resp, d, site)
 }
 
-func resourceRadiusProfileUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRadiusProfileUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceRadiusProfileGetResourceData(d)
@@ -345,7 +345,7 @@ func resourceRadiusProfileUpdate(ctx context.Context, d *schema.ResourceData, me
 	return resourceRadiusProfileSetResourceData(resp, d, site)
 }
 
-func resourceRadiusProfileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRadiusProfileDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -359,7 +359,7 @@ func resourceRadiusProfileDelete(ctx context.Context, d *schema.ResourceData, me
 	return diag.FromErr(err)
 }
 
-func importRadiusProfile(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func importRadiusProfile(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	c := meta.(*client)
 	id := d.Id()
 	site := d.Get("site").(string)

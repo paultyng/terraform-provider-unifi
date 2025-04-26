@@ -248,7 +248,7 @@ func resourcePortProfile() *schema.Resource {
 	}
 }
 
-func resourcePortProfileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePortProfileCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourcePortProfileGetResourceData(d)
@@ -354,7 +354,7 @@ func resourcePortProfileSetResourceData(resp *unifi.PortProfile, d *schema.Resou
 	return nil
 }
 
-func resourcePortProfileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePortProfileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -375,7 +375,7 @@ func resourcePortProfileRead(ctx context.Context, d *schema.ResourceData, meta i
 	return resourcePortProfileSetResourceData(resp, d, site)
 }
 
-func resourcePortProfileUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePortProfileUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourcePortProfileGetResourceData(d)
@@ -399,7 +399,7 @@ func resourcePortProfileUpdate(ctx context.Context, d *schema.ResourceData, meta
 	return resourcePortProfileSetResourceData(resp, d, site)
 }
 
-func resourcePortProfileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePortProfileDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()

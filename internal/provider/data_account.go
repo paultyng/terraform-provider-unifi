@@ -56,7 +56,7 @@ func dataAccount() *schema.Resource {
 	}
 }
 
-func dataAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataAccountRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	name := d.Get("name").(string)

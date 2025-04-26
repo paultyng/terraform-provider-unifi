@@ -42,7 +42,7 @@ func resourceSite() *schema.Resource {
 	}
 }
 
-func resourceSiteImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceSiteImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -73,7 +73,7 @@ func resourceSiteImport(ctx context.Context, d *schema.ResourceData, meta interf
 	return nil, fmt.Errorf("unable to find site %q on controller", id)
 }
 
-func resourceSiteCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSiteCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	description := d.Get("description").(string)
@@ -95,7 +95,7 @@ func resourceSiteSetResourceData(resp *unifi.Site, d *schema.ResourceData) diag.
 	return nil
 }
 
-func resourceSiteRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSiteRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -112,7 +112,7 @@ func resourceSiteRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	return resourceSiteSetResourceData(site, d)
 }
 
-func resourceSiteUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSiteUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := &unifi.Site{
@@ -129,7 +129,7 @@ func resourceSiteUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	return resourceSiteSetResourceData(&resp[0], d)
 }
 
-func resourceSiteDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSiteDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 	id := d.Id()
 	_, err := c.c.DeleteSite(ctx, id)

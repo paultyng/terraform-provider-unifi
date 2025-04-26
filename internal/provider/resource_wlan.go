@@ -240,7 +240,7 @@ func resourceWLAN() *schema.Resource {
 	}
 }
 
-func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*unifi.WLAN, error) {
+func resourceWLANGetResourceData(d *schema.ResourceData, meta any) (*unifi.WLAN, error) {
 	c := meta.(*client)
 
 	security := d.Get("security").(string)
@@ -290,7 +290,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 	}
 	wlanBand := d.Get("wlan_band").(string)
 
-	schedule, err := listToSchedules(d.Get("schedule").([]interface{}))
+	schedule, err := listToSchedules(d.Get("schedule").([]any))
 	if err != nil {
 		return nil, fmt.Errorf("unable to process schedule block: %w", err)
 	}
@@ -350,7 +350,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 	}, nil
 }
 
-func resourceWLANCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceWLANCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceWLANGetResourceData(d, meta)
@@ -373,7 +373,7 @@ func resourceWLANCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
-func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}, site string) diag.Diagnostics {
+func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta any, site string) diag.Diagnostics {
 	// c := meta.(*client)
 	security := resp.Security
 	passphrase := resp.XPassphrase
@@ -438,7 +438,7 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceWLANRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceWLANRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -459,7 +459,7 @@ func resourceWLANRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
-func resourceWLANUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceWLANUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceWLANGetResourceData(d, meta)
@@ -482,7 +482,7 @@ func resourceWLANUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	return resourceWLANSetResourceData(resp, d, meta, site)
 }
 
-func resourceWLANDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceWLANDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -498,10 +498,10 @@ func resourceWLANDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	return diag.FromErr(err)
 }
 
-func listToSchedules(list []interface{}) ([]unifi.WLANScheduleWithDuration, error) {
+func listToSchedules(list []any) ([]unifi.WLANScheduleWithDuration, error) {
 	schedules := make([]unifi.WLANScheduleWithDuration, 0, len(list))
 	for _, item := range list {
-		data, ok := item.(map[string]interface{})
+		data, ok := item.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("unexpected data in block")
 		}
@@ -511,7 +511,7 @@ func listToSchedules(list []interface{}) ([]unifi.WLANScheduleWithDuration, erro
 	return schedules, nil
 }
 
-func toSchedule(data map[string]interface{}) unifi.WLANScheduleWithDuration {
+func toSchedule(data map[string]any) unifi.WLANScheduleWithDuration {
 	// TODO: error check these?
 	dow := data["day_of_week"].(string)
 	startHour := data["start_hour"].(int)
@@ -528,8 +528,8 @@ func toSchedule(data map[string]interface{}) unifi.WLANScheduleWithDuration {
 	}
 }
 
-func fromSchedule(dow string, s unifi.WLANScheduleWithDuration) map[string]interface{} {
-	return map[string]interface{}{
+func fromSchedule(dow string, s unifi.WLANScheduleWithDuration) map[string]any {
+	return map[string]any{
 		"day_of_week":  dow,
 		"start_hour":   s.StartHour,
 		"start_minute": s.StartMinute,
@@ -538,9 +538,9 @@ func fromSchedule(dow string, s unifi.WLANScheduleWithDuration) map[string]inter
 	}
 }
 
-func listFromSchedules(ss []unifi.WLANScheduleWithDuration) []interface{} {
+func listFromSchedules(ss []unifi.WLANScheduleWithDuration) []any {
 	// this explodes days of week lists in to individual schedules
-	list := make([]interface{}, 0, len(ss))
+	list := make([]any, 0, len(ss))
 	for _, s := range ss {
 		for _, dow := range s.StartDaysOfWeek {
 			v := fromSchedule(dow, s)

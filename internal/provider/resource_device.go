@@ -136,7 +136,7 @@ func resourceDevice() *schema.Resource {
 	}
 }
 
-func resourceDeviceImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceDeviceImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	c := meta.(*client)
 	id := d.Id()
 	site := d.Get("site").(string)
@@ -172,7 +172,7 @@ func resourceDeviceImport(ctx context.Context, d *schema.ResourceData, meta inte
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -215,7 +215,7 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	return resourceDeviceUpdate(ctx, d, meta)
 }
 
-func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -244,7 +244,7 @@ func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	return resourceDeviceSetResourceData(resp, d, site)
 }
 
-func resourceDeviceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDeviceDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	if !d.Get("forget_on_destroy").(bool) {
@@ -271,7 +271,7 @@ func resourceDeviceDelete(ctx context.Context, d *schema.ResourceData, meta inte
 	return nil
 }
 
-func resourceDeviceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDeviceRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -327,7 +327,7 @@ func setToPortOverrides(set *schema.Set) ([]unifi.DevicePortOverrides, error) {
 	// use a map here to remove any duplication
 	overrideMap := map[int]unifi.DevicePortOverrides{}
 	for _, item := range set.List() {
-		data, ok := item.(map[string]interface{})
+		data, ok := item.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("unexpected data in block")
 		}
@@ -345,8 +345,8 @@ func setToPortOverrides(set *schema.Set) ([]unifi.DevicePortOverrides, error) {
 	return pos, nil
 }
 
-func setFromPortOverrides(pos []unifi.DevicePortOverrides) ([]map[string]interface{}, error) {
-	list := make([]map[string]interface{}, 0, len(pos))
+func setFromPortOverrides(pos []unifi.DevicePortOverrides) ([]map[string]any, error) {
+	list := make([]map[string]any, 0, len(pos))
 	for _, po := range pos {
 		v, err := fromPortOverride(po)
 		if err != nil {
@@ -357,7 +357,7 @@ func setFromPortOverrides(pos []unifi.DevicePortOverrides) ([]map[string]interfa
 	return list, nil
 }
 
-func toPortOverride(data map[string]interface{}) (unifi.DevicePortOverrides, error) {
+func toPortOverride(data map[string]any) (unifi.DevicePortOverrides, error) {
 	idx := data["number"].(int)
 	name := data["name"].(string)
 	profileID := data["port_profile_id"].(string)
@@ -375,8 +375,8 @@ func toPortOverride(data map[string]interface{}) (unifi.DevicePortOverrides, err
 	}, nil
 }
 
-func fromPortOverride(po unifi.DevicePortOverrides) (map[string]interface{}, error) {
-	return map[string]interface{}{
+func fromPortOverride(po unifi.DevicePortOverrides) (map[string]any, error) {
+	return map[string]any{
 		"number":              po.PortIDX,
 		"name":                po.Name,
 		"port_profile_id":     po.PortProfileID,
@@ -386,7 +386,7 @@ func fromPortOverride(po unifi.DevicePortOverrides) (map[string]interface{}, err
 	}, nil
 }
 
-func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interface{}, targetState unifi.DeviceState, pendingStates []unifi.DeviceState, timeout time.Duration) (*unifi.Device, error) {
+func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta any, targetState unifi.DeviceState, pendingStates []unifi.DeviceState, timeout time.Duration) (*unifi.Device, error) {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -407,7 +407,7 @@ func waitForDeviceState(ctx context.Context, d *schema.ResourceData, meta interf
 	wait := retry.StateChangeConf{
 		Pending: pending,
 		Target:  []string{targetState.String()},
-		Refresh: func() (interface{}, string, error) {
+		Refresh: func() (any, string, error) {
 			device, err := c.c.GetDeviceByMAC(ctx, site, mac)
 
 			if _, ok := err.(*unifi.NotFoundError); ok {

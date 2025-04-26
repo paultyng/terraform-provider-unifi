@@ -209,7 +209,7 @@ func resourceFirewallRule() *schema.Resource {
 	}
 }
 
-func resourceFirewallRuleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceFirewallRuleCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceFirewallRuleGetResourceData(d)
@@ -318,7 +318,7 @@ func resourceFirewallRuleSetResourceData(resp *unifi.FirewallRule, d *schema.Res
 	return nil
 }
 
-func resourceFirewallRuleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceFirewallRuleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -340,7 +340,7 @@ func resourceFirewallRuleRead(ctx context.Context, d *schema.ResourceData, meta 
 	return resourceFirewallRuleSetResourceData(resp, d, site)
 }
 
-func resourceFirewallRuleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceFirewallRuleUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceFirewallRuleGetResourceData(d)
@@ -364,7 +364,7 @@ func resourceFirewallRuleUpdate(ctx context.Context, d *schema.ResourceData, met
 	return resourceFirewallRuleSetResourceData(resp, d, site)
 }
 
-func resourceFirewallRuleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceFirewallRuleDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()

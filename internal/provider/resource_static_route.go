@@ -75,7 +75,7 @@ func resourceStaticRoute() *schema.Resource {
 	}
 }
 
-func resourceStaticRouteCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceStaticRouteCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceStaticRouteGetResourceData(d)
@@ -150,7 +150,7 @@ func resourceStaticRouteSetResourceData(resp *unifi.Routing, d *schema.ResourceD
 	return nil
 }
 
-func resourceStaticRouteRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceStaticRouteRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()
@@ -172,7 +172,7 @@ func resourceStaticRouteRead(ctx context.Context, d *schema.ResourceData, meta i
 	return resourceStaticRouteSetResourceData(resp, d, site)
 }
 
-func resourceStaticRouteUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceStaticRouteUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceStaticRouteGetResourceData(d)
@@ -196,7 +196,7 @@ func resourceStaticRouteUpdate(ctx context.Context, d *schema.ResourceData, meta
 	return resourceStaticRouteSetResourceData(resp, d, site)
 }
 
-func resourceStaticRouteDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceStaticRouteDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	id := d.Id()

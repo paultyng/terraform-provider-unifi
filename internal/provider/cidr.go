@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func cidrValidate(raw interface{}, key string) ([]string, []error) {
+func cidrValidate(raw any, key string) ([]string, []error) {
 	v, ok := raw.(string)
 	if !ok {
 		return nil, []error{fmt.Errorf("expected string, got %T", raw)}

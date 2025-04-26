@@ -90,7 +90,7 @@ func dataUser() *schema.Resource {
 	}
 }
 
-func dataUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataUserRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)

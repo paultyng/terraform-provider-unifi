@@ -83,7 +83,7 @@ func resourceSettingMgmt() *schema.Resource {
 func setToSshKeys(set *schema.Set) ([]unifi.SettingMgmtXSshKeys, error) {
 	var sshKeys []unifi.SettingMgmtXSshKeys
 	for _, item := range set.List() {
-		data, ok := item.(map[string]interface{})
+		data, ok := item.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("unexpected data in block")
 		}
@@ -96,7 +96,7 @@ func setToSshKeys(set *schema.Set) ([]unifi.SettingMgmtXSshKeys, error) {
 	return sshKeys, nil
 }
 
-func toSshKey(data map[string]interface{}) (unifi.SettingMgmtXSshKeys, error) {
+func toSshKey(data map[string]any) (unifi.SettingMgmtXSshKeys, error) {
 	return unifi.SettingMgmtXSshKeys{
 		Name:    data["name"].(string),
 		KeyType: data["type"].(string),
@@ -105,8 +105,8 @@ func toSshKey(data map[string]interface{}) (unifi.SettingMgmtXSshKeys, error) {
 	}, nil
 }
 
-func setFromSshKeys(sshKeys []unifi.SettingMgmtXSshKeys) ([]map[string]interface{}, error) {
-	list := make([]map[string]interface{}, 0, len(sshKeys))
+func setFromSshKeys(sshKeys []unifi.SettingMgmtXSshKeys) ([]map[string]any, error) {
+	list := make([]map[string]any, 0, len(sshKeys))
 	for _, sshKey := range sshKeys {
 		v, err := fromSshKey(sshKey)
 		if err != nil {
@@ -117,8 +117,8 @@ func setFromSshKeys(sshKeys []unifi.SettingMgmtXSshKeys) ([]map[string]interface
 	return list, nil
 }
 
-func fromSshKey(sshKey unifi.SettingMgmtXSshKeys) (map[string]interface{}, error) {
-	return map[string]interface{}{
+func fromSshKey(sshKey unifi.SettingMgmtXSshKeys) (map[string]any, error) {
+	return map[string]any{
 		"name":    sshKey.Name,
 		"type":    sshKey.KeyType,
 		"key":     sshKey.Key,
@@ -126,7 +126,7 @@ func fromSshKey(sshKey unifi.SettingMgmtXSshKeys) (map[string]interface{}, error
 	}, nil
 }
 
-func resourceSettingMgmtGetResourceData(d *schema.ResourceData, meta interface{}) (*unifi.SettingMgmt, error) {
+func resourceSettingMgmtGetResourceData(d *schema.ResourceData, meta any) (*unifi.SettingMgmt, error) {
 	sshKeys, err := setToSshKeys(d.Get("ssh_key").(*schema.Set))
 	if err != nil {
 		return nil, fmt.Errorf("unable to process ssh_key block: %w", err)
@@ -139,7 +139,7 @@ func resourceSettingMgmtGetResourceData(d *schema.ResourceData, meta interface{}
 	}, nil
 }
 
-func resourceSettingMgmtCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSettingMgmtCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceSettingMgmtGetResourceData(d, meta)
@@ -162,7 +162,7 @@ func resourceSettingMgmtCreate(ctx context.Context, d *schema.ResourceData, meta
 	return resourceSettingMgmtSetResourceData(resp, d, meta, site)
 }
 
-func resourceSettingMgmtSetResourceData(resp *unifi.SettingMgmt, d *schema.ResourceData, meta interface{}, site string) diag.Diagnostics {
+func resourceSettingMgmtSetResourceData(resp *unifi.SettingMgmt, d *schema.ResourceData, meta any, site string) diag.Diagnostics {
 	sshKeys, err := setFromSshKeys(resp.XSshKeys)
 	if err != nil {
 		return diag.FromErr(err)
@@ -175,7 +175,7 @@ func resourceSettingMgmtSetResourceData(resp *unifi.SettingMgmt, d *schema.Resou
 	return nil
 }
 
-func resourceSettingMgmtRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSettingMgmtRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	site := d.Get("site").(string)
@@ -195,7 +195,7 @@ func resourceSettingMgmtRead(ctx context.Context, d *schema.ResourceData, meta i
 	return resourceSettingMgmtSetResourceData(resp, d, meta, site)
 }
 
-func resourceSettingMgmtUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSettingMgmtUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*client)
 
 	req, err := resourceSettingMgmtGetResourceData(d, meta)
@@ -217,6 +217,6 @@ func resourceSettingMgmtUpdate(ctx context.Context, d *schema.ResourceData, meta
 	return resourceSettingMgmtSetResourceData(resp, d, meta, site)
 }
 
-func resourceSettingMgmtDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceSettingMgmtDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	return nil
 }
