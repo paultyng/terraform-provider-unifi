@@ -8,13 +8,12 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/images"
-	"github.com/containerd/containerd/platforms"
-	"github.com/containerd/containerd/remotes"
+	"github.com/containerd/containerd/v2/core/content"
+	"github.com/containerd/containerd/v2/core/images"
+	"github.com/containerd/containerd/v2/core/remotes"
 	"github.com/containerd/errdefs"
+	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
-	"github.com/docker/buildx/util/buildflags"
 	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	"github.com/moby/buildkit/util/contentutil"
 	"github.com/opencontainers/go-digest"
@@ -29,7 +28,7 @@ type Source struct {
 	Ref  reference.Named
 }
 
-func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann []string, preferIndex bool) ([]byte, ocispec.Descriptor, error) {
+func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann map[exptypes.AnnotationKey]string, preferIndex bool) ([]byte, ocispec.Descriptor, error) {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	dts := make([][]byte, len(srcs))
@@ -152,16 +151,12 @@ func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann []string, pr
 	// annotations are only allowed on OCI indexes
 	indexAnnotation := make(map[string]string)
 	if mt == ocispec.MediaTypeImageIndex {
-		annotations, err := buildflags.ParseAnnotations(ann)
-		if err != nil {
-			return nil, ocispec.Descriptor{}, err
-		}
-		for k, v := range annotations {
+		for k, v := range ann {
 			switch k.Type {
 			case exptypes.AnnotationIndex:
 				indexAnnotation[k.Key] = v
 			case exptypes.AnnotationManifestDescriptor:
-				for i := 0; i < len(newDescs); i++ {
+				for i := range newDescs {
 					if newDescs[i].Annotations == nil {
 						newDescs[i].Annotations = map[string]string{}
 					}
@@ -199,8 +194,11 @@ func (r *Resolver) Combine(ctx context.Context, srcs []*Source, ann []string, pr
 func (r *Resolver) Push(ctx context.Context, ref reference.Named, desc ocispec.Descriptor, dt []byte) error {
 	ctx = remotes.WithMediaTypeKeyPrefix(ctx, "application/vnd.in-toto+json", "intoto")
 
-	ref = reference.TagNameOnly(ref)
-	p, err := r.resolver().Pusher(ctx, ref.String())
+	fullRef, err := reference.WithDigest(reference.TagNameOnly(ref), desc.Digest)
+	if err != nil {
+		return errors.Wrapf(err, "failed to combine ref %s with digest %s", ref, desc.Digest)
+	}
+	p, err := r.resolver().Pusher(ctx, fullRef.String())
 	if err != nil {
 		return err
 	}
@@ -222,8 +220,8 @@ func (r *Resolver) Push(ctx context.Context, ref reference.Named, desc ocispec.D
 func (r *Resolver) Copy(ctx context.Context, src *Source, dest reference.Named) error {
 	ctx = remotes.WithMediaTypeKeyPrefix(ctx, "application/vnd.in-toto+json", "intoto")
 
-	dest = reference.TagNameOnly(dest)
-	p, err := r.resolver().Pusher(ctx, dest.String())
+	// push by digest
+	p, err := r.resolver().Pusher(ctx, dest.Name())
 	if err != nil {
 		return err
 	}

@@ -21,8 +21,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/compose-spec/compose-go/v2/dotenv"
@@ -30,7 +32,6 @@ import (
 	"github.com/compose-spec/compose-go/v2/utils"
 	"github.com/distribution/reference"
 	godigest "github.com/opencontainers/go-digest"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 )
@@ -120,21 +121,21 @@ func (p *Project) ServicesWithBuild() []string {
 	servicesBuild := p.Services.Filter(func(s ServiceConfig) bool {
 		return s.Build != nil && s.Build.Context != ""
 	})
-	return maps.Keys(servicesBuild)
+	return slices.Collect(maps.Keys(servicesBuild))
 }
 
 func (p *Project) ServicesWithExtends() []string {
 	servicesExtends := p.Services.Filter(func(s ServiceConfig) bool {
 		return s.Extends != nil && *s.Extends != (ExtendsConfig{})
 	})
-	return maps.Keys(servicesExtends)
+	return slices.Collect(maps.Keys(servicesExtends))
 }
 
 func (p *Project) ServicesWithDependsOn() []string {
 	servicesDependsOn := p.Services.Filter(func(s ServiceConfig) bool {
 		return len(s.DependsOn) > 0
 	})
-	return maps.Keys(servicesDependsOn)
+	return slices.Collect(maps.Keys(servicesDependsOn))
 }
 
 func (p *Project) ServicesWithCapabilities() ([]string, []string, []string) {
@@ -156,9 +157,10 @@ func (p *Project) ServicesWithCapabilities() ([]string, []string, []string) {
 				capabilities = append(capabilities, service.Name)
 			}
 			for _, c := range d.Capabilities {
-				if c == "gpu" {
+				switch c {
+				case "gpu":
 					gpu = append(gpu, service.Name)
-				} else if c == "tpu" {
+				case "tpu":
 					tpu = append(tpu, service.Name)
 				}
 			}
@@ -188,16 +190,25 @@ func (p *Project) getServicesByNames(names ...string) (Services, []string) {
 	if len(names) == 0 {
 		return p.Services, nil
 	}
+
 	services := Services{}
 	var servicesNotFound []string
 	for _, name := range names {
-		service, ok := p.Services[name]
-		if !ok {
-			servicesNotFound = append(servicesNotFound, name)
-			continue
+		matched := false
+
+		for serviceName, service := range p.Services {
+			match, _ := filepath.Match(name, serviceName)
+			if match {
+				services[serviceName] = service
+				matched = true
+			}
 		}
-		services[name] = service
+
+		if !matched {
+			servicesNotFound = append(servicesNotFound, name)
+		}
 	}
+
 	return services, servicesNotFound
 }
 
@@ -298,16 +309,25 @@ func (p *Project) withServices(names []string, fn ServiceFunc, seen map[string]b
 	return nil
 }
 
-func (p *Project) GetDependentsForService(s ServiceConfig) []string {
-	return utils.MapKeys(p.dependentsForService(s))
+func (p *Project) GetDependentsForService(s ServiceConfig, filter ...func(ServiceDependency) bool) []string {
+	return utils.MapKeys(p.dependentsForService(s, filter...))
 }
 
-func (p *Project) dependentsForService(s ServiceConfig) map[string]ServiceDependency {
+func (p *Project) dependentsForService(s ServiceConfig, filter ...func(ServiceDependency) bool) map[string]ServiceDependency {
 	dependent := make(map[string]ServiceDependency)
 	for _, service := range p.Services {
 		for name, dependency := range service.DependsOn {
 			if name == s.Name {
-				dependent[service.Name] = dependency
+				depends := true
+				for _, f := range filter {
+					if !f(dependency) {
+						depends = false
+						break
+					}
+				}
+				if depends {
+					dependent[service.Name] = dependency
+				}
 			}
 		}
 	}
@@ -380,12 +400,7 @@ func (p *Project) WithServicesEnabled(names ...string) (*Project, error) {
 		service := p.DisabledServices[name]
 		profiles = append(profiles, service.Profiles...)
 	}
-	newProject, err := newProject.WithProfiles(profiles)
-	if err != nil {
-		return newProject, err
-	}
-
-	return newProject.WithServicesEnvironmentResolved(true)
+	return newProject.WithProfiles(profiles)
 }
 
 // WithoutUnnecessaryResources drops networks/volumes/secrets/configs that are not referenced by active services
@@ -477,7 +492,7 @@ func (p *Project) WithSelectedServices(names []string, options ...DependencyOpti
 	}
 
 	set := utils.NewSet[string]()
-	err := p.ForEachService(names, func(name string, service *ServiceConfig) error {
+	err := p.ForEachService(names, func(name string, _ *ServiceConfig) error {
 		set.Add(name)
 		return nil
 	}, options...)
@@ -535,7 +550,7 @@ func (p *Project) WithServicesDisabled(names ...string) *Project {
 // WithImagesResolved updates services images to include digest computed by a resolver function
 // It returns a new Project instance with the changes and keep the original Project unchanged
 func (p *Project) WithImagesResolved(resolver func(named reference.Named) (godigest.Digest, error)) (*Project, error) {
-	return p.WithServicesTransform(func(name string, service ServiceConfig) (ServiceConfig, error) {
+	return p.WithServicesTransform(func(_ string, service ServiceConfig) (ServiceConfig, error) {
 		if service.Image == "" {
 			return service, nil
 		}
@@ -560,39 +575,69 @@ func (p *Project) WithImagesResolved(resolver func(named reference.Named) (godig
 	})
 }
 
+type marshallOptions struct {
+	secretsContent bool
+}
+
+func WithSecretContent(o *marshallOptions) {
+	o.secretsContent = true
+}
+
+func (opt *marshallOptions) apply(p *Project) *Project {
+	if opt.secretsContent {
+		p = p.deepCopy()
+		for name, config := range p.Secrets {
+			config.marshallContent = true
+			p.Secrets[name] = config
+		}
+	}
+	return p
+}
+
+func applyMarshallOptions(p *Project, options ...func(*marshallOptions)) *Project {
+	opts := &marshallOptions{}
+	for _, option := range options {
+		option(opts)
+	}
+	p = opts.apply(p)
+	return p
+}
+
 // MarshalYAML marshal Project into a yaml tree
-func (p *Project) MarshalYAML() ([]byte, error) {
+func (p *Project) MarshalYAML(options ...func(*marshallOptions)) ([]byte, error) {
 	buf := bytes.NewBuffer([]byte{})
 	encoder := yaml.NewEncoder(buf)
 	encoder.SetIndent(2)
 	// encoder.CompactSeqIndent() FIXME https://github.com/go-yaml/yaml/pull/753
-	err := encoder.Encode(p)
+	src := applyMarshallOptions(p, options...)
+	err := encoder.Encode(src)
 	if err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-// MarshalJSON makes Config implement json.Marshaler
-func (p *Project) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshal Project into a json document
+func (p *Project) MarshalJSON(options ...func(*marshallOptions)) ([]byte, error) {
+	src := applyMarshallOptions(p, options...)
 	m := map[string]interface{}{
-		"name":     p.Name,
-		"services": p.Services,
+		"name":     src.Name,
+		"services": src.Services,
 	}
 
-	if len(p.Networks) > 0 {
-		m["networks"] = p.Networks
+	if len(src.Networks) > 0 {
+		m["networks"] = src.Networks
 	}
-	if len(p.Volumes) > 0 {
-		m["volumes"] = p.Volumes
+	if len(src.Volumes) > 0 {
+		m["volumes"] = src.Volumes
 	}
-	if len(p.Secrets) > 0 {
-		m["secrets"] = p.Secrets
+	if len(src.Secrets) > 0 {
+		m["secrets"] = src.Secrets
 	}
-	if len(p.Configs) > 0 {
-		m["configs"] = p.Configs
+	if len(src.Configs) > 0 {
+		m["configs"] = src.Configs
 	}
-	for k, v := range p.Extensions {
+	for k, v := range src.Extensions {
 		m[k] = v
 	}
 	return json.MarshalIndent(m, "", "  ")
@@ -605,36 +650,25 @@ func (p Project) WithServicesEnvironmentResolved(discardEnvFiles bool) (*Project
 	for i, service := range newProject.Services {
 		service.Environment = service.Environment.Resolve(newProject.Environment.Resolve)
 
-		environment := MappingWithEquals{}
-		// resolve variables based on other files we already parsed, + project's environment
-		var resolve dotenv.LookupFn = func(s string) (string, bool) {
-			v, ok := environment[s]
-			if ok && v != nil {
-				return *v, ok
-			}
-			return newProject.Environment.Resolve(s)
-		}
-
+		environment := service.Environment.ToMapping()
 		for _, envFile := range service.EnvFiles {
-			if _, err := os.Stat(envFile.Path); os.IsNotExist(err) {
-				if envFile.Required {
-					return nil, fmt.Errorf("env file %s not found: %w", envFile.Path, err)
+			err := loadEnvFile(envFile, environment, func(k string) (string, bool) {
+				// project.env has precedence doing interpolation
+				if resolve, ok := p.Environment.Resolve(k); ok {
+					return resolve, true
 				}
-				continue
-			}
-			b, err := os.ReadFile(envFile.Path)
+				// then service.environment
+				if s, ok := service.Environment[k]; ok {
+					return *s, true
+				}
+				return "", false
+			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to load %s: %w", envFile.Path, err)
+				return nil, err
 			}
-
-			fileVars, err := dotenv.ParseWithLookup(bytes.NewBuffer(b), resolve)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read %s: %w", envFile.Path, err)
-			}
-			environment.OverrideBy(Mapping(fileVars).ToMappingWithEquals())
 		}
 
-		service.Environment = environment.OverrideBy(service.Environment)
+		service.Environment = environment.ToMappingWithEquals().OverrideBy(service.Environment)
 
 		if discardEnvFiles {
 			service.EnvFiles = nil
@@ -644,6 +678,76 @@ func (p Project) WithServicesEnvironmentResolved(discardEnvFiles bool) (*Project
 	return newProject, nil
 }
 
+// WithServicesLabelsResolved parses label_files set for services to resolve the actual label map for services
+// It returns a new Project instance with the changes and keep the original Project unchanged
+func (p Project) WithServicesLabelsResolved(discardLabelFiles bool) (*Project, error) {
+	newProject := p.deepCopy()
+	for i, service := range newProject.Services {
+		labels := MappingWithEquals{}
+		// resolve variables based on other files we already parsed
+		var resolve dotenv.LookupFn = func(s string) (string, bool) {
+			v, ok := labels[s]
+			if ok && v != nil {
+				return *v, ok
+			}
+			return "", false
+		}
+
+		for _, labelFile := range service.LabelFiles {
+			vars, err := loadLabelFile(labelFile, resolve)
+			if err != nil {
+				return nil, err
+			}
+			labels.OverrideBy(vars.ToMappingWithEquals())
+		}
+
+		labels = labels.OverrideBy(service.Labels.ToMappingWithEquals())
+		if len(labels) == 0 {
+			labels = nil
+		} else {
+			service.Labels = NewLabelsFromMappingWithEquals(labels)
+		}
+
+		if discardLabelFiles {
+			service.LabelFiles = nil
+		}
+		newProject.Services[i] = service
+	}
+	return newProject, nil
+}
+
+func loadEnvFile(envFile EnvFile, environment Mapping, resolve dotenv.LookupFn) error {
+	if _, err := os.Stat(envFile.Path); os.IsNotExist(err) {
+		if envFile.Required {
+			return fmt.Errorf("env file %s not found: %w", envFile.Path, err)
+		}
+		return nil
+	}
+
+	err := loadMappingFile(envFile.Path, envFile.Format, environment, resolve)
+	return err
+}
+
+func loadLabelFile(labelFile string, resolve dotenv.LookupFn) (Mapping, error) {
+	if _, err := os.Stat(labelFile); os.IsNotExist(err) {
+		return nil, fmt.Errorf("label file %s not found: %w", labelFile, err)
+	}
+
+	labels := Mapping{}
+	err := loadMappingFile(labelFile, "", labels, resolve)
+	return labels, err
+}
+
+func loadMappingFile(path string, format string, vars Mapping, resolve dotenv.LookupFn) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return dotenv.ParseWithFormat(file, path, vars, resolve, format)
+}
+
 func (p *Project) deepCopy() *Project {
 	if p == nil {
 		return nil
@@ -651,7 +755,6 @@ func (p *Project) deepCopy() *Project {
 	n := &Project{}
 	deriveDeepCopyProject(n, p)
 	return n
-
 }
 
 // WithServicesTransform applies a transformation to project services and return a new project with transformation results

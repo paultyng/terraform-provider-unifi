@@ -62,6 +62,9 @@ func (s *composeService) push(ctx context.Context, project *types.Project, optio
 	w := progress.ContextWriter(ctx)
 	for _, service := range project.Services {
 		if service.Build == nil || service.Image == "" {
+			if options.ImageMandatory && service.Image == "" {
+				return fmt.Errorf("%q attribute is mandatory to push an image for service %q", "service.image", service.Name)
+			}
 			w.Event(progress.Event{
 				ID:     service.Name,
 				Status: progress.Done,
@@ -69,14 +72,12 @@ func (s *composeService) push(ctx context.Context, project *types.Project, optio
 			})
 			continue
 		}
-		service := service
 		tags := []string{service.Image}
 		if service.Build != nil {
 			tags = append(tags, service.Build.Tags...)
 		}
 
 		for _, tag := range tags {
-			tag := tag
 			eg.Go(func() error {
 				err := s.pushServiceImage(ctx, tag, info, s.configFile(), w, options.Quiet)
 				if err != nil {

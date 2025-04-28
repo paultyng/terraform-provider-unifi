@@ -28,23 +28,15 @@ import (
 	"github.com/tilt-dev/fsnotify"
 )
 
-var (
-	numberOfWatches = expvar.NewInt("watch.naive.numberOfWatches")
-)
+var numberOfWatches = expvar.NewInt("watch.naive.numberOfWatches")
 
-type FileEvent struct {
-	path string
-}
+type FileEvent string
 
 func NewFileEvent(p string) FileEvent {
 	if !filepath.IsAbs(p) {
 		panic(fmt.Sprintf("NewFileEvent only accepts absolute paths. Actual: %s", p))
 	}
-	return FileEvent{path: p}
-}
-
-func (e FileEvent) Path() string {
-	return e.path
+	return FileEvent(p)
 }
 
 type Notify interface {
@@ -76,16 +68,24 @@ type PathMatcher interface {
 	MatchesEntireDir(file string) (bool, error)
 }
 
-type EmptyMatcher struct {
-}
+// AnyMatcher is a PathMatcher to match any path
+type AnyMatcher struct{}
+
+func (AnyMatcher) Matches(f string) (bool, error)          { return true, nil }
+func (AnyMatcher) MatchesEntireDir(f string) (bool, error) { return true, nil }
+
+var _ PathMatcher = AnyMatcher{}
+
+// EmptyMatcher is a PathMatcher to match no path
+type EmptyMatcher struct{}
 
 func (EmptyMatcher) Matches(f string) (bool, error)          { return false, nil }
 func (EmptyMatcher) MatchesEntireDir(f string) (bool, error) { return false, nil }
 
 var _ PathMatcher = EmptyMatcher{}
 
-func NewWatcher(paths []string, ignore PathMatcher) (Notify, error) {
-	return newWatcher(paths, ignore)
+func NewWatcher(paths []string) (Notify, error) {
+	return newWatcher(paths)
 }
 
 const WindowsBufferSizeEnvVar = "COMPOSE_WATCH_WINDOWS_BUFFER_SIZE"

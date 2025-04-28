@@ -27,10 +27,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/docker/compose/v2/internal"
 	"github.com/docker/compose/v2/internal/memnet"
 	"github.com/r3labs/sse"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
+
+// identify this client in the logs
+var userAgent = "compose/" + internal.Version
 
 // Client for integration with Docker Desktop features.
 type Client struct {
@@ -49,11 +53,10 @@ func NewClient(apiEndpoint string) *Client {
 	}
 	transport = otelhttp.NewTransport(transport)
 
-	c := &Client{
+	return &Client{
 		apiEndpoint: apiEndpoint,
 		client:      &http.Client{Transport: transport},
 	}
-	return c
 }
 
 func (c *Client) Endpoint() string {
@@ -72,10 +75,11 @@ type PingResponse struct {
 
 // Ping is a minimal API used to ensure that the server is available.
 func (c *Client) Ping(ctx context.Context) (*PingResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, backendURL("/ping"), http.NoBody)
+	req, err := c.newRequest(ctx, http.MethodGet, "/ping", http.NoBody)
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -83,6 +87,7 @@ func (c *Client) Ping(ctx context.Context) (*PingResponse, error) {
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
@@ -101,10 +106,11 @@ type FeatureFlagValue struct {
 }
 
 func (c *Client) FeatureFlags(ctx context.Context) (FeatureFlagResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, backendURL("/features"), http.NoBody)
+	req, err := c.newRequest(ctx, http.MethodGet, "/features", http.NoBody)
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -112,6 +118,7 @@ func (c *Client) FeatureFlags(ctx context.Context) (FeatureFlagResponse, error) 
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
@@ -131,10 +138,11 @@ type GetFileSharesConfigResponse struct {
 }
 
 func (c *Client) GetFileSharesConfig(ctx context.Context) (*GetFileSharesConfigResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, backendURL("/mutagen/file-shares/config"), http.NoBody)
+	req, err := c.newRequest(ctx, http.MethodGet, "/mutagen/file-shares/config", http.NoBody)
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -164,12 +172,17 @@ type CreateFileShareResponse struct {
 }
 
 func (c *Client) CreateFileShare(ctx context.Context, r CreateFileShareRequest) (*CreateFileShareResponse, error) {
-	rawBody, _ := json.Marshal(r)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, backendURL("/mutagen/file-shares"), bytes.NewReader(rawBody))
-	req.Header.Set("Content-Type", "application/json")
+	rawBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := c.newRequest(ctx, http.MethodPost, "/mutagen/file-shares", bytes.NewReader(rawBody))
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -182,6 +195,7 @@ func (c *Client) CreateFileShare(ctx context.Context, r CreateFileShareRequest) 
 		errBody, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(errBody))
 	}
+
 	var ret CreateFileShareResponse
 	if err := json.NewDecoder(resp.Body).Decode(&ret); err != nil {
 		return nil, err
@@ -208,10 +222,11 @@ type FileShareSession struct {
 }
 
 func (c *Client) ListFileShares(ctx context.Context) ([]FileShareSession, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, backendURL("/mutagen/file-shares"), http.NoBody)
+	req, err := c.newRequest(ctx, http.MethodGet, "/mutagen/file-shares", http.NoBody)
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -232,10 +247,11 @@ func (c *Client) ListFileShares(ctx context.Context) ([]FileShareSession, error)
 }
 
 func (c *Client) DeleteFileShare(ctx context.Context, id string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, backendURL("/mutagen/file-shares/"+id), http.NoBody)
+	req, err := c.newRequest(ctx, http.MethodDelete, "/mutagen/file-shares/"+id, http.NoBody)
 	if err != nil {
 		return err
 	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
@@ -243,6 +259,7 @@ func (c *Client) DeleteFileShare(ctx context.Context, id string) error {
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return newHTTPStatusCodeError(resp)
 	}
@@ -264,19 +281,18 @@ func newHTTPStatusCodeError(resp *http.Response) error {
 }
 
 func (c *Client) StreamFileShares(ctx context.Context) (<-chan EventMessage[[]FileShareSession], error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, backendURL("/mutagen/file-shares/stream"), http.NoBody)
+	req, err := c.newRequest(ctx, http.MethodGet, "/mutagen/file-shares/stream", http.NoBody)
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
+		_ = resp.Body.Close()
 		return nil, newHTTPStatusCodeError(resp)
 	}
 
@@ -284,9 +300,6 @@ func (c *Client) StreamFileShares(ctx context.Context) (<-chan EventMessage[[]Fi
 	go func(ctx context.Context) {
 		defer func() {
 			_ = resp.Body.Close()
-			for range events {
-				// drain the channel
-			}
 			close(events)
 		}()
 		if err := readEvents(ctx, resp.Body, events); err != nil {
@@ -321,6 +334,15 @@ func readEvents[T any](ctx context.Context, r io.Reader, events chan<- EventMess
 			// event was sent to channel, read next
 		}
 	}
+}
+
+func (c *Client) newRequest(ctx context.Context, method, path string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, backendURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	return req, nil
 }
 
 // backendURL generates a URL for the given API path.
