@@ -2,10 +2,10 @@ package builder
 
 import (
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -27,6 +27,7 @@ import (
 	"github.com/moby/buildkit/util/progress/progressui"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	"github.com/tonistiigi/go-csvvalue"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -199,7 +200,7 @@ func (b *Builder) Boot(ctx context.Context) (bool, error) {
 		err = err1
 	}
 
-	if err == nil && len(errCh) == len(toBoot) {
+	if err == nil && len(errCh) > 0 {
 		return false, <-errCh
 	}
 	return true, err
@@ -288,7 +289,15 @@ func GetBuilders(dockerCli command.Cli, txn *store.Txn) ([]*Builder, error) {
 		return nil, err
 	}
 
-	builders := make([]*Builder, len(storeng))
+	contexts, err := dockerCli.ContextStore().List()
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(contexts, func(i, j int) bool {
+		return contexts[i].Name < contexts[j].Name
+	})
+
+	builders := make([]*Builder, len(storeng), len(storeng)+len(contexts))
 	seen := make(map[string]struct{})
 	for i, ng := range storeng {
 		b, err := New(dockerCli,
@@ -302,14 +311,6 @@ func GetBuilders(dockerCli command.Cli, txn *store.Txn) ([]*Builder, error) {
 		builders[i] = b
 		seen[b.NodeGroup.Name] = struct{}{}
 	}
-
-	contexts, err := dockerCli.ContextStore().List()
-	if err != nil {
-		return nil, err
-	}
-	sort.Slice(contexts, func(i, j int) bool {
-		return contexts[i].Name < contexts[j].Name
-	})
 
 	for _, c := range contexts {
 		// if a context has the same name as an instance from the store, do not
@@ -435,7 +436,16 @@ func Create(ctx context.Context, txn *store.Txn, dockerCli command.Cli, opts Cre
 		return nil, err
 	}
 
-	buildkitdFlags, err := parseBuildkitdFlags(opts.BuildkitdFlags, driverName, driverOpts)
+	buildkitdConfigFile := opts.BuildkitdConfigFile
+	if buildkitdConfigFile == "" {
+		// if buildkit daemon config is not provided, check if the default one
+		// is available and use it
+		if f, ok := confutil.NewConfig(dockerCli).BuildKitConfigFile(); ok {
+			buildkitdConfigFile = f
+		}
+	}
+
+	buildkitdFlags, err := parseBuildkitdFlags(opts.BuildkitdFlags, driverName, driverOpts, buildkitdConfigFile)
 	if err != nil {
 		return nil, err
 	}
@@ -496,15 +506,6 @@ func Create(ctx context.Context, txn *store.Txn, dockerCli command.Cli, opts Cre
 		setEp = false
 	}
 
-	buildkitdConfigFile := opts.BuildkitdConfigFile
-	if buildkitdConfigFile == "" {
-		// if buildkit daemon config is not provided, check if the default one
-		// is available and use it
-		if f, ok := confutil.DefaultConfigFile(dockerCli); ok {
-			buildkitdConfigFile = f
-		}
-	}
-
 	if err := ng.Update(opts.NodeName, ep, opts.Platforms, setEp, opts.Append, buildkitdFlags, buildkitdConfigFile, driverOpts); err != nil {
 		return nil, err
 	}
@@ -522,8 +523,9 @@ func Create(ctx context.Context, txn *store.Txn, dockerCli command.Cli, opts Cre
 		return nil, err
 	}
 
-	timeoutCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	defer cancel()
+	cancelCtx, cancel := context.WithCancelCause(ctx)
+	timeoutCtx, _ := context.WithTimeoutCause(cancelCtx, 20*time.Second, errors.WithStack(context.DeadlineExceeded)) //nolint:govet,lostcancel // no need to manually cancel this context as we already rely on parent
+	defer func() { cancel(errors.WithStack(context.Canceled)) }()
 
 	nodes, err := b.LoadNodes(timeoutCtx, WithData())
 	if err != nil {
@@ -584,7 +586,7 @@ func Leave(ctx context.Context, txn *store.Txn, dockerCli command.Cli, opts Leav
 		return err
 	}
 
-	ls, err := localstate.New(confutil.ConfigDir(dockerCli))
+	ls, err := localstate.New(confutil.NewConfig(dockerCli))
 	if err != nil {
 		return err
 	}
@@ -601,8 +603,7 @@ func csvToMap(in []string) (map[string]string, error) {
 	}
 	m := make(map[string]string, len(in))
 	for _, s := range in {
-		csvReader := csv.NewReader(strings.NewReader(s))
-		fields, err := csvReader.Read()
+		fields, err := csvvalue.Fields(s, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -642,7 +643,7 @@ func validateBuildkitEndpoint(ep string) (string, error) {
 }
 
 // parseBuildkitdFlags parses buildkit flags
-func parseBuildkitdFlags(inp string, driver string, driverOpts map[string]string) (res []string, err error) {
+func parseBuildkitdFlags(inp string, driver string, driverOpts map[string]string, buildkitdConfigFile string) (res []string, err error) {
 	if inp != "" {
 		res, err = shlex.Split(inp)
 		if err != nil {
@@ -656,18 +657,26 @@ func parseBuildkitdFlags(inp string, driver string, driverOpts map[string]string
 	flags.StringArrayVar(&allowInsecureEntitlements, "allow-insecure-entitlement", nil, "")
 	_ = flags.Parse(res)
 
-	var hasNetworkHostEntitlement bool
-	for _, e := range allowInsecureEntitlements {
-		if e == "network.host" {
-			hasNetworkHostEntitlement = true
-			break
+	hasNetworkHostEntitlement := slices.Contains(allowInsecureEntitlements, "network.host")
+
+	var hasNetworkHostEntitlementInConf bool
+	if buildkitdConfigFile != "" {
+		btoml, err := confutil.LoadConfigTree(buildkitdConfigFile)
+		if err != nil {
+			return nil, err
+		} else if btoml != nil {
+			if ies := btoml.GetArray("insecure-entitlements"); ies != nil {
+				if slices.Contains(ies.([]string), "network.host") {
+					hasNetworkHostEntitlementInConf = true
+				}
+			}
 		}
 	}
 
 	if v, ok := driverOpts["network"]; ok && v == "host" && !hasNetworkHostEntitlement && driver == "docker-container" {
 		// always set network.host entitlement if user has set network=host
 		res = append(res, "--allow-insecure-entitlement=network.host")
-	} else if len(allowInsecureEntitlements) == 0 && (driver == "kubernetes" || driver == "docker-container") {
+	} else if len(allowInsecureEntitlements) == 0 && !hasNetworkHostEntitlementInConf && (driver == "kubernetes" || driver == "docker-container") {
 		// set network.host entitlement if user does not provide any as
 		// network is isolated for container drivers.
 		res = append(res, "--allow-insecure-entitlement=network.host")

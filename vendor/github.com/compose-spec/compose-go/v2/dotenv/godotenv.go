@@ -30,7 +30,7 @@ var startsWithDigitRegex = regexp.MustCompile(`^\s*\d.*`) // Keys starting with 
 // LookupFn represents a lookup function to resolve variables from
 type LookupFn func(string) (string, bool)
 
-var noLookupFn = func(s string) (string, bool) {
+var noLookupFn = func(_ string) (string, bool) {
 	return "", false
 }
 
@@ -41,16 +41,23 @@ func Parse(r io.Reader) (map[string]string, error) {
 
 // ParseWithLookup reads an env file from io.Reader, returning a map of keys and values.
 func ParseWithLookup(r io.Reader, lookupFn LookupFn) (map[string]string, error) {
+	vars := map[string]string{}
+	err := parseWithLookup(r, vars, lookupFn)
+	return vars, err
+}
+
+// ParseWithLookup reads an env file from io.Reader, returning a map of keys and values.
+func parseWithLookup(r io.Reader, vars map[string]string, lookupFn LookupFn) error {
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// seek past the UTF-8 BOM if it exists (particularly on Windows, some
 	// editors tend to add it, and it'll cause parsing to fail)
 	data = bytes.TrimPrefix(data, utf8BOM)
 
-	return UnmarshalBytesWithLookup(data, lookupFn)
+	return newParser().parse(string(data), vars, lookupFn)
 }
 
 // Load will read your env file(s) and load them into ENV for this process.
@@ -86,7 +93,7 @@ func ReadWithLookup(lookupFn LookupFn, filenames ...string) (map[string]string, 
 	envMap := make(map[string]string)
 
 	for _, filename := range filenames {
-		individualEnvMap, individualErr := readFile(filename, lookupFn)
+		individualEnvMap, individualErr := ReadFile(filename, lookupFn)
 
 		if individualErr != nil {
 			return envMap, individualErr
@@ -129,7 +136,7 @@ func filenamesOrDefault(filenames []string) []string {
 }
 
 func loadFile(filename string, overload bool) error {
-	envMap, err := readFile(filename, nil)
+	envMap, err := ReadFile(filename, nil)
 	if err != nil {
 		return err
 	}
@@ -150,7 +157,7 @@ func loadFile(filename string, overload bool) error {
 	return nil
 }
 
-func readFile(filename string, lookupFn LookupFn) (map[string]string, error) {
+func ReadFile(filename string, lookupFn LookupFn) (map[string]string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err

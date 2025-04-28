@@ -24,6 +24,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/log"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -179,7 +180,7 @@ const (
 	RemoveImagesLocal
 )
 
-type dockerCompose struct {
+type DockerCompose struct {
 	// used to synchronize operations
 	lock sync.RWMutex
 
@@ -194,7 +195,7 @@ type dockerCompose struct {
 	temporaryConfigs map[string]bool
 
 	// used to set logger in DockerContainer
-	logger testcontainers.Logging
+	logger log.Logger
 
 	// wait strategies that are applied per service when starting the stack
 	// only one strategy can be added to a service, to use multiple use wait.ForAll(...)
@@ -229,23 +230,26 @@ type dockerCompose struct {
 
 	// sessionID is used to identify the reaper session
 	sessionID string
+
+	// provider is used to docker operations.
+	provider *testcontainers.DockerProvider
 }
 
-func (d *dockerCompose) ServiceContainer(ctx context.Context, svcName string) (*testcontainers.DockerContainer, error) {
+func (d *DockerCompose) ServiceContainer(ctx context.Context, svcName string) (*testcontainers.DockerContainer, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
 	return d.lookupContainer(ctx, svcName)
 }
 
-func (d *dockerCompose) Services() []string {
+func (d *DockerCompose) Services() []string {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
 	return d.project.ServiceNames()
 }
 
-func (d *dockerCompose) Down(ctx context.Context, opts ...StackDownOption) error {
+func (d *DockerCompose) Down(ctx context.Context, opts ...StackDownOption) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -267,7 +271,7 @@ func (d *dockerCompose) Down(ctx context.Context, opts ...StackDownOption) error
 	return d.composeService.Down(ctx, d.name, options.DownOptions)
 }
 
-func (d *dockerCompose) Up(ctx context.Context, opts ...StackUpOption) (err error) {
+func (d *DockerCompose) Up(ctx context.Context, opts ...StackUpOption) (err error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -325,17 +329,12 @@ func (d *dockerCompose) Up(ctx context.Context, opts ...StackUpOption) (err erro
 		return err
 	}
 
-	provider, err := testcontainers.NewDockerProvider(testcontainers.WithLogger(d.logger))
-	if err != nil {
-		return fmt.Errorf("new docker provider: %w", err)
-	}
-
 	var termSignals []chan bool
 	var reaper *testcontainers.Reaper
-	if !provider.Config().Config.RyukDisabled {
+	if !d.provider.Config().Config.RyukDisabled {
 		// NewReaper is deprecated: we need to find a way to create the reaper for compose
 		// bypassing the deprecation.
-		reaper, err = testcontainers.NewReaper(ctx, testcontainers.SessionID(), provider, "")
+		reaper, err = testcontainers.NewReaper(ctx, testcontainers.SessionID(), d.provider, "")
 		if err != nil {
 			return fmt.Errorf("create reaper: %w", err)
 		}
@@ -379,6 +378,7 @@ func (d *dockerCompose) Up(ctx context.Context, opts ...StackUpOption) (err erro
 
 	// Lookup the containers for each service and connect them
 	// to the reaper if needed.
+	var termSignalsMtx sync.Mutex
 	for _, srv := range d.project.Services {
 		srv := srv
 		errGrpContainers.Go(func() error {
@@ -394,6 +394,9 @@ func (d *dockerCompose) Up(ctx context.Context, opts ...StackUpOption) (err erro
 				}
 
 				dc.SetTerminationSignal(termSignal)
+
+				termSignalsMtx.Lock()
+				defer termSignalsMtx.Unlock()
 				termSignals = append(termSignals, termSignal)
 			}
 
@@ -433,7 +436,7 @@ func (d *dockerCompose) Up(ctx context.Context, opts ...StackUpOption) (err erro
 	return nil
 }
 
-func (d *dockerCompose) WaitForService(s string, strategy wait.Strategy) ComposeStack {
+func (d *DockerCompose) WaitForService(s string, strategy wait.Strategy) ComposeStack {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -441,7 +444,7 @@ func (d *dockerCompose) WaitForService(s string, strategy wait.Strategy) Compose
 	return d
 }
 
-func (d *dockerCompose) WithEnv(m map[string]string) ComposeStack {
+func (d *DockerCompose) WithEnv(m map[string]string) ComposeStack {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -449,7 +452,7 @@ func (d *dockerCompose) WithEnv(m map[string]string) ComposeStack {
 	return d
 }
 
-func (d *dockerCompose) WithOsEnv() ComposeStack {
+func (d *DockerCompose) WithOsEnv() ComposeStack {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -458,7 +461,7 @@ func (d *dockerCompose) WithOsEnv() ComposeStack {
 }
 
 // cachedContainer returns the cached container for svcName or nil if it doesn't exist.
-func (d *dockerCompose) cachedContainer(svcName string) *testcontainers.DockerContainer {
+func (d *DockerCompose) cachedContainer(svcName string) *testcontainers.DockerContainer {
 	d.containersLock.Lock()
 	defer d.containersLock.Unlock()
 
@@ -468,7 +471,7 @@ func (d *dockerCompose) cachedContainer(svcName string) *testcontainers.DockerCo
 // lookupContainer is used to retrieve the container instance from the cache or the Docker API.
 //
 // Safe for concurrent calls.
-func (d *dockerCompose) lookupContainer(ctx context.Context, svcName string) (*testcontainers.DockerContainer, error) {
+func (d *DockerCompose) lookupContainer(ctx context.Context, svcName string) (*testcontainers.DockerContainer, error) {
 	if c := d.cachedContainer(svcName); c != nil {
 		return c, nil
 	}
@@ -488,25 +491,10 @@ func (d *dockerCompose) lookupContainer(ctx context.Context, svcName string) (*t
 		return nil, fmt.Errorf("no container found for service name %s", svcName)
 	}
 
-	containerInstance := containers[0]
-	// TODO: Fix as this is only setting a subset of the fields
-	// and the container is not fully initialized, for example
-	// the isRunning flag is not set.
-	// See: https://github.com/testcontainers/testcontainers-go/issues/2667
-	ctr := &testcontainers.DockerContainer{
-		ID:    containerInstance.ID,
-		Image: containerInstance.Image,
-	}
-	ctr.SetLogger(d.logger)
-
-	dockerProvider, err := testcontainers.NewDockerProvider(testcontainers.WithLogger(d.logger))
+	ctr, err := d.provider.ContainerFromType(ctx, containers[0])
 	if err != nil {
-		return nil, fmt.Errorf("new docker provider: %w", err)
+		return nil, fmt.Errorf("container from type: %w", err)
 	}
-
-	dockerProvider.SetClient(d.dockerClient)
-
-	ctr.SetProvider(dockerProvider)
 
 	d.containersLock.Lock()
 	defer d.containersLock.Unlock()
@@ -518,7 +506,7 @@ func (d *dockerCompose) lookupContainer(ctx context.Context, svcName string) (*t
 // lookupNetworks is used to retrieve the networks that are part of the compose stack.
 //
 // Safe for concurrent calls.
-func (d *dockerCompose) lookupNetworks(ctx context.Context) error {
+func (d *DockerCompose) lookupNetworks(ctx context.Context) error {
 	networks, err := d.dockerClient.NetworkList(ctx, dockernetwork.ListOptions{
 		Filters: filters.NewArgs(
 			filters.Arg("label", fmt.Sprintf("%s=%s", api.ProjectLabel, d.name)),
@@ -541,7 +529,7 @@ func (d *dockerCompose) lookupNetworks(ctx context.Context) error {
 	return nil
 }
 
-func (d *dockerCompose) compileProject(ctx context.Context) (*types.Project, error) {
+func (d *DockerCompose) compileProject(ctx context.Context) (*types.Project, error) {
 	const nameAndDefaultConfigPath = 2
 	projectOptions := make([]cli.ProjectOptionsFn, len(d.projectOptions), len(d.projectOptions)+nameAndDefaultConfigPath)
 
@@ -605,9 +593,8 @@ func withEnv(env map[string]string) func(*cli.ProjectOptions) error {
 		for k, v := range env {
 			if _, ok := options.Environment[k]; ok {
 				return fmt.Errorf("environment with key %s already set", k)
-			} else {
-				options.Environment[k] = v
 			}
+			options.Environment[k] = v
 		}
 
 		return nil
