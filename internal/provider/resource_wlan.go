@@ -74,11 +74,39 @@ func resourceWLAN() *schema.Resource {
 				Default:      "disabled",
 			},
 			"passphrase": {
-				Description: "The passphrase for the network, this is only required if `security` is not set to `open`.",
+				Description: "The passphrase for the network. Not used if security is open or if private_preshared_keys_enabled is true.",
 				Type:        schema.TypeString,
 				// only required if security != open
 				Optional:  true,
 				Sensitive: true,
+				ConflictsWith: []string{"private_preshared_keys_enabled", "private_preshared_key"},
+			},
+			"private_preshared_keys_enabled": {
+				Description: "Enable Private Pre-Shared Keys (PPSK) for this WLAN. If true, `passphrase` should not be set.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+			"private_preshared_key": {
+				Description: "A list of private pre-shared keys. Required if `private_preshared_keys_enabled` is true.",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"password": {
+							Description: "The pre-shared key passphrase.",
+							Type:        schema.TypeString,
+							Required:    true,
+							Sensitive:   true,
+						},
+						"network_id": {
+							Description: "The ID of the network (VLAN) to assign to clients using this PSK.",
+							Type:        schema.TypeString,
+							Required:    true,
+						},
+					},
+				},
+				RequiredWith: []string{"private_preshared_keys_enabled"},
 			},
 			"hide_ssid": {
 				Description: "Indicates whether or not to hide the SSID from broadcast.",
@@ -244,10 +272,10 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 	c := meta.(*client)
 
 	security := d.Get("security").(string)
-	passphrase := d.Get("passphrase").(string)
+	mainPassphrase := d.Get("passphrase").(string)
 	switch security {
 	case "open":
-		passphrase = ""
+		mainPassphrase = ""
 	}
 
 	pmf := d.Get("pmf_mode").(string)
@@ -282,6 +310,32 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		macFilterList = nil
 	}
 
+	ppskEnabled := d.Get("private_preshared_keys_enabled").(bool)
+	var ppskEntries []unifi.WLANPrivatePresharedKeys
+
+	if ppskEnabled {
+		// Schema `ConflictsWith` should ensure `d.Get("passphrase").(string)` is empty here.
+		if v, ok := d.GetOk("private_preshared_key"); ok {
+			tfPPSKList := v.([]interface{})
+			if len(tfPPSKList) == 0 && ppskEnabled {
+				return nil, fmt.Errorf("`private_preshared_key` block cannot be empty when `private_preshared_keys_enabled` is true")
+			}
+			ppskEntries = make([]unifi.WLANPrivatePresharedKeys, len(tfPPSKList))
+			for i, item := range tfPPSKList {
+				entryMap := item.(map[string]interface{})
+				ppskEntries[i] = unifi.WLANPrivatePresharedKeys{
+					Password:  entryMap["password"].(string),
+					NetworkID: entryMap["network_id"].(string),
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("`private_preshared_key` attribute is required when `private_preshared_keys_enabled` is true")
+		}
+		mainPassphrase = "" // Main passphrase is not used
+	} else if security == "wpapsk" && mainPassphrase == "" {
+		return nil, fmt.Errorf("`passphrase` is required when security is 'wpapsk' and `private_preshared_keys_enabled` is false")
+	}
+
 	// version specific fields and validation
 	networkID := d.Get("network_id").(string)
 	apGroupIDs, err := setToStringSlice(d.Get("ap_group_ids").(*schema.Set))
@@ -306,7 +360,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 
 	return &unifi.WLAN{
 		Name:                    d.Get("name").(string),
-		XPassphrase:             passphrase,
+		XPassphrase:             mainPassphrase,
 		HideSSID:                d.Get("hide_ssid").(bool),
 		IsGuest:                 d.Get("is_guest").(bool),
 		NetworkID:               networkID,
@@ -347,6 +401,9 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 
 		MinrateNaEnabled:      d.Get("minimum_data_rate_5g_kbps").(int) != 0,
 		MinrateNaDataRateKbps: d.Get("minimum_data_rate_5g_kbps").(int),
+
+		PrivatePresharedKeysEnabled: ppskEnabled,
+		PrivatePresharedKeys:        ppskAPIEntries,
 	}, nil
 }
 
@@ -374,6 +431,7 @@ func resourceWLANCreate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}, site string) diag.Diagnostics {
+	var diags diag.Diagnostic
 	// c := meta.(*client)
 	security := resp.Security
 	passphrase := resp.XPassphrase
@@ -433,6 +491,23 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 		d.Set("minimum_data_rate_5g_kbps", resp.MinrateNaDataRateKbps)
 	} else {
 		d.Set("minimum_data_rate_5g_kbps", 0)
+	}
+	d.Set("private_preshared_keys_enabled", resp.PrivatePresharedKeysEnabled)
+	if resp.PrivatePresharedKeysEnabled {
+		// PPSK is ENABLED. Remove main "passphrase" and set "private_preshared_key" list
+		d.Set("passphrase", "")
+
+		tfPPSKList := make([]interface{}, len(resp.PrivatePresharedKeys))
+		for i, apiEntry := range resp.PrivatePresharedKeys {
+			entryMap := map[string]interface{}{
+				"password":   apiEntry.Password,
+				"network_id": apiEntry.NetworkID,
+			}
+			tfPPSKList[i] = entryMap
+		}
+		d.Set("private_preshared_key", tfPPSKList)
+	} else {
+		d.Set("private_preshared_key", nil)
 	}
 
 	return nil
