@@ -252,9 +252,10 @@ func resourceWLAN() *schema.Resource {
 				Default:      "both",
 			},
 			"network_id": {
-				Description: "ID of the network for this SSID",
+				Description: "ID of the network for this SSID. Not used and must not be set if `private_preshared_keys_enabled` is true.",
 				Type:        schema.TypeString,
 				Optional:    true,
+				ConflictsWith: []string{"private_preshared_keys_enabled"},
 			},
 			"ap_group_ids": {
 				Description: "IDs of the AP groups to use for this network.",
@@ -403,7 +404,7 @@ func resourceWLANGetResourceData(d *schema.ResourceData, meta interface{}) (*uni
 		MinrateNaDataRateKbps: d.Get("minimum_data_rate_5g_kbps").(int),
 
 		PrivatePresharedKeysEnabled: ppskEnabled,
-		PrivatePresharedKeys:        ppskAPIEntries,
+		PrivatePresharedKeys:        ppskEntries,
 	}, nil
 }
 
@@ -431,15 +432,12 @@ func resourceWLANCreate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta interface{}, site string) diag.Diagnostics {
-	var diags diag.Diagnostic
 	// c := meta.(*client)
 	security := resp.Security
-	passphrase := resp.XPassphrase
 	wpa3 := false
 	wpa3Transition := false
 	switch security {
 	case "open":
-		passphrase = ""
 	case "wpapsk":
 		wpa3 = resp.WPA3Support
 		wpa3Transition = resp.WPA3Transition
@@ -460,7 +458,6 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("site", site)
 	d.Set("name", resp.Name)
 	d.Set("user_group_id", resp.UserGroupID)
-	d.Set("passphrase", passphrase)
 	d.Set("hide_ssid", resp.HideSSID)
 	d.Set("is_guest", resp.IsGuest)
 	d.Set("security", security)
@@ -480,7 +477,6 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	d.Set("uapsd", resp.UapsdEnabled)
 	d.Set("fast_roaming_enabled", resp.FastRoamingEnabled)
 	d.Set("ap_group_ids", apGroupIDs)
-	d.Set("network_id", resp.NetworkID)
 	d.Set("pmf_mode", resp.PMFMode)
 	if resp.MinrateSettingPreference != "auto" && resp.MinrateNgEnabled {
 		d.Set("minimum_data_rate_2g_kbps", resp.MinrateNgDataRateKbps)
@@ -494,8 +490,9 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 	}
 	d.Set("private_preshared_keys_enabled", resp.PrivatePresharedKeysEnabled)
 	if resp.PrivatePresharedKeysEnabled {
-		// PPSK is ENABLED. Remove main "passphrase" and set "private_preshared_key" list
-		d.Set("passphrase", "")
+		// PPSK is ENABLED.
+		d.Set("passphrase", "") // Override main passphrase state to empty
+		d.Set("network_id", "") // Set main network_id state to empty (to prevent drift)
 
 		tfPPSKList := make([]interface{}, len(resp.PrivatePresharedKeys))
 		for i, apiEntry := range resp.PrivatePresharedKeys {
@@ -508,6 +505,14 @@ func resourceWLANSetResourceData(resp *unifi.WLAN, d *schema.ResourceData, meta 
 		d.Set("private_preshared_key", tfPPSKList)
 	} else {
 		d.Set("private_preshared_key", nil)
+		passphraseToSet := resp.XPassphrase
+		if resp.Security == "open" {
+			passphraseToSet = ""
+		}
+		d.Set("passphrase", passphraseToSet)
+
+		// Set the main network_id from the API response
+		d.Set("network_id", resp.NetworkID)
 	}
 
 	return nil
