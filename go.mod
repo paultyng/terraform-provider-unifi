@@ -1,6 +1,7 @@
 module github.com/paultyng/terraform-provider-unifi
 
-go 1.22.0
+go 1.23.0
+
 toolchain go1.24.1
 
 // replace github.com/paultyng/go-unifi => ../go-unifi
@@ -84,7 +85,7 @@ require (
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
 	github.com/ckaznocha/intrange v0.3.0 // indirect
-	github.com/cloudflare/circl v1.5.0 // indirect
+	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/compose-spec/compose-go/v2 v2.1.3 // indirect
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/containerd/containerd v1.7.18 // indirect
