@@ -227,7 +227,7 @@ func (subst *subster) var_(v *types.Var) *types.Var {
 			if v.IsField() {
 				return types.NewField(v.Pos(), v.Pkg(), v.Name(), typ, v.Embedded())
 			}
-			return types.NewVar(v.Pos(), v.Pkg(), v.Name(), typ)
+			return types.NewParam(v.Pos(), v.Pkg(), v.Name(), typ)
 		}
 	}
 	return v
@@ -266,7 +266,7 @@ func (subst *subster) interface_(iface *types.Interface) *types.Interface {
 	var methods []*types.Func
 	initMethods := func(n int) { // copy first n explicit methods
 		methods = make([]*types.Func, iface.NumExplicitMethods())
-		for i := 0; i < n; i++ {
+		for i := range n {
 			f := iface.ExplicitMethod(i)
 			norecv := changeRecv(f.Type().(*types.Signature), nil)
 			methods[i] = types.NewFunc(f.Pos(), f.Pkg(), f.Name(), norecv)
@@ -290,7 +290,7 @@ func (subst *subster) interface_(iface *types.Interface) *types.Interface {
 	var embeds []types.Type
 	initEmbeds := func(n int) { // copy first n embedded types
 		embeds = make([]types.Type, iface.NumEmbeddeds())
-		for i := 0; i < n; i++ {
+		for i := range n {
 			embeds[i] = iface.EmbeddedType(i)
 		}
 	}
