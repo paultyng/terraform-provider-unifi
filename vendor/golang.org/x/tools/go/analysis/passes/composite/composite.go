@@ -51,7 +51,7 @@ func init() {
 
 // runUnkeyedLiteral checks if a composite literal is a struct literal with
 // unkeyed fields.
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(pass *analysis.Pass) (any, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -115,7 +115,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					missingKeys = append(missingKeys, analysis.TextEdit{
 						Pos:     e.Pos(),
 						End:     e.Pos(),
-						NewText: []byte(fmt.Sprintf("%s: ", field.Name())),
+						NewText: fmt.Appendf(nil, "%s: ", field.Name()),
 					})
 				}
 			}
