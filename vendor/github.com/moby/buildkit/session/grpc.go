@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/containerd/containerd/defaults"
+	"github.com/containerd/containerd/v2/defaults"
 	"github.com/moby/buildkit/util/bklog"
 	"github.com/moby/buildkit/util/grpcerrors"
 	"github.com/moby/buildkit/util/tracing"
@@ -56,9 +56,10 @@ func grpcClientConn(ctx context.Context, conn net.Conn) (context.Context, *grpc.
 		dialOpts = append(dialOpts, grpc.WithStatsHandler(statsHandler))
 	}
 
+	//nolint:staticcheck // ignore SA1019 NewClient is preferred but has different behavior
 	cc, err := grpc.DialContext(ctx, "localhost", dialOpts...)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to create grpc client")
+		return ctx, nil, errors.Wrap(err, "failed to create grpc client")
 	}
 
 	ctx, cancel := context.WithCancelCause(ctx)
