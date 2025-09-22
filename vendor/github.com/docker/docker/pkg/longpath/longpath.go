@@ -3,18 +3,13 @@
 //
 // Long paths are expected to be prepended with "\\?\" and followed by either a
 // drive letter, a UNC server\share, or a volume identifier.
-package longpath // import "github.com/docker/docker/pkg/longpath"
+package longpath
 
 import (
 	"os"
 	"runtime"
 	"strings"
 )
-
-// Prefix is the longpath prefix for Windows file paths.
-//
-// Deprecated: this const is only used internally, and will be removed in the next release
-const Prefix = longPathPrefix
 
 // longPathPrefix is the longpath prefix for Windows file paths.
 const longPathPrefix = `\\?\`

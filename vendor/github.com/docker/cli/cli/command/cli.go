@@ -1,5 +1,5 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.21
+//go:build go1.22
 
 package command
 
@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -21,21 +20,15 @@ import (
 	"github.com/docker/cli/cli/context/store"
 	"github.com/docker/cli/cli/debug"
 	cliflags "github.com/docker/cli/cli/flags"
-	manifeststore "github.com/docker/cli/cli/manifest/store"
-	registryclient "github.com/docker/cli/cli/registry/client"
 	"github.com/docker/cli/cli/streams"
-	"github.com/docker/cli/cli/trust"
 	"github.com/docker/cli/cli/version"
 	dopts "github.com/docker/cli/opts"
 	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/tlsconfig"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	notaryclient "github.com/theupdateframework/notary/client"
 )
 
 const defaultInitTimeout = 2 * time.Second
@@ -53,13 +46,10 @@ type Cli interface {
 	Streams
 	SetIn(in *streams.In)
 	Apply(ops ...CLIOption) error
-	ConfigFile() *configfile.ConfigFile
+	config.Provider
 	ServerInfo() ServerInfo
-	NotaryClient(imgRefAndAuth trust.ImageRefAndAuth, actions []string) (notaryclient.Repository, error)
 	DefaultVersion() string
 	CurrentVersion() string
-	ManifestStore() manifeststore.Store
-	RegistryClient(bool) registryclient.RegistryClient
 	ContentTrustEnabled() bool
 	BuildKitEnabled() (bool, error)
 	ContextStore() store.Store
@@ -96,8 +86,8 @@ type DockerCli struct {
 	enableGlobalMeter, enableGlobalTracer bool
 }
 
-// DefaultVersion returns api.defaultVersion.
-func (cli *DockerCli) DefaultVersion() string {
+// DefaultVersion returns [api.DefaultVersion].
+func (*DockerCli) DefaultVersion() string {
 	return api.DefaultVersion
 }
 
@@ -114,7 +104,7 @@ func (cli *DockerCli) CurrentVersion() string {
 // Client returns the APIClient
 func (cli *DockerCli) Client() client.APIClient {
 	if err := cli.initialize(); err != nil {
-		_, _ = fmt.Fprintf(cli.Err(), "Failed to initialize: %s\n", err)
+		_, _ = fmt.Fprintln(cli.Err(), "Failed to initialize:", err)
 		os.Exit(1)
 	}
 	return cli.client
@@ -202,16 +192,16 @@ func (cli *DockerCli) BuildKitEnabled() (bool, error) {
 
 // HooksEnabled returns whether plugin hooks are enabled.
 func (cli *DockerCli) HooksEnabled() bool {
-	// legacy support DOCKER_CLI_HINTS env var
-	if v := os.Getenv("DOCKER_CLI_HINTS"); v != "" {
+	// use DOCKER_CLI_HOOKS env var value if set and not empty
+	if v := os.Getenv("DOCKER_CLI_HOOKS"); v != "" {
 		enabled, err := strconv.ParseBool(v)
 		if err != nil {
 			return false
 		}
 		return enabled
 	}
-	// use DOCKER_CLI_HOOKS env var value if set and not empty
-	if v := os.Getenv("DOCKER_CLI_HOOKS"); v != "" {
+	// legacy support DOCKER_CLI_HINTS env var
+	if v := os.Getenv("DOCKER_CLI_HINTS"); v != "" {
 		enabled, err := strconv.ParseBool(v)
 		if err != nil {
 			return false
@@ -228,21 +218,6 @@ func (cli *DockerCli) HooksEnabled() bool {
 	}
 	// default to false
 	return false
-}
-
-// ManifestStore returns a store for local manifests
-func (cli *DockerCli) ManifestStore() manifeststore.Store {
-	// TODO: support override default location from config file
-	return manifeststore.NewStore(filepath.Join(config.Dir(), "manifests"))
-}
-
-// RegistryClient returns a client for communicating with a Docker distribution
-// registry
-func (cli *DockerCli) RegistryClient(allowInsecure bool) registryclient.RegistryClient {
-	resolver := func(ctx context.Context, index *registry.IndexInfo) registry.AuthConfig {
-		return ResolveAuthConfig(cli.ConfigFile(), index)
-	}
-	return registryclient.NewRegistryClient(resolver, UserAgent(), allowInsecure)
 }
 
 // WithInitializeClient is passed to DockerCli.Initialize by callers who wish to set a particular API Client for use by the CLI.
@@ -272,7 +247,7 @@ func (cli *DockerCli) Initialize(opts *cliflags.ClientOptions, ops ...CLIOption)
 		debug.Enable()
 	}
 	if opts.Context != "" && len(opts.Hosts) > 0 {
-		return errors.New("conflicting options: either specify --host or --context, not both")
+		return errors.New("conflicting options: cannot specify both --host and --context")
 	}
 
 	cli.options = opts
@@ -292,6 +267,7 @@ func (cli *DockerCli) Initialize(opts *cliflags.ClientOptions, ops ...CLIOption)
 	if cli.enableGlobalTracer {
 		cli.createGlobalTracerProvider(cli.baseCtx)
 	}
+	filterResourceAttributesEnvvar()
 
 	return nil
 }
@@ -299,7 +275,7 @@ func (cli *DockerCli) Initialize(opts *cliflags.ClientOptions, ops ...CLIOption)
 // NewAPIClientFromFlags creates a new APIClient from command line flags
 func NewAPIClientFromFlags(opts *cliflags.ClientOptions, configFile *configfile.ConfigFile) (client.APIClient, error) {
 	if opts.Context != "" && len(opts.Hosts) > 0 {
-		return nil, errors.New("conflicting options: either specify --host or --context, not both")
+		return nil, errors.New("conflicting options: cannot specify both --host and --context")
 	}
 
 	storeConfig := DefaultContextStoreConfig()
@@ -324,7 +300,7 @@ func newAPIClientFromEndpoint(ep docker.Endpoint, configFile *configfile.ConfigF
 	if len(configFile.HTTPHeaders) > 0 {
 		opts = append(opts, client.WithHTTPHeaders(configFile.HTTPHeaders))
 	}
-	opts = append(opts, client.WithUserAgent(UserAgent()))
+	opts = append(opts, withCustomHeadersFromEnv(), client.WithUserAgent(UserAgent()))
 	return client.NewClientWithOpts(opts...)
 }
 
@@ -345,7 +321,10 @@ func resolveDockerEndpoint(s store.Reader, contextName string) (docker.Endpoint,
 
 // Resolve the Docker endpoint for the default context (based on config, env vars and CLI flags)
 func resolveDefaultDockerEndpoint(opts *cliflags.ClientOptions) (docker.Endpoint, error) {
-	host, err := getServerHost(opts.Hosts, opts.TLSOptions)
+	// defaultToTLS determines whether we should use a TLS host as default
+	// if nothing was configured by the user.
+	defaultToTLS := opts.TLSOptions != nil
+	host, err := getServerHost(opts.Hosts, defaultToTLS)
 	if err != nil {
 		return docker.Endpoint{}, err
 	}
@@ -401,11 +380,6 @@ func (cli *DockerCli) initializeFromClient() {
 		SwarmStatus:     ping.SwarmStatus,
 	}
 	cli.client.NegotiateAPIVersionPing(ping)
-}
-
-// NotaryClient provides a Notary Repository to interact with signed metadata for an image
-func (cli *DockerCli) NotaryClient(imgRefAndAuth trust.ImageRefAndAuth, actions []string) (notaryclient.Repository, error) {
-	return trust.GetNotaryRepository(cli.In(), cli.Out(), UserAgent(), imgRefAndAuth.RepoInfo(), imgRefAndAuth.AuthConfig(), actions...)
 }
 
 // ContextStore returns the ContextStore
@@ -475,7 +449,7 @@ func (cli *DockerCli) DockerEndpoint() docker.Endpoint {
 	if err := cli.initialize(); err != nil {
 		// Note that we're not terminating here, as this function may be used
 		// in cases where we're able to continue.
-		_, _ = fmt.Fprintf(cli.Err(), "%v\n", cli.initErr)
+		_, _ = fmt.Fprintln(cli.Err(), cli.initErr)
 	}
 	return cli.dockerEndpoint
 }
@@ -553,18 +527,15 @@ func NewDockerCli(ops ...CLIOption) (*DockerCli, error) {
 	return cli, nil
 }
 
-func getServerHost(hosts []string, tlsOptions *tlsconfig.Options) (string, error) {
-	var host string
+func getServerHost(hosts []string, defaultToTLS bool) (string, error) {
 	switch len(hosts) {
 	case 0:
-		host = os.Getenv(client.EnvOverrideHost)
+		return dopts.ParseHost(defaultToTLS, os.Getenv(client.EnvOverrideHost))
 	case 1:
-		host = hosts[0]
+		return dopts.ParseHost(defaultToTLS, hosts[0])
 	default:
 		return "", errors.New("Specify only one -H")
 	}
-
-	return dopts.ParseHost(tlsOptions != nil, host)
 }
 
 // UserAgent returns the user agent string used for making API requests

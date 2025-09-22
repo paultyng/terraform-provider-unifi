@@ -3,16 +3,17 @@
 //
 // This package is specifically written for use with docker build contexts, and
 // should not be used as a general-purpose utility.
-package urlutil // import "github.com/docker/docker/builder/remotecontext/urlutil"
+package urlutil
 
 import (
-	"regexp"
 	"strings"
+
+	"github.com/docker/docker/internal/lazyregexp"
 )
 
 // urlPathWithFragmentSuffix matches fragments to use as Git reference and build
 // context from the Git repository. See IsGitURL for details.
-var urlPathWithFragmentSuffix = regexp.MustCompile(`\.git(?:#.+)?$`)
+var urlPathWithFragmentSuffix = lazyregexp.New(`\.git(?:#.+)?$`)
 
 // IsURL returns true if the provided str is an HTTP(S) URL by checking if it
 // has a http:// or https:// scheme. No validation is performed to verify if the

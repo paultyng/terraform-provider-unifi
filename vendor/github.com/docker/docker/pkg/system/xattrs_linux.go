@@ -1,12 +1,14 @@
-package system // import "github.com/docker/docker/pkg/system"
+package system
 
 import (
+	"errors"
+
 	"golang.org/x/sys/unix"
 )
 
 // Lgetxattr retrieves the value of the extended attribute identified by attr
 // and associated with the given path in the file system.
-// It will returns a nil slice and nil error if the xattr is not set.
+// It returns a nil slice and nil error if the xattr is not set.
 func Lgetxattr(path string, attr string) ([]byte, error) {
 	sysErr := func(err error) ([]byte, error) {
 		return nil, &XattrError{Op: "lgetxattr", Attr: attr, Path: path, Err: err}
@@ -16,7 +18,7 @@ func Lgetxattr(path string, attr string) ([]byte, error) {
 	dest := make([]byte, 128)
 	sz, errno := unix.Lgetxattr(path, attr, dest)
 
-	for errno == unix.ERANGE {
+	for errors.Is(errno, unix.ERANGE) {
 		// Buffer too small, use zero-sized buffer to get the actual size
 		sz, errno = unix.Lgetxattr(path, attr, []byte{})
 		if errno != nil {
@@ -27,7 +29,7 @@ func Lgetxattr(path string, attr string) ([]byte, error) {
 	}
 
 	switch {
-	case errno == unix.ENODATA:
+	case errors.Is(errno, unix.ENODATA):
 		return nil, nil
 	case errno != nil:
 		return sysErr(errno)

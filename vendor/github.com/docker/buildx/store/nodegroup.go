@@ -2,9 +2,10 @@ package store
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	"github.com/docker/buildx/util/confutil"
 	"github.com/docker/buildx/util/platformutil"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -44,7 +45,7 @@ func (ng *NodeGroup) Leave(name string) error {
 	if len(ng.Nodes) == 1 {
 		return errors.Errorf("can not leave last node, do you want to rm instance instead?")
 	}
-	ng.Nodes = append(ng.Nodes[:i], ng.Nodes[i+1:]...)
+	ng.Nodes = slices.Delete(ng.Nodes, i, i+1)
 	return nil
 }
 

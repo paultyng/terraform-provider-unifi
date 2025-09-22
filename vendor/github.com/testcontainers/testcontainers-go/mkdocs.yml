@@ -40,19 +40,6 @@ nav:
     - Quickstart: quickstart.md
     - Features:
         - features/creating_container.md
-        - features/configuration.md
-        - features/image_name_substitution.md
-        - features/files_and_mounts.md
-        - features/creating_networks.md
-        - features/networking.md
-        - features/tls.md
-        - features/test_session_semantics.md
-        - features/garbage_collector.md
-        - features/build_from_dockerfile.md
-        - features/docker_auth.md
-        - features/docker_compose.md
-        - features/follow_logs.md
-        - features/override_container_command.md
         - Wait Strategies:
             - Introduction: features/wait/introduction.md
             - Exec: features/wait/exec.md
@@ -66,9 +53,24 @@ nav:
             - SQL: features/wait/sql.md
             - TLS: features/wait/tls.md
             - Walk: features/wait/walk.md
+        - features/files_and_mounts.md
+        - features/follow_logs.md
+        - features/garbage_collector.md
+        - features/build_from_dockerfile.md
+        - features/override_container_command.md
+        - features/networking.md
+        - features/configuration.md
+        - features/image_name_substitution.md
+        - features/test_session_semantics.md
+        - features/docker_auth.md
+        - features/docker_compose.md
+        - features/tls.md
     - Modules:
         - modules/index.md
+        - modules/aerospike.md
+        - modules/arangodb.md
         - modules/artemis.md
+        - modules/azure.md
         - modules/azurite.md
         - modules/cassandra.md
         - modules/chroma.md
@@ -77,6 +79,9 @@ nav:
         - modules/consul.md
         - modules/couchbase.md
         - modules/databend.md
+        - modules/dind.md
+        - modules/dockermcpgateway.md
+        - modules/dockermodelrunner.md
         - modules/dolt.md
         - modules/dynamodb.md
         - modules/elasticsearch.md
@@ -91,18 +96,22 @@ nav:
         - modules/localstack.md
         - modules/mariadb.md
         - modules/meilisearch.md
+        - modules/memcached.md
         - modules/milvus.md
         - modules/minio.md
         - modules/mockserver.md
+        - modules/mongodb-atlaslocal.md
         - modules/mongodb.md
         - modules/mssql.md
         - modules/mysql.md
         - modules/nats.md
+        - modules/nebulagraph.md
         - modules/neo4j.md
         - modules/ollama.md
         - modules/openfga.md
         - modules/openldap.md
         - modules/opensearch.md
+        - modules/pinecone.md
         - modules/postgres.md
         - modules/pulsar.md
         - modules/qdrant.md
@@ -110,7 +119,11 @@ nav:
         - modules/redis.md
         - modules/redpanda.md
         - modules/registry.md
+        - modules/scylladb.md
+        - modules/socat.md
+        - modules/solace.md
         - modules/surrealdb.md
+        - modules/toxiproxy.md
         - modules/valkey.md
         - modules/vault.md
         - modules/vearch.md
@@ -119,7 +132,6 @@ nav:
     - Examples:
         - examples/index.md
         - examples/nginx.md
-        - examples/toxiproxy.md
     - System Requirements:
         - system_requirements/index.md
         - system_requirements/docker.md
@@ -136,8 +148,9 @@ nav:
         - system_requirements/using_colima.md
         - system_requirements/using_podman.md
         - system_requirements/rancher.md
+    - Dependabot: dependabot.md
     - Contributing: contributing.md
     - Getting help: getting_help.md
 edit_uri: edit/main/docs/
 extra:
-    latest_version: v0.35.0
+    latest_version: v0.39.0
