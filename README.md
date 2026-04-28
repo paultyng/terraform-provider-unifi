@@ -8,6 +8,26 @@
 > - [akerl/unifi](https://registry.terraform.io/providers/akerl/unifi)
 >
 > Pick whichever fork best fits your setup.
+>
+> ## Migrating
+>
+> Update your `required_providers` block to point at one of the forks above. For example:
+>
+> ```hcl
+> terraform {
+>   required_providers {
+>     unifi = {
+>       # was: source = "paultyng/unifi"
+>       source  = "filipowm/unifi"  # or "ubiquiti-community/unifi", "akerl/unifi"
+>       version = "~> 1.0"
+>     }
+>   }
+> }
+> ```
+>
+> Then run `terraform init -upgrade`.
+>
+> **State compatibility:** `ubiquiti-community` and `akerl` continue the v0.41.x lineage and should be drop-in. `filipowm` has rebased to v1.0.0 with schema changes and may require state edits. **Always run `terraform plan` before applying.**
 
 ---
 
