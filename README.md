@@ -27,7 +27,9 @@
 >
 > Then run `terraform init -upgrade`.
 >
-> **State compatibility:** `ubiquiti-community` and `akerl` continue the v0.41.x lineage and should be drop-in. `filipowm` has rebased to v1.0.0 with schema changes and may require state edits. **Always run `terraform plan` before applying.**
+> **State compatibility:** `ubiquiti-community` and `akerl` continue the v0.41.x lineage and should be drop-in. `filipowm` has rebased to v1.0.0 with schema changes and may require state edits.
+>
+> **Always run `terraform plan` before applying.**
 
 ---
 
