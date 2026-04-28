@@ -1,3 +1,17 @@
+> [!IMPORTANT]
+> **This repository is archived and no longer maintained.**
+>
+> See [#461](https://github.com/paultyng/terraform-provider-unifi/issues/461) for context. There is no single successor; the following forks are currently published to the Terraform Registry:
+>
+> - [filipowm/unifi](https://registry.terraform.io/providers/filipowm/unifi)
+> - [ubiquiti-community/unifi](https://registry.terraform.io/providers/ubiquiti-community/unifi)
+> - [akerl/unifi](https://registry.terraform.io/providers/akerl/unifi)
+>
+> Pick whichever fork best fits your setup.
+
+---
+
+
 ![Acceptance Tests](https://github.com/paultyng/terraform-provider-unifi/workflows/Acceptance%20Tests/badge.svg?event=push)
 
 # Unifi Terraform Provider (terraform-provider-unifi)
