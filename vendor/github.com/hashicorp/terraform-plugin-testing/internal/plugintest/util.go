@@ -6,6 +6,7 @@ package plugintest
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -125,7 +126,13 @@ func CopyDir(src, dest, baseDirName string) error {
 			continue
 		}
 
-		if dirEntry.IsDir() {
+		fi, err := dirEntry.Info()
+
+		if err != nil {
+			return fmt.Errorf("unable to get dir entry info: %w", err)
+		}
+
+		if dirEntry.IsDir() || fi.Mode()&fs.ModeSymlink == fs.ModeSymlink {
 			if err = CopyDir(srcFilepath, destFilepath, baseDirName); err != nil {
 				return fmt.Errorf("unable to copy directory: %w", err)
 			}
