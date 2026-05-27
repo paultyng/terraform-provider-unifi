@@ -215,7 +215,7 @@ func (conf *Config) fset() *token.FileSet {
 // src specifies the parser input as a string, []byte, or io.Reader, and
 // filename is its apparent name.  If src is nil, the contents of
 // filename are read from the file system.
-func (conf *Config) ParseFile(filename string, src interface{}) (*ast.File, error) {
+func (conf *Config) ParseFile(filename string, src any) (*ast.File, error) {
 	// TODO(adonovan): use conf.build() etc like parseFiles does.
 	return parser.ParseFile(conf.fset(), filename, src, conf.ParserMode)
 }
@@ -340,11 +340,6 @@ func (conf *Config) addImport(path string, tests bool) {
 func (prog *Program) PathEnclosingInterval(start, end token.Pos) (pkg *PackageInfo, path []ast.Node, exact bool) {
 	for _, info := range prog.AllPackages {
 		for _, f := range info.Files {
-			if f.FileStart == token.NoPos {
-				// Workaround for #70162 (undefined FileStart).
-				// TODO(adonovan): delete once go1.24 is assured.
-				continue
-			}
 			if !tokenFileContainsPos(prog.Fset.File(f.FileStart), start) {
 				continue
 			}

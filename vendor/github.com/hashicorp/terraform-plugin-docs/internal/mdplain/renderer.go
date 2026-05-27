@@ -5,175 +5,101 @@ package mdplain
 
 import (
 	"bytes"
+	"io"
 
-	"github.com/russross/blackfriday"
+	"github.com/yuin/goldmark/ast"
+	extAST "github.com/yuin/goldmark/extension/ast"
+	"github.com/yuin/goldmark/renderer"
 )
 
-type Text struct{}
+type TextRender struct{}
 
-func TextRenderer() blackfriday.Renderer {
-	return &Text{}
+func NewTextRenderer() *TextRender {
+	return &TextRender{}
 }
 
-func (options *Text) GetFlags() int {
-	return 0
-}
+func (r *TextRender) Render(w io.Writer, source []byte, n ast.Node) error {
+	out := bytes.NewBuffer([]byte{})
+	err := ast.Walk(n, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering || node.Type() == ast.TypeDocument {
+			return ast.WalkContinue, nil
+		}
 
-func (options *Text) TitleBlock(out *bytes.Buffer, text []byte) {
-	text = bytes.TrimPrefix(text, []byte("% "))
-	text = bytes.Replace(text, []byte("\n% "), []byte("\n"), -1)
-	out.Write(text)
-	out.WriteString("\n")
-}
+		switch node := node.(type) {
+		case *ast.Blockquote, *ast.Heading:
+			doubleSpace(out)
+			out.Write(node.Text(source))
+			return ast.WalkSkipChildren, nil
+		case *ast.ThematicBreak:
+			doubleSpace(out)
+			return ast.WalkSkipChildren, nil
+		case *ast.CodeBlock:
+			doubleSpace(out)
+			for i := 0; i < node.Lines().Len(); i++ {
+				line := node.Lines().At(i)
+				out.Write(line.Value(source))
+			}
+			return ast.WalkSkipChildren, nil
+		case *ast.FencedCodeBlock:
+			doubleSpace(out)
+			doubleSpace(out)
+			for i := 0; i < node.Lines().Len(); i++ {
+				line := node.Lines().At(i)
+				_, _ = out.Write(line.Value(source))
+			}
+			return ast.WalkSkipChildren, nil
+		case *ast.List:
+			doubleSpace(out)
+			return ast.WalkContinue, nil
+		case *ast.Paragraph:
+			doubleSpace(out)
+			if node.Text(source)[0] == '|' { // Write tables as-is.
+				for i := 0; i < node.Lines().Len(); i++ {
+					line := node.Lines().At(i)
+					out.Write(line.Value(source))
+				}
+				return ast.WalkSkipChildren, nil
+			}
+			return ast.WalkContinue, nil
+		case *extAST.Strikethrough:
+			out.Write(node.Text(source))
+			return ast.WalkContinue, nil
+		case *ast.AutoLink:
+			out.Write(node.URL(source))
+			return ast.WalkSkipChildren, nil
+		case *ast.CodeSpan:
+			out.Write(node.Text(source))
+			return ast.WalkSkipChildren, nil
+		case *ast.Link:
+			_, err := out.Write(node.Text(source))
+			if !isRelativeLink(node.Destination) {
+				out.WriteString(" ")
+				out.Write(node.Destination)
+			}
+			return ast.WalkSkipChildren, err
+		case *ast.Text:
+			out.Write(node.Text(source))
+			if node.SoftLineBreak() {
+				doubleSpace(out)
+			}
+			return ast.WalkContinue, nil
+		case *ast.Image:
+			return ast.WalkSkipChildren, nil
 
-func (options *Text) Header(out *bytes.Buffer, text func() bool, level int, id string) {
-	marker := out.Len()
-	doubleSpace(out)
-
-	if !text() {
-		out.Truncate(marker)
-		return
+		}
+		return ast.WalkContinue, nil
+	})
+	if err != nil {
+		return err
 	}
-}
-
-func (options *Text) BlockHtml(out *bytes.Buffer, text []byte) {
-	doubleSpace(out)
-	out.Write(text)
-	out.WriteByte('\n')
-}
-
-func (options *Text) HRule(out *bytes.Buffer) {
-	doubleSpace(out)
-}
-
-func (options *Text) BlockCode(out *bytes.Buffer, text []byte, lang string) {
-	options.BlockCodeNormal(out, text, lang)
-}
-
-func (options *Text) BlockCodeNormal(out *bytes.Buffer, text []byte, lang string) {
-	doubleSpace(out)
-	out.Write(text)
-}
-
-func (options *Text) BlockQuote(out *bytes.Buffer, text []byte) {
-	doubleSpace(out)
-	out.Write(text)
-}
-
-func (options *Text) Table(out *bytes.Buffer, header []byte, body []byte, columnData []int) {
-	doubleSpace(out)
-	out.Write(header)
-	out.Write(body)
-}
-
-func (options *Text) TableRow(out *bytes.Buffer, text []byte) {
-	doubleSpace(out)
-	out.Write(text)
-}
-
-func (options *Text) TableHeaderCell(out *bytes.Buffer, text []byte, align int) {
-	doubleSpace(out)
-	out.Write(text)
-}
-
-func (options *Text) TableCell(out *bytes.Buffer, text []byte, align int) {
-	doubleSpace(out)
-	out.Write(text)
-}
-
-func (options *Text) Footnotes(out *bytes.Buffer, text func() bool) {
-	options.HRule(out)
-	options.List(out, text, 0)
-}
-
-func (options *Text) FootnoteItem(out *bytes.Buffer, name, text []byte, flags int) {
-	out.Write(text)
-}
-
-func (options *Text) List(out *bytes.Buffer, text func() bool, flags int) {
-	marker := out.Len()
-	doubleSpace(out)
-
-	if !text() {
-		out.Truncate(marker)
-		return
+	_, err = w.Write(out.Bytes())
+	if err != nil {
+		return err
 	}
+	return nil
 }
 
-func (options *Text) ListItem(out *bytes.Buffer, text []byte, flags int) {
-	out.Write(text)
-}
-
-func (options *Text) Paragraph(out *bytes.Buffer, text func() bool) {
-	marker := out.Len()
-	doubleSpace(out)
-
-	if !text() {
-		out.Truncate(marker)
-		return
-	}
-}
-
-func (options *Text) AutoLink(out *bytes.Buffer, link []byte, kind int) {
-	out.Write(link)
-}
-
-func (options *Text) CodeSpan(out *bytes.Buffer, text []byte) {
-	out.Write(text)
-}
-
-func (options *Text) DoubleEmphasis(out *bytes.Buffer, text []byte) {
-	out.Write(text)
-}
-
-func (options *Text) Emphasis(out *bytes.Buffer, text []byte) {
-	if len(text) == 0 {
-		return
-	}
-	out.Write(text)
-}
-
-func (options *Text) Image(out *bytes.Buffer, link []byte, title []byte, alt []byte) {}
-
-func (options *Text) LineBreak(out *bytes.Buffer) {}
-
-func (options *Text) Link(out *bytes.Buffer, link []byte, title []byte, content []byte) {
-	out.Write(content)
-	if !isRelativeLink(link) {
-		out.WriteString(" ")
-		out.Write(link)
-	}
-}
-
-func (options *Text) RawHtmlTag(out *bytes.Buffer, text []byte) {}
-
-func (options *Text) TripleEmphasis(out *bytes.Buffer, text []byte) {
-	out.Write(text)
-}
-
-func (options *Text) StrikeThrough(out *bytes.Buffer, text []byte) {
-	out.Write(text)
-}
-
-func (options *Text) FootnoteRef(out *bytes.Buffer, ref []byte, id int) {}
-
-func (options *Text) Entity(out *bytes.Buffer, entity []byte) {
-	out.Write(entity)
-}
-
-func (options *Text) NormalText(out *bytes.Buffer, text []byte) {
-	out.Write(text)
-}
-
-func (options *Text) Smartypants(out *bytes.Buffer, text []byte) {}
-
-func (options *Text) DocumentHeader(out *bytes.Buffer) {}
-
-func (options *Text) DocumentFooter(out *bytes.Buffer) {}
-
-func (options *Text) TocHeader(text []byte, level int) {}
-
-func (options *Text) TocFinalize() {}
+func (r *TextRender) AddOptions(...renderer.Option) {}
 
 func doubleSpace(out *bytes.Buffer) {
 	if out.Len() > 0 {
