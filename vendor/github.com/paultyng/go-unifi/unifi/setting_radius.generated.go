@@ -34,7 +34,7 @@ type SettingRadius struct {
 	Enabled               bool   `json:"enabled"`
 	InterimUpdateInterval int    `json:"interim_update_interval,omitempty"` // ^([6-9][0-9]|[1-9][0-9]{2,3}|[1-7][0-9]{4}|8[0-5][0-9]{3}|86[0-3][0-9][0-9]|86400)$
 	TunneledReply         bool   `json:"tunneled_reply"`
-	XSecret               string `json:"x_secret,omitempty"` // [^\"\' ]{1,48}
+	XSecret               string `json:"x_secret,omitempty"` // ^[^\\"' ]{1,48}$
 }
 
 func (dst *SettingRadius) UnmarshalJSON(b []byte) error {

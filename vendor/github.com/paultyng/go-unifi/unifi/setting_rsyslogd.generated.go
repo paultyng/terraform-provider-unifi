@@ -27,15 +27,17 @@ type SettingRsyslogd struct {
 
 	Key string `json:"key"`
 
-	Debug                       bool   `json:"debug"`
-	Enabled                     bool   `json:"enabled"`
-	IP                          string `json:"ip,omitempty"`
-	NetconsoleEnabled           bool   `json:"netconsole_enabled"`
-	NetconsoleHost              string `json:"netconsole_host,omitempty"`
-	NetconsolePort              int    `json:"netconsole_port,omitempty"` // [1-9][0-9]{0,3}|[1-5][0-9]{4}|[6][0-4][0-9]{3}|[6][5][0-4][0-9]{2}|[6][5][5][0-2][0-9]|[6][5][5][3][0-5]
-	Port                        int    `json:"port,omitempty"`            // [1-9][0-9]{0,3}|[1-5][0-9]{4}|[6][0-4][0-9]{3}|[6][5][0-4][0-9]{2}|[6][5][5][0-2][0-9]|[6][5][5][3][0-5]
-	ThisController              bool   `json:"this_controller"`
-	ThisControllerEncryptedOnly bool   `json:"this_controller_encrypted_only"`
+	Contents                    []string `json:"contents,omitempty"` // device|client|triggers|updates|admin_activity|critical|security_detections|vpn
+	Debug                       bool     `json:"debug"`
+	Enabled                     bool     `json:"enabled"`
+	IP                          string   `json:"ip,omitempty"`
+	LogAllContents              bool     `json:"log_all_contents"`
+	NetconsoleEnabled           bool     `json:"netconsole_enabled"`
+	NetconsoleHost              string   `json:"netconsole_host,omitempty"`
+	NetconsolePort              int      `json:"netconsole_port,omitempty"` // [1-9][0-9]{0,3}|[1-5][0-9]{4}|[6][0-4][0-9]{3}|[6][5][0-4][0-9]{2}|[6][5][5][0-2][0-9]|[6][5][5][3][0-5]
+	Port                        int      `json:"port,omitempty"`            // [1-9][0-9]{0,3}|[1-5][0-9]{4}|[6][0-4][0-9]{3}|[6][5][0-4][0-9]{2}|[6][5][5][0-2][0-9]|[6][5][5][3][0-5]
+	ThisController              bool     `json:"this_controller"`
+	ThisControllerEncryptedOnly bool     `json:"this_controller_encrypted_only"`
 }
 
 func (dst *SettingRsyslogd) UnmarshalJSON(b []byte) error {

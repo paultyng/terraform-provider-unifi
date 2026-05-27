@@ -65,9 +65,9 @@ func (c *Client) CreateUser(ctx context.Context, site string, d *User) (*User, e
 		return nil, &NotFoundError{}
 	}
 
-	new := respBody.Data[0].Data[0]
+	user := respBody.Data[0].Data[0]
 
-	return &new, nil
+	return &user, nil
 }
 
 func (c *Client) stamgr(ctx context.Context, site, cmd string, data map[string]interface{}) ([]User, error) {
@@ -121,6 +121,19 @@ func (c *Client) UnblockUserByMAC(ctx context.Context, site, mac string) error {
 func (c *Client) DeleteUserByMAC(ctx context.Context, site, mac string) error {
 	users, err := c.stamgr(ctx, site, "forget-sta", map[string]interface{}{
 		"macs": []string{mac},
+	})
+	if err != nil {
+		return err
+	}
+	if len(users) != 1 {
+		return &NotFoundError{}
+	}
+	return nil
+}
+
+func (c *Client) KickUserByMAC(ctx context.Context, site, mac string) error {
+	users, err := c.stamgr(ctx, site, "kick-sta", map[string]interface{}{
+		"mac": mac,
 	})
 	if err != nil {
 		return err

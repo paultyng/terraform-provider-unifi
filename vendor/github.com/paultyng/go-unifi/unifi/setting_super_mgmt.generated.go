@@ -52,7 +52,6 @@ type SettingSuperMgmt struct {
 	ContactInfoState                         string   `json:"contact_info_state,omitempty"`
 	ContactInfoZip                           string   `json:"contact_info_zip,omitempty"`
 	DataRetentionSettingPreference           string   `json:"data_retention_setting_preference,omitempty"` // auto|manual
-	DataRetentionTimeEnabled                 bool     `json:"data_retention_time_enabled"`
 	DataRetentionTimeInHoursFor5MinutesScale int      `json:"data_retention_time_in_hours_for_5minutes_scale,omitempty"`
 	DataRetentionTimeInHoursForDailyScale    int      `json:"data_retention_time_in_hours_for_daily_scale,omitempty"`
 	DataRetentionTimeInHoursForHourlyScale   int      `json:"data_retention_time_in_hours_for_hourly_scale,omitempty"`

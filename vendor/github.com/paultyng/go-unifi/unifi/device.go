@@ -45,7 +45,6 @@ func (c *Client) UpdateDevice(ctx context.Context, site string, d *Device) (*Dev
 
 func (c *Client) GetDevice(ctx context.Context, site, id string) (*Device, error) {
 	devices, err := c.ListDevice(ctx, site)
-
 	if err != nil {
 		return nil, err
 	}
