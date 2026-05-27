@@ -75,7 +75,7 @@ resource "unifi_network" "wan" {
 - `ipv6_pd_prefixid` (String) Specifies the IPv6 Prefix ID.
 - `ipv6_pd_start` (String) Start address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.
 - `ipv6_pd_stop` (String) End address of the DHCPv6 range. Used if `ipv6_interface_type` is set to `pd`.
-- `ipv6_ra_enable` (Boolean) Specifies whether to enable router advertisements or not.
+- `ipv6_ra_enabled` (Boolean) Specifies whether to enable router advertisements or not.
 - `ipv6_ra_preferred_lifetime` (Number) Lifetime in which the address can be used. Address becomes deprecated afterwards. Must be lower than or equal to `ipv6_ra_valid_lifetime` Defaults to `14400`.
 - `ipv6_ra_priority` (String) IPv6 router advertisement priority. Must be one of either `high`, `medium`, or `low`
 - `ipv6_ra_valid_lifetime` (Number) Total lifetime in which the address can be used. Must be equal to or greater than `ipv6_ra_preferred_lifetime`. Defaults to `86400`.
