@@ -12,12 +12,12 @@ func init() {
 }
 
 type UnsupportedSubrequestError struct {
-	Subrequest
+	*Subrequest
 	error
 }
 
 func (e *UnsupportedSubrequestError) Error() string {
-	msg := fmt.Sprintf("unsupported request %s", e.Subrequest.Name)
+	msg := fmt.Sprintf("unsupported request %s", e.Name)
 	if e.error != nil {
 		msg += ": " + e.error.Error()
 	}
@@ -29,13 +29,13 @@ func (e *UnsupportedSubrequestError) Unwrap() error {
 }
 
 func (e *UnsupportedSubrequestError) ToProto() grpcerrors.TypedErrorProto {
-	return &e.Subrequest
+	return e.Subrequest
 }
 
 func NewUnsupportedSubrequestError(name string) error {
-	return &UnsupportedSubrequestError{Subrequest: Subrequest{Name: name}}
+	return &UnsupportedSubrequestError{Subrequest: &Subrequest{Name: name}}
 }
 
 func (v *Subrequest) WrapError(err error) error {
-	return &UnsupportedSubrequestError{error: err, Subrequest: *v}
+	return &UnsupportedSubrequestError{error: err, Subrequest: v}
 }

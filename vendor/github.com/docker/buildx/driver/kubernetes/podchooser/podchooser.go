@@ -37,7 +37,7 @@ func (pc *RandomPodChooser) ChoosePod(ctx context.Context) (*corev1.Pod, error) 
 	if randSource == nil {
 		randSource = rand.NewSource(time.Now().Unix())
 	}
-	rnd := rand.New(randSource) //nolint:gosec // no strong seeding required
+	rnd := rand.New(randSource) // #nosec G404 -- no strong seeding required
 	n := rnd.Int() % len(pods)
 	logrus.Debugf("RandomPodChooser.ChoosePod(): len(pods)=%d, n=%d", len(pods), n)
 	return pods[n], nil
@@ -90,7 +90,7 @@ func ListRunningPods(ctx context.Context, client clientcorev1.PodInterface, depl
 	for i := range podList.Items {
 		pod := &podList.Items[i]
 		if pod.Status.Phase == corev1.PodRunning {
-			logrus.Debugf("pod runnning: %q", pod.Name)
+			logrus.Debugf("pod running: %q", pod.Name)
 			runningPods = append(runningPods, pod)
 		}
 	}

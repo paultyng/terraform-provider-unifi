@@ -6,7 +6,6 @@ import (
 
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
-	"github.com/docker/cli/cli/command/completion"
 	"github.com/docker/cli/cli/command/formatter"
 	flagsHelper "github.com/docker/cli/cli/flags"
 	"github.com/docker/cli/opts"
@@ -29,7 +28,13 @@ type psOptions struct {
 }
 
 // NewPsCommand creates a new cobra.Command for `docker ps`
+//
+// Deprecated: Do not import commands directly. They will be removed in a future release.
 func NewPsCommand(dockerCLI command.Cli) *cobra.Command {
+	return newPsCommand(dockerCLI)
+}
+
+func newPsCommand(dockerCLI command.Cli) *cobra.Command {
 	options := psOptions{filter: opts.NewFilterOpt()}
 
 	cmd := &cobra.Command{
@@ -44,7 +49,7 @@ func NewPsCommand(dockerCLI command.Cli) *cobra.Command {
 			"category-top": "3",
 			"aliases":      "docker container ls, docker container list, docker container ps, docker ps",
 		},
-		ValidArgsFunction: completion.NoComplete,
+		ValidArgsFunction: cobra.NoFileCompletions,
 	}
 
 	flags := cmd.Flags()
@@ -62,7 +67,7 @@ func NewPsCommand(dockerCLI command.Cli) *cobra.Command {
 }
 
 func newListCommand(dockerCLI command.Cli) *cobra.Command {
-	cmd := *NewPsCommand(dockerCLI)
+	cmd := *newPsCommand(dockerCLI)
 	cmd.Aliases = []string{"ps", "list"}
 	cmd.Use = "ls [OPTIONS]"
 	return &cmd
@@ -82,7 +87,7 @@ func buildContainerListOptions(options *psOptions) (*container.ListOptions, erro
 
 	// always validate template when `--format` is used, for consistency
 	if len(options.format) > 0 {
-		tmpl, err := templates.NewParse("", options.format)
+		tmpl, err := templates.Parse(options.format)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse template")
 		}

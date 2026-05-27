@@ -9,7 +9,6 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/moby/term"
 	"github.com/sirupsen/logrus"
@@ -18,6 +17,18 @@ import (
 // The default escape key sequence: ctrl-p, ctrl-q
 // TODO: This could be moved to `pkg/term`.
 var defaultEscapeKeys = []byte{16, 17}
+
+// readCloserWrapper wraps an io.Reader, and implements an io.ReadCloser
+// It calls the given callback function when closed.
+type readCloserWrapper struct {
+	io.Reader
+	closer func() error
+}
+
+// Close calls back the passed closer function
+func (r *readCloserWrapper) Close() error {
+	return r.closer()
+}
 
 // A hijackedIOStreamer handles copying input to and output from streams to the
 // connection.
@@ -84,12 +95,9 @@ func (h *hijackedIOStreamer) setupInput() (restore func(), err error) {
 
 	// Use sync.Once so we may call restore multiple times but ensure we
 	// only restore the terminal once.
-	var restoreOnce sync.Once
-	restore = func() {
-		restoreOnce.Do(func() {
-			_ = restoreTerminal(h.streams, h.inputStream)
-		})
-	}
+	restore = sync.OnceFunc(func() {
+		_ = restoreTerminal(h.streams, h.inputStream)
+	})
 
 	// Wrap the input to detect detach escape sequence.
 	// Use default escape keys if an invalid sequence is given.
@@ -103,7 +111,10 @@ func (h *hijackedIOStreamer) setupInput() (restore func(), err error) {
 		}
 	}
 
-	h.inputStream = ioutils.NewReadCloserWrapper(term.NewEscapeProxy(h.inputStream, escapeKeys), h.inputStream.Close)
+	h.inputStream = &readCloserWrapper{
+		Reader: term.NewEscapeProxy(h.inputStream, escapeKeys),
+		closer: h.inputStream.Close,
+	}
 
 	return restore, nil
 }

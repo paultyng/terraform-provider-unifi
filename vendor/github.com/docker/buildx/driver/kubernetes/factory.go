@@ -2,19 +2,22 @@ package kubernetes
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/docker/buildx/driver"
 	"github.com/docker/buildx/driver/bkimage"
+	ctxkube "github.com/docker/buildx/driver/kubernetes/context"
 	"github.com/docker/buildx/driver/kubernetes/manifest"
 	"github.com/docker/buildx/driver/kubernetes/podchooser"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -23,11 +26,31 @@ const (
 	defaultTimeout      = 120 * time.Second
 )
 
+type ClientConfig interface {
+	ClientConfig() (*rest.Config, error)
+	Namespace() (string, bool, error)
+}
+
+type ClientConfigInCluster struct{}
+
+func (k ClientConfigInCluster) ClientConfig() (*rest.Config, error) {
+	return rest.InClusterConfig()
+}
+
+func (k ClientConfigInCluster) Namespace() (string, bool, error) {
+	namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return "", false, err
+	}
+	return strings.TrimSpace(string(namespace)), true, nil
+}
+
 func init() {
 	driver.Register(&factory{})
 }
 
 type factory struct {
+	cc ClientConfig // used for testing
 }
 
 func (*factory) Name() string {
@@ -46,18 +69,50 @@ func (*factory) Priority(ctx context.Context, endpoint string, api dockerclient.
 }
 
 func (f *factory) New(ctx context.Context, cfg driver.InitConfig) (driver.Driver, error) {
-	if cfg.KubeClientConfig == nil {
-		return nil, errors.Errorf("%s driver requires kubernetes API access", DriverName)
+	var err error
+	var cc ClientConfig
+	if f.cc != nil {
+		cc = f.cc
+	} else {
+		cc, err = ctxkube.ConfigFromEndpoint(cfg.EndpointAddr, cfg.ContextStore)
+		if err != nil {
+			// err is returned if cfg.EndpointAddr is non-context name like "unix:///var/run/docker.sock".
+			// try again with name="default".
+			// FIXME(@AkihiroSuda): cfg should retain real context name.
+			cc, err = ctxkube.ConfigFromEndpoint("default", cfg.ContextStore)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+		tryToUseConfigInCluster := false
+		if cc == nil {
+			tryToUseConfigInCluster = true
+		} else {
+			if _, err := cc.ClientConfig(); err != nil {
+				tryToUseConfigInCluster = true
+			}
+		}
+		if tryToUseConfigInCluster {
+			ccInCluster := ClientConfigInCluster{}
+			if _, err := ccInCluster.ClientConfig(); err == nil {
+				logrus.Debug("using kube config in cluster")
+				cc = ccInCluster
+			}
+		}
+		if cc == nil {
+			return nil, errors.Errorf("%s driver requires kubernetes API access", DriverName)
+		}
 	}
+
 	deploymentName, err := buildxNameToDeploymentName(cfg.Name)
 	if err != nil {
 		return nil, err
 	}
-	namespace, _, err := cfg.KubeClientConfig.Namespace()
+	namespace, _, err := cc.Namespace()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot determine Kubernetes namespace, specify manually")
 	}
-	restClientConfig, err := cfg.KubeClientConfig.ClientConfig()
+	restClientConfig, err := cc.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -67,9 +122,10 @@ func (f *factory) New(ctx context.Context, cfg driver.InitConfig) (driver.Driver
 	}
 
 	d := &Driver{
-		factory:    f,
-		InitConfig: cfg,
-		clientset:  clientset,
+		factory:      f,
+		clientConfig: cc,
+		InitConfig:   cfg,
+		clientset:    clientset,
 	}
 
 	deploymentOpt, loadbalance, namespace, defaultLoad, timeout, err := f.processDriverOpts(deploymentName, namespace, cfg)
@@ -120,38 +176,36 @@ func (f *factory) processDriverOpts(deploymentName string, namespace string, cfg
 
 	defaultLoad := false
 	timeout := defaultTimeout
-
 	deploymentOpt.Qemu.Image = bkimage.QemuImage
-
 	loadbalance := LoadbalanceSticky
 	var err error
 
 	for k, v := range cfg.DriverOpts {
-		switch k {
-		case "image":
+		switch {
+		case k == "image":
 			if v != "" {
 				deploymentOpt.Image = v
 			}
-		case "namespace":
+		case k == "namespace":
 			namespace = v
-		case "replicas":
+		case k == "replicas":
 			deploymentOpt.Replicas, err = strconv.Atoi(v)
 			if err != nil {
 				return nil, "", "", false, 0, err
 			}
-		case "requests.cpu":
+		case k == "requests.cpu":
 			deploymentOpt.RequestsCPU = v
-		case "requests.memory":
+		case k == "requests.memory":
 			deploymentOpt.RequestsMemory = v
-		case "requests.ephemeral-storage":
+		case k == "requests.ephemeral-storage":
 			deploymentOpt.RequestsEphemeralStorage = v
-		case "limits.cpu":
+		case k == "limits.cpu":
 			deploymentOpt.LimitsCPU = v
-		case "limits.memory":
+		case k == "limits.memory":
 			deploymentOpt.LimitsMemory = v
-		case "limits.ephemeral-storage":
+		case k == "limits.ephemeral-storage":
 			deploymentOpt.LimitsEphemeralStorage = v
-		case "rootless":
+		case k == "rootless":
 			deploymentOpt.Rootless, err = strconv.ParseBool(v)
 			if err != nil {
 				return nil, "", "", false, 0, err
@@ -159,26 +213,26 @@ func (f *factory) processDriverOpts(deploymentName string, namespace string, cfg
 			if _, isImage := cfg.DriverOpts["image"]; !isImage {
 				deploymentOpt.Image = bkimage.DefaultRootlessImage
 			}
-		case "schedulername":
+		case k == "schedulername":
 			deploymentOpt.SchedulerName = v
-		case "serviceaccount":
+		case k == "serviceaccount":
 			deploymentOpt.ServiceAccountName = v
-		case "nodeselector":
+		case k == "nodeselector":
 			deploymentOpt.NodeSelector, err = splitMultiValues(v, ",", "=")
 			if err != nil {
 				return nil, "", "", false, 0, errors.Wrap(err, "cannot parse node selector")
 			}
-		case "annotations":
+		case k == "annotations":
 			deploymentOpt.CustomAnnotations, err = splitMultiValues(v, ",", "=")
 			if err != nil {
 				return nil, "", "", false, 0, errors.Wrap(err, "cannot parse annotations")
 			}
-		case "labels":
+		case k == "labels":
 			deploymentOpt.CustomLabels, err = splitMultiValues(v, ",", "=")
 			if err != nil {
 				return nil, "", "", false, 0, errors.Wrap(err, "cannot parse labels")
 			}
-		case "tolerations":
+		case k == "tolerations":
 			ts := strings.Split(v, ";")
 			deploymentOpt.Tolerations = []corev1.Toleration{}
 			for i := range ts {
@@ -213,38 +267,46 @@ func (f *factory) processDriverOpts(deploymentName string, namespace string, cfg
 
 				deploymentOpt.Tolerations = append(deploymentOpt.Tolerations, t)
 			}
-		case "loadbalance":
+		case k == "loadbalance":
 			switch v {
-			case LoadbalanceSticky:
-			case LoadbalanceRandom:
+			case LoadbalanceSticky, LoadbalanceRandom:
+				loadbalance = v
 			default:
 				return nil, "", "", false, 0, errors.Errorf("invalid loadbalance %q", v)
 			}
-			loadbalance = v
-		case "qemu.install":
+		case k == "qemu.install":
 			deploymentOpt.Qemu.Install, err = strconv.ParseBool(v)
 			if err != nil {
 				return nil, "", "", false, 0, err
 			}
-		case "qemu.image":
+		case k == "qemu.image":
 			if v != "" {
 				deploymentOpt.Qemu.Image = v
 			}
-		case "default-load":
+		case k == "buildkit-root-volume-memory":
+			if v != "" {
+				deploymentOpt.BuildKitRootVolumeMemory = v
+			}
+		case k == "default-load":
 			defaultLoad, err = strconv.ParseBool(v)
 			if err != nil {
 				return nil, "", "", false, 0, err
 			}
-		case "timeout":
+		case k == "timeout":
 			timeout, err = time.ParseDuration(v)
 			if err != nil {
 				return nil, "", "", false, 0, errors.Wrap(err, "cannot parse timeout")
 			}
+		case strings.HasPrefix(k, "env."):
+			envName := strings.TrimPrefix(k, "env.")
+			if envName == "" {
+				return nil, "", "", false, 0, errors.Errorf("invalid env option %q, expecting env.FOO=bar", k)
+			}
+			deploymentOpt.Env = append(deploymentOpt.Env, corev1.EnvVar{Name: envName, Value: v})
 		default:
 			return nil, "", "", false, 0, errors.Errorf("invalid driver option %s for driver %s", k, DriverName)
 		}
 	}
-
 	return deploymentOpt, loadbalance, namespace, defaultLoad, timeout, nil
 }
 

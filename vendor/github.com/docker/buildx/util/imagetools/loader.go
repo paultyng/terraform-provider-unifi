@@ -6,20 +6,21 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"maps"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/images"
-	"github.com/containerd/containerd/platforms"
-	"github.com/containerd/containerd/remotes"
+	"github.com/containerd/containerd/v2/core/content"
+	"github.com/containerd/containerd/v2/core/images"
+	"github.com/containerd/containerd/v2/core/remotes"
+	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/moby/buildkit/util/contentutil"
 	"github.com/opencontainers/go-digest"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -48,17 +49,17 @@ type loader struct {
 }
 
 type manifest struct {
-	desc     ocispec.Descriptor
-	manifest ocispec.Manifest
+	desc     ocispecs.Descriptor
+	manifest ocispecs.Manifest
 }
 
 type index struct {
-	desc  ocispec.Descriptor
-	index ocispec.Index
+	desc  ocispecs.Descriptor
+	index ocispecs.Index
 }
 
 type asset struct {
-	config     *ocispec.Image
+	config     *ocispecs.Image
 	sbom       *sbomStub
 	provenance *provenanceStub
 
@@ -126,13 +127,9 @@ func (l *loader) Load(ctx context.Context, ref string) (*result, error) {
 		}
 
 		var a asset
-		annotations := make(map[string]string, len(mfst.manifest.Annotations)+len(mfst.desc.Annotations))
-		for k, v := range mfst.desc.Annotations {
-			annotations[k] = v
-		}
-		for k, v := range mfst.manifest.Annotations {
-			annotations[k] = v
-		}
+		annotations := map[string]string{}
+		maps.Copy(annotations, mfst.desc.Annotations)
+		maps.Copy(annotations, mfst.manifest.Annotations)
 
 		if err := l.scanConfig(ctx, fetcher, mfst.manifest.Config, &a); err != nil {
 			return nil, err
@@ -156,15 +153,15 @@ func (l *loader) Load(ctx context.Context, ref string) (*result, error) {
 	return r, nil
 }
 
-func (l *loader) fetch(ctx context.Context, fetcher remotes.Fetcher, desc ocispec.Descriptor, r *result) error {
+func (l *loader) fetch(ctx context.Context, fetcher remotes.Fetcher, desc ocispecs.Descriptor, r *result) error {
 	_, err := remotes.FetchHandler(l.cache, fetcher)(ctx, desc)
 	if err != nil {
 		return err
 	}
 
 	switch desc.MediaType {
-	case images.MediaTypeDockerSchema2Manifest, ocispec.MediaTypeImageManifest:
-		var mfst ocispec.Manifest
+	case images.MediaTypeDockerSchema2Manifest, ocispecs.MediaTypeImageManifest:
+		var mfst ocispecs.Manifest
 		dt, err := content.ReadBlob(ctx, l.cache, desc)
 		if err != nil {
 			return err
@@ -208,8 +205,8 @@ func (l *loader) fetch(ctx context.Context, fetcher remotes.Fetcher, desc ocispe
 			r.images[platforms.Format(platforms.Normalize(*p))] = desc.Digest
 			r.mu.Unlock()
 		}
-	case images.MediaTypeDockerSchema2ManifestList, ocispec.MediaTypeImageIndex:
-		var idx ocispec.Index
+	case images.MediaTypeDockerSchema2ManifestList, ocispecs.MediaTypeImageIndex:
+		var idx ocispecs.Index
 		dt, err := content.ReadBlob(ctx, l.cache, desc)
 		if err != nil {
 			return err
@@ -228,7 +225,6 @@ func (l *loader) fetch(ctx context.Context, fetcher remotes.Fetcher, desc ocispe
 
 		eg, ctx := errgroup.WithContext(ctx)
 		for _, d := range idx.Manifests {
-			d := d
 			eg.Go(func() error {
 				return l.fetch(ctx, fetcher, d, r)
 			})
@@ -242,7 +238,7 @@ func (l *loader) fetch(ctx context.Context, fetcher remotes.Fetcher, desc ocispe
 	return nil
 }
 
-func (l *loader) readPlatformFromConfig(ctx context.Context, fetcher remotes.Fetcher, desc ocispec.Descriptor) (*ocispec.Platform, error) {
+func (l *loader) readPlatformFromConfig(ctx context.Context, fetcher remotes.Fetcher, desc ocispecs.Descriptor) (*ocispecs.Platform, error) {
 	_, err := remotes.FetchHandler(l.cache, fetcher)(ctx, desc)
 	if err != nil {
 		return nil, err
@@ -253,19 +249,19 @@ func (l *loader) readPlatformFromConfig(ctx context.Context, fetcher remotes.Fet
 		return nil, err
 	}
 
-	var config ocispec.Image
+	var config ocispecs.Image
 	if err := json.Unmarshal(dt, &config); err != nil {
 		return nil, err
 	}
 
-	return &ocispec.Platform{
+	return &ocispecs.Platform{
 		OS:           config.OS,
 		Architecture: config.Architecture,
 		Variant:      config.Variant,
 	}, nil
 }
 
-func (l *loader) scanConfig(ctx context.Context, fetcher remotes.Fetcher, desc ocispec.Descriptor, as *asset) error {
+func (l *loader) scanConfig(ctx context.Context, fetcher remotes.Fetcher, desc ocispecs.Descriptor, as *asset) error {
 	_, err := remotes.FetchHandler(l.cache, fetcher)(ctx, desc)
 	if err != nil {
 		return err
@@ -278,8 +274,8 @@ func (l *loader) scanConfig(ctx context.Context, fetcher remotes.Fetcher, desc o
 }
 
 type sbomStub struct {
-	SPDX            interface{}   `json:",omitempty"`
-	AdditionalSPDXs []interface{} `json:",omitempty"`
+	SPDX            any   `json:",omitempty"`
+	AdditionalSPDXs []any `json:",omitempty"`
 }
 
 func (l *loader) scanSBOM(ctx context.Context, fetcher remotes.Fetcher, r *result, refs []digest.Digest, as *asset) error {
@@ -309,7 +305,7 @@ func (l *loader) scanSBOM(ctx context.Context, fetcher remotes.Fetcher, r *resul
 					}
 
 					var spdx struct {
-						Predicate interface{} `json:"predicate"`
+						Predicate any `json:"predicate"`
 					}
 					if err := json.Unmarshal(dt, &spdx); err != nil {
 						return nil, err
@@ -330,7 +326,7 @@ func (l *loader) scanSBOM(ctx context.Context, fetcher remotes.Fetcher, r *resul
 }
 
 type provenanceStub struct {
-	SLSA interface{} `json:",omitempty"`
+	SLSA any `json:",omitempty"`
 }
 
 func (l *loader) scanProvenance(ctx context.Context, fetcher remotes.Fetcher, r *result, refs []digest.Digest, as *asset) error {
@@ -360,7 +356,7 @@ func (l *loader) scanProvenance(ctx context.Context, fetcher remotes.Fetcher, r 
 					}
 
 					var slsa struct {
-						Predicate interface{} `json:"predicate"`
+						Predicate any `json:"predicate"`
 					}
 					if err := json.Unmarshal(dt, &slsa); err != nil {
 						return nil, err
@@ -377,11 +373,11 @@ func (l *loader) scanProvenance(ctx context.Context, fetcher remotes.Fetcher, r 
 	return nil
 }
 
-func (r *result) Configs() map[string]*ocispec.Image {
+func (r *result) Configs() map[string]*ocispecs.Image {
 	if len(r.assets) == 0 {
 		return nil
 	}
-	res := make(map[string]*ocispec.Image)
+	res := make(map[string]*ocispecs.Image)
 	for p, a := range r.assets {
 		if a.config == nil {
 			continue

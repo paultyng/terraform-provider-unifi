@@ -28,77 +28,116 @@ import (
 	"github.com/docker/docker/api/types/container"
 )
 
+type mountType string
+
+const (
+	secretMount mountType = "secret"
+	configMount mountType = "config"
+)
+
 func (s *composeService) injectSecrets(ctx context.Context, project *types.Project, service types.ServiceConfig, id string) error {
-	for _, config := range service.Secrets {
-		file := project.Secrets[config.Source]
-		if file.Environment == "" {
-			continue
-		}
+	return s.injectFileReferences(ctx, project, service, id, secretMount)
+}
 
-		if config.Target == "" {
-			config.Target = "/run/secrets/" + config.Source
-		} else if !isAbsTarget(config.Target) {
-			config.Target = "/run/secrets/" + config.Target
-		}
+func (s *composeService) injectConfigs(ctx context.Context, project *types.Project, service types.ServiceConfig, id string) error {
+	return s.injectFileReferences(ctx, project, service, id, configMount)
+}
 
-		env, ok := project.Environment[file.Environment]
-		if !ok {
-			return fmt.Errorf("environment variable %q required by file %q is not set", file.Environment, file.Name)
-		}
-		b, err := createTar(env, types.FileReferenceConfig(config))
+func (s *composeService) injectFileReferences(ctx context.Context, project *types.Project, service types.ServiceConfig, id string, mountType mountType) error {
+	mounts, sources := s.getFilesAndMap(project, service, mountType)
+
+	for _, mount := range mounts {
+		content, err := s.resolveFileContent(project, sources[mount.Source], mountType)
 		if err != nil {
 			return err
 		}
+		if content == "" {
+			continue
+		}
 
-		err = s.apiClient().CopyToContainer(ctx, id, "/", &b, container.CopyToContainerOptions{
-			CopyUIDGID: config.UID != "" || config.GID != "",
-		})
-		if err != nil {
+		if service.ReadOnly {
+			return fmt.Errorf("cannot create %s %q in read-only service %s: `file` is the sole supported option", mountType, sources[mount.Source].Name, service.Name)
+		}
+
+		s.setDefaultTarget(&mount, mountType)
+
+		if err := s.copyFileToContainer(ctx, id, content, mount); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *composeService) injectConfigs(ctx context.Context, project *types.Project, service types.ServiceConfig, id string) error {
-	for _, config := range service.Configs {
-		file := project.Configs[config.Source]
-		content := file.Content
-		if file.Environment != "" {
-			env, ok := project.Environment[file.Environment]
-			if !ok {
-				return fmt.Errorf("environment variable %q required by file %q is not set", file.Environment, file.Name)
-			}
-			content = env
-		}
-		if content == "" {
-			continue
-		}
+func (s *composeService) getFilesAndMap(project *types.Project, service types.ServiceConfig, mountType mountType) ([]types.FileReferenceConfig, map[string]types.FileObjectConfig) {
+	var files []types.FileReferenceConfig
+	var fileMap map[string]types.FileObjectConfig
 
-		if config.Target == "" {
-			config.Target = "/" + config.Source
+	switch mountType {
+	case secretMount:
+		files = make([]types.FileReferenceConfig, len(service.Secrets))
+		for i, config := range service.Secrets {
+			files[i] = types.FileReferenceConfig(config)
 		}
-
-		b, err := createTar(content, types.FileReferenceConfig(config))
-		if err != nil {
-			return err
+		fileMap = make(map[string]types.FileObjectConfig)
+		for k, v := range project.Secrets {
+			fileMap[k] = types.FileObjectConfig(v)
 		}
-
-		err = s.apiClient().CopyToContainer(ctx, id, "/", &b, container.CopyToContainerOptions{
-			CopyUIDGID: config.UID != "" || config.GID != "",
-		})
-		if err != nil {
-			return err
+	case configMount:
+		files = make([]types.FileReferenceConfig, len(service.Configs))
+		for i, config := range service.Configs {
+			files[i] = types.FileReferenceConfig(config)
+		}
+		fileMap = make(map[string]types.FileObjectConfig)
+		for k, v := range project.Configs {
+			fileMap[k] = types.FileObjectConfig(v)
 		}
 	}
-	return nil
+	return files, fileMap
+}
+
+func (s *composeService) resolveFileContent(project *types.Project, source types.FileObjectConfig, mountType mountType) (string, error) {
+	if source.Content != "" {
+		// inlined, or already resolved by include
+		return source.Content, nil
+	}
+	if source.Environment != "" {
+		env, ok := project.Environment[source.Environment]
+		if !ok {
+			return "", fmt.Errorf("environment variable %q required by %s %q is not set", source.Environment, mountType, source.Name)
+		}
+		return env, nil
+	}
+	return "", nil
+}
+
+func (s *composeService) setDefaultTarget(file *types.FileReferenceConfig, mountType mountType) {
+	if file.Target == "" {
+		if mountType == secretMount {
+			file.Target = "/run/secrets/" + file.Source
+		} else {
+			file.Target = "/" + file.Source
+		}
+	} else if mountType == secretMount && !isAbsTarget(file.Target) {
+		file.Target = "/run/secrets/" + file.Target
+	}
+}
+
+func (s *composeService) copyFileToContainer(ctx context.Context, id, content string, file types.FileReferenceConfig) error {
+	b, err := createTar(content, file)
+	if err != nil {
+		return err
+	}
+
+	return s.apiClient().CopyToContainer(ctx, id, "/", &b, container.CopyToContainerOptions{
+		CopyUIDGID: file.UID != "" || file.GID != "",
+	})
 }
 
 func createTar(env string, config types.FileReferenceConfig) (bytes.Buffer, error) {
 	value := []byte(env)
 	b := bytes.Buffer{}
 	tarWriter := tar.NewWriter(&b)
-	mode := uint32(0o444)
+	mode := types.FileMode(0o444)
 	if config.Mode != nil {
 		mode = *config.Mode
 	}

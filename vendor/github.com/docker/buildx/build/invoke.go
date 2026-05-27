@@ -8,15 +8,56 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	controllerapi "github.com/docker/buildx/controller/pb"
 	gateway "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
+type InvokeConfig struct {
+	Entrypoint []string  `json:"entrypoint,omitempty"`
+	Cmd        []string  `json:"cmd,omitempty"`
+	NoCmd      bool      `json:"noCmd,omitempty"`
+	Env        []string  `json:"env,omitempty"`
+	User       string    `json:"user,omitempty"`
+	NoUser     bool      `json:"noUser,omitempty"`
+	Cwd        string    `json:"cwd,omitempty"`
+	NoCwd      bool      `json:"noCwd,omitempty"`
+	Tty        bool      `json:"tty,omitempty"`
+	Rollback   bool      `json:"rollback,omitempty"`
+	Initial    bool      `json:"initial,omitempty"`
+	SuspendOn  SuspendOn `json:"suspendOn,omitempty"`
+}
+
+func (cfg *InvokeConfig) NeedsDebug(err error) bool {
+	return cfg.SuspendOn.DebugEnabled(err)
+}
+
+type SuspendOn int
+
+const (
+	SuspendError SuspendOn = iota
+	SuspendAlways
+)
+
+func (s SuspendOn) DebugEnabled(err error) bool {
+	return err != nil || s == SuspendAlways
+}
+
+func (s *SuspendOn) UnmarshalText(text []byte) error {
+	switch string(text) {
+	case "error":
+		*s = SuspendError
+	case "always":
+		*s = SuspendAlways
+	default:
+		return errors.Errorf("unknown suspend name: %s", string(text))
+	}
+	return nil
+}
+
 type Container struct {
 	cancelOnce      sync.Once
-	containerCancel func()
+	containerCancel func(error)
 	isUnavailable   atomic.Bool
 	initStarted     atomic.Bool
 	container       gateway.Container
@@ -24,29 +65,21 @@ type Container struct {
 	resultCtx       *ResultHandle
 }
 
-func NewContainer(ctx context.Context, resultCtx *ResultHandle, cfg *controllerapi.InvokeConfig) (*Container, error) {
+func NewContainer(ctx context.Context, resultCtx *ResultHandle, cfg *InvokeConfig) (*Container, error) {
 	mainCtx := ctx
 
-	ctrCh := make(chan *Container)
-	errCh := make(chan error)
+	ctrCh := make(chan *Container, 1)
+	errCh := make(chan error, 1)
 	go func() {
-		err := resultCtx.build(func(ctx context.Context, c gateway.Client) (*gateway.Result, error) {
-			ctx, cancel := context.WithCancel(ctx)
-			go func() {
-				<-mainCtx.Done()
-				cancel()
-			}()
+		err := func() error {
+			containerCtx, containerCancel := context.WithCancelCause(ctx)
+			defer containerCancel(errors.WithStack(context.Canceled))
 
-			containerCfg, err := resultCtx.getContainerConfig(cfg)
+			bkContainer, err := resultCtx.NewContainer(containerCtx, cfg)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			containerCtx, containerCancel := context.WithCancel(ctx)
-			defer containerCancel()
-			bkContainer, err := c.NewContainer(containerCtx, containerCfg)
-			if err != nil {
-				return nil, err
-			}
+
 			releaseCh := make(chan struct{})
 			container := &Container{
 				containerCancel: containerCancel,
@@ -63,8 +96,8 @@ func NewContainer(ctx context.Context, resultCtx *ResultHandle, cfg *controllera
 			ctrCh <- container
 			<-container.releaseCh
 
-			return nil, bkContainer.Release(ctx)
-		})
+			return bkContainer.Release(ctx)
+		}()
 		if err != nil {
 			errCh <- err
 		}
@@ -83,7 +116,7 @@ func (c *Container) Cancel() {
 	c.markUnavailable()
 	c.cancelOnce.Do(func() {
 		if c.containerCancel != nil {
-			c.containerCancel()
+			c.containerCancel(errors.WithStack(context.Canceled))
 		}
 		close(c.releaseCh)
 	})
@@ -97,7 +130,7 @@ func (c *Container) markUnavailable() {
 	c.isUnavailable.Store(true)
 }
 
-func (c *Container) Exec(ctx context.Context, cfg *controllerapi.InvokeConfig, stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser) error {
+func (c *Container) Exec(ctx context.Context, cfg *InvokeConfig, stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser) error {
 	if isInit := c.initStarted.CompareAndSwap(false, true); isInit {
 		defer func() {
 			// container can't be used after init exits
@@ -112,7 +145,7 @@ func (c *Container) Exec(ctx context.Context, cfg *controllerapi.InvokeConfig, s
 	return err
 }
 
-func exec(ctx context.Context, resultCtx *ResultHandle, cfg *controllerapi.InvokeConfig, ctr gateway.Container, stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser) error {
+func exec(ctx context.Context, resultCtx *ResultHandle, cfg *InvokeConfig, ctr gateway.Container, stdin io.ReadCloser, stdout io.WriteCloser, stderr io.WriteCloser) error {
 	processCfg, err := resultCtx.getProcessConfig(cfg, stdin, stdout, stderr)
 	if err != nil {
 		return err

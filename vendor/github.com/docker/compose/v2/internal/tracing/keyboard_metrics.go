@@ -22,16 +22,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-func KeyboardMetrics(ctx context.Context, enabled, isDockerDesktopActive, isWatchConfigured, isDockerDesktopComposeUI bool) {
+func KeyboardMetrics(ctx context.Context, enabled, isDockerDesktopActive bool) {
 	commandAvailable := []string{}
 	if isDockerDesktopActive {
 		commandAvailable = append(commandAvailable, "gui")
-	}
-	if isWatchConfigured {
-		commandAvailable = append(commandAvailable, "watch")
-	}
-
-	if isDockerDesktopComposeUI {
 		commandAvailable = append(commandAvailable, "gui/composeview")
 	}
 

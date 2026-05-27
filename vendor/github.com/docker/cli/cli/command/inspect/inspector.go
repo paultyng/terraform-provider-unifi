@@ -1,18 +1,18 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.21
+//go:build go1.23
 
 package inspect
 
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
-	"strings"
 	"text/template"
 
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/templates"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,23 +26,29 @@ type Inspector interface {
 
 // TemplateInspector uses a text template to inspect elements.
 type TemplateInspector struct {
-	outputStream io.Writer
-	buffer       *bytes.Buffer
-	tmpl         *template.Template
+	out    io.Writer
+	buffer *bytes.Buffer
+	tmpl   *template.Template
 }
 
 // NewTemplateInspector creates a new inspector with a template.
-func NewTemplateInspector(outputStream io.Writer, tmpl *template.Template) Inspector {
+func NewTemplateInspector(out io.Writer, tmpl *template.Template) *TemplateInspector {
+	if out == nil {
+		out = io.Discard
+	}
 	return &TemplateInspector{
-		outputStream: outputStream,
-		buffer:       new(bytes.Buffer),
-		tmpl:         tmpl,
+		out:    out,
+		buffer: new(bytes.Buffer),
+		tmpl:   tmpl,
 	}
 }
 
 // NewTemplateInspectorFromString creates a new TemplateInspector from a string
 // which is compiled into a template.
 func NewTemplateInspectorFromString(out io.Writer, tmplStr string) (Inspector, error) {
+	if out == nil {
+		return nil, errors.New("no output stream")
+	}
 	if tmplStr == "" {
 		return NewIndentedInspector(out), nil
 	}
@@ -53,7 +59,7 @@ func NewTemplateInspectorFromString(out io.Writer, tmplStr string) (Inspector, e
 
 	tmpl, err := templates.Parse(tmplStr)
 	if err != nil {
-		return nil, errors.Errorf("template parsing error: %s", err)
+		return nil, fmt.Errorf("template parsing error: %w", err)
 	}
 	return NewTemplateInspector(out, tmpl), nil
 }
@@ -65,32 +71,35 @@ type GetRefFunc func(ref string) (any, []byte, error)
 // Inspect fetches objects by reference using GetRefFunc and writes the json
 // representation to the output writer.
 func Inspect(out io.Writer, references []string, tmplStr string, getRef GetRefFunc) error {
+	if out == nil {
+		return errors.New("no output stream")
+	}
 	inspector, err := NewTemplateInspectorFromString(out, tmplStr)
 	if err != nil {
 		return cli.StatusError{StatusCode: 64, Status: err.Error()}
 	}
 
-	var inspectErrs []string
+	var errs []error
 	for _, ref := range references {
 		element, raw, err := getRef(ref)
 		if err != nil {
-			inspectErrs = append(inspectErrs, err.Error())
+			errs = append(errs, err)
 			continue
 		}
 
 		if err := inspector.Inspect(element, raw); err != nil {
-			inspectErrs = append(inspectErrs, err.Error())
+			errs = append(errs, err)
 		}
 	}
 
 	if err := inspector.Flush(); err != nil {
-		logrus.Errorf("%s\n", err)
+		logrus.Error(err)
 	}
 
-	if len(inspectErrs) != 0 {
+	if err := errors.Join(errs...); err != nil {
 		return cli.StatusError{
 			StatusCode: 1,
-			Status:     strings.Join(inspectErrs, "\n"),
+			Status:     err.Error(),
 		}
 	}
 	return nil
@@ -103,7 +112,7 @@ func (i *TemplateInspector) Inspect(typedElement any, rawElement []byte) error {
 	buffer := new(bytes.Buffer)
 	if err := i.tmpl.Execute(buffer, typedElement); err != nil {
 		if rawElement == nil {
-			return errors.Errorf("template parsing error: %v", err)
+			return fmt.Errorf("template parsing error: %w", err)
 		}
 		return i.tryRawInspectFallback(rawElement)
 	}
@@ -121,13 +130,13 @@ func (i *TemplateInspector) tryRawInspectFallback(rawElement []byte) error {
 	dec := json.NewDecoder(rdr)
 	dec.UseNumber()
 
-	if rawErr := dec.Decode(&raw); rawErr != nil {
-		return errors.Errorf("unable to read inspect data: %v", rawErr)
+	if err := dec.Decode(&raw); err != nil {
+		return fmt.Errorf("unable to read inspect data: %w", err)
 	}
 
 	tmplMissingKey := i.tmpl.Option("missingkey=error")
-	if rawErr := tmplMissingKey.Execute(buffer, raw); rawErr != nil {
-		return errors.Errorf("template parsing error: %v", rawErr)
+	if err := tmplMissingKey.Execute(buffer, raw); err != nil {
+		return fmt.Errorf("template parsing error: %w", err)
 	}
 
 	i.buffer.Write(buffer.Bytes())
@@ -138,18 +147,21 @@ func (i *TemplateInspector) tryRawInspectFallback(rawElement []byte) error {
 // Flush writes the result of inspecting all elements into the output stream.
 func (i *TemplateInspector) Flush() error {
 	if i.buffer.Len() == 0 {
-		_, err := io.WriteString(i.outputStream, "\n")
+		_, err := io.WriteString(i.out, "\n")
 		return err
 	}
-	_, err := io.Copy(i.outputStream, i.buffer)
+	_, err := io.Copy(i.out, i.buffer)
 	return err
 }
 
 // NewIndentedInspector generates a new inspector with an indented representation
 // of elements.
-func NewIndentedInspector(outputStream io.Writer) Inspector {
-	return &elementsInspector{
-		outputStream: outputStream,
+func NewIndentedInspector(out io.Writer) Inspector {
+	if out == nil {
+		out = io.Discard
+	}
+	return &jsonInspector{
+		out: out,
 		raw: func(dst *bytes.Buffer, src []byte) error {
 			return json.Indent(dst, src, "", "    ")
 		},
@@ -161,23 +173,26 @@ func NewIndentedInspector(outputStream io.Writer) Inspector {
 
 // NewJSONInspector generates a new inspector with a compact representation
 // of elements.
-func NewJSONInspector(outputStream io.Writer) Inspector {
-	return &elementsInspector{
-		outputStream: outputStream,
-		raw:          json.Compact,
-		el:           json.Marshal,
+func NewJSONInspector(out io.Writer) Inspector {
+	if out == nil {
+		out = io.Discard
+	}
+	return &jsonInspector{
+		out: out,
+		raw: json.Compact,
+		el:  json.Marshal,
 	}
 }
 
-type elementsInspector struct {
-	outputStream io.Writer
-	elements     []any
-	rawElements  [][]byte
-	raw          func(dst *bytes.Buffer, src []byte) error
-	el           func(v any) ([]byte, error)
+type jsonInspector struct {
+	out         io.Writer
+	elements    []any
+	rawElements [][]byte
+	raw         func(dst *bytes.Buffer, src []byte) error
+	el          func(v any) ([]byte, error)
 }
 
-func (e *elementsInspector) Inspect(typedElement any, rawElement []byte) error {
+func (e *jsonInspector) Inspect(typedElement any, rawElement []byte) error {
 	if rawElement != nil {
 		e.rawElements = append(e.rawElements, rawElement)
 	} else {
@@ -186,9 +201,9 @@ func (e *elementsInspector) Inspect(typedElement any, rawElement []byte) error {
 	return nil
 }
 
-func (e *elementsInspector) Flush() error {
+func (e *jsonInspector) Flush() error {
 	if len(e.elements) == 0 && len(e.rawElements) == 0 {
-		_, err := io.WriteString(e.outputStream, "[]\n")
+		_, err := io.WriteString(e.out, "[]\n")
 		return err
 	}
 
@@ -216,9 +231,9 @@ func (e *elementsInspector) Flush() error {
 		buffer = bytes.NewReader(b)
 	}
 
-	if _, err := io.Copy(e.outputStream, buffer); err != nil {
+	if _, err := io.Copy(e.out, buffer); err != nil {
 		return err
 	}
-	_, err := io.WriteString(e.outputStream, "\n")
+	_, err := io.WriteString(e.out, "\n")
 	return err
 }

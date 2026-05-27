@@ -6,8 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/stringid"
+	"github.com/docker/docker/api/types/build"
 	"github.com/docker/go-units"
 )
 
@@ -52,7 +51,7 @@ shared: {{.Shared}}
 	return Format(source)
 }
 
-func buildCacheSort(buildCache []*types.BuildCache) {
+func buildCacheSort(buildCache []*build.CacheRecord) {
 	sort.Slice(buildCache, func(i, j int) bool {
 		lui, luj := buildCache[i].LastUsedAt, buildCache[j].LastUsedAt
 		switch {
@@ -71,7 +70,7 @@ func buildCacheSort(buildCache []*types.BuildCache) {
 }
 
 // BuildCacheWrite renders the context for a list of containers
-func BuildCacheWrite(ctx Context, buildCaches []*types.BuildCache) error {
+func BuildCacheWrite(ctx Context, buildCaches []*build.CacheRecord) error {
 	render := func(format func(subContext SubContext) error) error {
 		buildCacheSort(buildCaches)
 		for _, bc := range buildCaches {
@@ -88,7 +87,7 @@ func BuildCacheWrite(ctx Context, buildCaches []*types.BuildCache) error {
 type buildCacheContext struct {
 	HeaderContext
 	trunc bool
-	v     *types.BuildCache
+	v     *build.CacheRecord
 }
 
 func newBuildCacheContext() *buildCacheContext {
@@ -115,7 +114,7 @@ func (c *buildCacheContext) MarshalJSON() ([]byte, error) {
 func (c *buildCacheContext) ID() string {
 	id := c.v.ID
 	if c.trunc {
-		id = stringid.TruncateID(c.v.ID)
+		id = TruncateID(c.v.ID)
 	}
 	if c.v.InUse {
 		return id + "*"
@@ -131,7 +130,7 @@ func (c *buildCacheContext) Parent() string {
 		parent = c.v.Parent //nolint:staticcheck // Ignore SA1019: Field was deprecated in API v1.42, but kept for backward compatibility
 	}
 	if c.trunc {
-		return stringid.TruncateID(parent)
+		return TruncateID(parent)
 	}
 	return parent
 }

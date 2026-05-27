@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
+
+	"github.com/testcontainers/testcontainers-go/log"
 )
 
 // ContainerRequestHook is a hook that will be called before a container is created.
@@ -54,74 +55,74 @@ type ContainerLifecycleHooks struct {
 }
 
 // DefaultLoggingHook is a hook that will log the container lifecycle events
-var DefaultLoggingHook = func(logger Logging) ContainerLifecycleHooks {
+var DefaultLoggingHook = func(logger log.Logger) ContainerLifecycleHooks {
 	shortContainerID := func(c Container) string {
 		return c.GetContainerID()[:12]
 	}
 
 	return ContainerLifecycleHooks{
 		PreBuilds: []ContainerRequestHook{
-			func(ctx context.Context, req ContainerRequest) error {
+			func(_ context.Context, req ContainerRequest) error {
 				logger.Printf("🐳 Building image %s:%s", req.GetRepo(), req.GetTag())
 				return nil
 			},
 		},
 		PostBuilds: []ContainerRequestHook{
-			func(ctx context.Context, req ContainerRequest) error {
+			func(_ context.Context, req ContainerRequest) error {
 				logger.Printf("✅ Built image %s", req.Image)
 				return nil
 			},
 		},
 		PreCreates: []ContainerRequestHook{
-			func(ctx context.Context, req ContainerRequest) error {
+			func(_ context.Context, req ContainerRequest) error {
 				logger.Printf("🐳 Creating container for image %s", req.Image)
 				return nil
 			},
 		},
 		PostCreates: []ContainerHook{
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				logger.Printf("✅ Container created: %s", shortContainerID(c))
 				return nil
 			},
 		},
 		PreStarts: []ContainerHook{
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				logger.Printf("🐳 Starting container: %s", shortContainerID(c))
 				return nil
 			},
 		},
 		PostStarts: []ContainerHook{
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				logger.Printf("✅ Container started: %s", shortContainerID(c))
 				return nil
 			},
 		},
 		PostReadies: []ContainerHook{
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				logger.Printf("🔔 Container is ready: %s", shortContainerID(c))
 				return nil
 			},
 		},
 		PreStops: []ContainerHook{
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				logger.Printf("🐳 Stopping container: %s", shortContainerID(c))
 				return nil
 			},
 		},
 		PostStops: []ContainerHook{
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				logger.Printf("✅ Container stopped: %s", shortContainerID(c))
 				return nil
 			},
 		},
 		PreTerminates: []ContainerHook{
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				logger.Printf("🐳 Terminating container: %s", shortContainerID(c))
 				return nil
 			},
 		},
 		PostTerminates: []ContainerHook{
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				logger.Printf("🚫 Container terminated: %s", shortContainerID(c))
 				return nil
 			},
@@ -188,10 +189,7 @@ var defaultLogConsumersHook = func(cfg *LogConsumerConfig) ContainerLifecycleHoo
 				}
 
 				dockerContainer := c.(*DockerContainer)
-				dockerContainer.consumers = dockerContainer.consumers[:0]
-				for _, consumer := range cfg.Consumers {
-					dockerContainer.followOutput(consumer)
-				}
+				dockerContainer.resetConsumers(cfg.Consumers)
 
 				return dockerContainer.startLogProduction(ctx, cfg.Opts...)
 			},
@@ -199,7 +197,7 @@ var defaultLogConsumersHook = func(cfg *LogConsumerConfig) ContainerLifecycleHoo
 		PostStops: []ContainerHook{
 			// Stop the log production.
 			// See combineContainerHooks for the order of execution.
-			func(ctx context.Context, c Container) error {
+			func(_ context.Context, c Container) error {
 				if cfg == nil || len(cfg.Consumers) == 0 {
 					return nil
 				}
@@ -211,71 +209,10 @@ var defaultLogConsumersHook = func(cfg *LogConsumerConfig) ContainerLifecycleHoo
 	}
 }
 
-func checkPortsMapped(exposedAndMappedPorts nat.PortMap, exposedPorts []string) error {
-	portMap, _, err := nat.ParsePortSpecs(exposedPorts)
-	if err != nil {
-		return fmt.Errorf("parse exposed ports: %w", err)
-	}
-
-	for exposedPort := range portMap {
-		// having entries in exposedAndMappedPorts, where the key is the exposed port,
-		// and the value is the mapped port, means that the port has been already mapped.
-		if _, ok := exposedAndMappedPorts[exposedPort]; ok {
-			continue
-		}
-
-		// check if the port is mapped with the protocol (default is TCP)
-		if strings.Contains(string(exposedPort), "/") {
-			return fmt.Errorf("port %s is not mapped yet", exposedPort)
-		}
-
-		// Port didn't have a type, default to tcp and retry.
-		exposedPort += "/tcp"
-		if _, ok := exposedAndMappedPorts[exposedPort]; !ok {
-			return fmt.Errorf("port %s is not mapped yet", exposedPort)
-		}
-	}
-
-	return nil
-}
-
 // defaultReadinessHook is a hook that will wait for the container to be ready
 var defaultReadinessHook = func() ContainerLifecycleHooks {
 	return ContainerLifecycleHooks{
 		PostStarts: []ContainerHook{
-			func(ctx context.Context, c Container) error {
-				// wait until all the exposed ports are mapped:
-				// it will be ready when all the exposed ports are mapped,
-				// checking every 50ms, up to 1s, and failing if all the
-				// exposed ports are not mapped in 5s.
-				dockerContainer := c.(*DockerContainer)
-
-				b := backoff.NewExponentialBackOff()
-
-				b.InitialInterval = 50 * time.Millisecond
-				b.MaxElapsedTime = 5 * time.Second
-				b.MaxInterval = time.Duration(float64(time.Second) * backoff.DefaultRandomizationFactor)
-
-				err := backoff.RetryNotify(
-					func() error {
-						jsonRaw, err := dockerContainer.inspectRawContainer(ctx)
-						if err != nil {
-							return err
-						}
-
-						return checkPortsMapped(jsonRaw.NetworkSettings.Ports, dockerContainer.exposedPorts)
-					},
-					b,
-					func(err error, duration time.Duration) {
-						dockerContainer.logger.Printf("All requested ports were not exposed: %v", err)
-					},
-				)
-				if err != nil {
-					return fmt.Errorf("all exposed ports, %s, were not mapped in 5s: %w", dockerContainer.exposedPorts, err)
-				}
-
-				return nil
-			},
 			// wait for the container to be ready
 			func(ctx context.Context, c Container) error {
 				dockerContainer := c.(*DockerContainer)
@@ -371,7 +308,11 @@ func (c *DockerContainer) printLogs(ctx context.Context, cause error) {
 
 	b, err := io.ReadAll(reader)
 	if err != nil {
-		c.logger.Printf("failed reading container logs: %v\n", err)
+		if len(b) > 0 {
+			c.logger.Printf("failed reading container logs: %v\npartial container logs (%s):\n%s", err, cause, b)
+		} else {
+			c.logger.Printf("failed reading container logs: %v\n", err)
+		}
 		return
 	}
 
@@ -519,6 +460,20 @@ func (c ContainerLifecycleHooks) Terminated(ctx context.Context) func(container 
 }
 
 func (p *DockerProvider) preCreateContainerHook(ctx context.Context, req ContainerRequest, dockerInput *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig) error {
+	var mountErrors []error
+	for _, m := range req.Mounts {
+		// validate only the mount sources that implement the Validator interface
+		if v, ok := m.Source.(Validator); ok {
+			if err := v.Validate(); err != nil {
+				mountErrors = append(mountErrors, err)
+			}
+		}
+	}
+
+	if len(mountErrors) > 0 {
+		return errors.Join(mountErrors...)
+	}
+
 	// prepare mounts
 	hostConfig.Mounts = mapToDockerMounts(req.Mounts)
 
@@ -546,17 +501,18 @@ func (p *DockerProvider) preCreateContainerHook(ctx context.Context, req Contain
 		}
 	}
 
-	if req.ConfigModifier != nil {
-		req.ConfigModifier(dockerInput)
+	if req.ConfigModifier == nil {
+		req.ConfigModifier = defaultConfigModifier(req)
 	}
+	req.ConfigModifier(dockerInput)
 
 	if req.HostConfigModifier == nil {
 		req.HostConfigModifier = defaultHostConfigModifier(req)
 	}
 	req.HostConfigModifier(hostConfig)
 
-	if req.EnpointSettingsModifier != nil {
-		req.EnpointSettingsModifier(endpointSettings)
+	if req.EndpointSettingsModifier != nil {
+		req.EndpointSettingsModifier(endpointSettings)
 	}
 
 	networkingConfig.EndpointsConfig = endpointSettings
@@ -564,7 +520,7 @@ func (p *DockerProvider) preCreateContainerHook(ctx context.Context, req Contain
 	exposedPorts := req.ExposedPorts
 	// this check must be done after the pre-creation Modifiers are called, so the network mode is already set
 	if len(exposedPorts) == 0 && !hostConfig.NetworkMode.IsContainer() {
-		image, _, err := p.client.ImageInspectWithRaw(ctx, dockerInput.Image)
+		image, err := p.client.ImageInspect(ctx, dockerInput.Image)
 		if err != nil {
 			return err
 		}
@@ -603,7 +559,7 @@ func combineContainerHooks(defaultHooks, userDefinedHooks []ContainerLifecycleHo
 	hooksType := reflect.TypeOf(hooks)
 	for _, defaultHook := range defaultHooks {
 		defaultVal := reflect.ValueOf(defaultHook)
-		for i := 0; i < hooksType.NumField(); i++ {
+		for i := range hooksType.NumField() {
 			if strings.HasPrefix(hooksType.Field(i).Name, "Pre") {
 				field := hooksVal.Field(i)
 				field.Set(reflect.AppendSlice(field, defaultVal.Field(i)))
@@ -616,7 +572,7 @@ func combineContainerHooks(defaultHooks, userDefinedHooks []ContainerLifecycleHo
 	// post-hooks will be the first ones to be executed.
 	for _, userDefinedHook := range userDefinedHooks {
 		userVal := reflect.ValueOf(userDefinedHook)
-		for i := 0; i < hooksType.NumField(); i++ {
+		for i := range hooksType.NumField() {
 			field := hooksVal.Field(i)
 			field.Set(reflect.AppendSlice(field, userVal.Field(i)))
 		}
@@ -625,7 +581,7 @@ func combineContainerHooks(defaultHooks, userDefinedHooks []ContainerLifecycleHo
 	// Finally, append the default post-hooks.
 	for _, defaultHook := range defaultHooks {
 		defaultVal := reflect.ValueOf(defaultHook)
-		for i := 0; i < hooksType.NumField(); i++ {
+		for i := range hooksType.NumField() {
 			if strings.HasPrefix(hooksType.Field(i).Name, "Post") {
 				field := hooksVal.Field(i)
 				field.Set(reflect.AppendSlice(field, defaultVal.Field(i)))
@@ -656,6 +612,15 @@ func mergePortBindings(configPortMap, exposedPortMap nat.PortMap, exposedPorts [
 }
 
 // defaultHostConfigModifier provides a default modifier including the deprecated fields
+func defaultConfigModifier(req ContainerRequest) func(config *container.Config) {
+	return func(config *container.Config) {
+		config.Hostname = req.Hostname
+		config.WorkingDir = req.WorkingDir
+		config.User = req.User
+	}
+}
+
+// defaultHostConfigModifier provides a default modifier including the deprecated fields
 func defaultHostConfigModifier(req ContainerRequest) func(hostConfig *container.HostConfig) {
 	return func(hostConfig *container.HostConfig) {
 		hostConfig.AutoRemove = req.AutoRemove
@@ -665,5 +630,7 @@ func defaultHostConfigModifier(req ContainerRequest) func(hostConfig *container.
 		hostConfig.ExtraHosts = req.ExtraHosts
 		hostConfig.NetworkMode = req.NetworkMode
 		hostConfig.Resources = req.Resources
+		hostConfig.Privileged = req.Privileged
+		hostConfig.ShmSize = req.ShmSize
 	}
 }

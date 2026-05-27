@@ -57,10 +57,9 @@ func recurseExtract(value interface{}, pattern *regexp.Regexp) map[string]Variab
 
 	case []interface{}:
 		for _, elem := range value {
-			if values, is := extractVariable(elem, pattern); is {
-				for _, v := range values {
-					m[v.Name] = v
-				}
+			submap := recurseExtract(elem, pattern)
+			for key, value := range submap {
+				m[key] = value
 			}
 		}
 	}
@@ -106,6 +105,9 @@ func extractVariable(value interface{}, pattern *regexp.Regexp) ([]Variable, boo
 				return false
 			}
 			if r >= 'A' && r <= 'Z' {
+				return false
+			}
+			if r >= '0' && r <= '9' {
 				return false
 			}
 			if r == '_' {

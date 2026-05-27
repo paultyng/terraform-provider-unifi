@@ -5,6 +5,7 @@ package global // import "go.opentelemetry.io/otel/internal/global"
 
 import (
 	"container/list"
+	"context"
 	"reflect"
 	"sync"
 
@@ -66,6 +67,7 @@ func (p *meterProvider) Meter(name string, opts ...metric.MeterOption) metric.Me
 		name:    name,
 		version: c.InstrumentationVersion(),
 		schema:  c.SchemaURL(),
+		attrs:   c.InstrumentationAttributes(),
 	}
 
 	if p.meters == nil {
@@ -167,7 +169,10 @@ func (m *meter) Int64Counter(name string, options ...metric.Int64CounterOption) 
 	return i, nil
 }
 
-func (m *meter) Int64UpDownCounter(name string, options ...metric.Int64UpDownCounterOption) (metric.Int64UpDownCounter, error) {
+func (m *meter) Int64UpDownCounter(
+	name string,
+	options ...metric.Int64UpDownCounterOption,
+) (metric.Int64UpDownCounter, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -236,7 +241,10 @@ func (m *meter) Int64Gauge(name string, options ...metric.Int64GaugeOption) (met
 	return i, nil
 }
 
-func (m *meter) Int64ObservableCounter(name string, options ...metric.Int64ObservableCounterOption) (metric.Int64ObservableCounter, error) {
+func (m *meter) Int64ObservableCounter(
+	name string,
+	options ...metric.Int64ObservableCounterOption,
+) (metric.Int64ObservableCounter, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -259,7 +267,10 @@ func (m *meter) Int64ObservableCounter(name string, options ...metric.Int64Obser
 	return i, nil
 }
 
-func (m *meter) Int64ObservableUpDownCounter(name string, options ...metric.Int64ObservableUpDownCounterOption) (metric.Int64ObservableUpDownCounter, error) {
+func (m *meter) Int64ObservableUpDownCounter(
+	name string,
+	options ...metric.Int64ObservableUpDownCounterOption,
+) (metric.Int64ObservableUpDownCounter, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -282,7 +293,10 @@ func (m *meter) Int64ObservableUpDownCounter(name string, options ...metric.Int6
 	return i, nil
 }
 
-func (m *meter) Int64ObservableGauge(name string, options ...metric.Int64ObservableGaugeOption) (metric.Int64ObservableGauge, error) {
+func (m *meter) Int64ObservableGauge(
+	name string,
+	options ...metric.Int64ObservableGaugeOption,
+) (metric.Int64ObservableGauge, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -328,7 +342,10 @@ func (m *meter) Float64Counter(name string, options ...metric.Float64CounterOpti
 	return i, nil
 }
 
-func (m *meter) Float64UpDownCounter(name string, options ...metric.Float64UpDownCounterOption) (metric.Float64UpDownCounter, error) {
+func (m *meter) Float64UpDownCounter(
+	name string,
+	options ...metric.Float64UpDownCounterOption,
+) (metric.Float64UpDownCounter, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -351,7 +368,10 @@ func (m *meter) Float64UpDownCounter(name string, options ...metric.Float64UpDow
 	return i, nil
 }
 
-func (m *meter) Float64Histogram(name string, options ...metric.Float64HistogramOption) (metric.Float64Histogram, error) {
+func (m *meter) Float64Histogram(
+	name string,
+	options ...metric.Float64HistogramOption,
+) (metric.Float64Histogram, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -397,7 +417,10 @@ func (m *meter) Float64Gauge(name string, options ...metric.Float64GaugeOption) 
 	return i, nil
 }
 
-func (m *meter) Float64ObservableCounter(name string, options ...metric.Float64ObservableCounterOption) (metric.Float64ObservableCounter, error) {
+func (m *meter) Float64ObservableCounter(
+	name string,
+	options ...metric.Float64ObservableCounterOption,
+) (metric.Float64ObservableCounter, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -420,7 +443,10 @@ func (m *meter) Float64ObservableCounter(name string, options ...metric.Float64O
 	return i, nil
 }
 
-func (m *meter) Float64ObservableUpDownCounter(name string, options ...metric.Float64ObservableUpDownCounterOption) (metric.Float64ObservableUpDownCounter, error) {
+func (m *meter) Float64ObservableUpDownCounter(
+	name string,
+	options ...metric.Float64ObservableUpDownCounterOption,
+) (metric.Float64ObservableUpDownCounter, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -443,7 +469,10 @@ func (m *meter) Float64ObservableUpDownCounter(name string, options ...metric.Fl
 	return i, nil
 }
 
-func (m *meter) Float64ObservableGauge(name string, options ...metric.Float64ObservableGaugeOption) (metric.Float64ObservableGauge, error) {
+func (m *meter) Float64ObservableGauge(
+	name string,
+	options ...metric.Float64ObservableGaugeOption,
+) (metric.Float64ObservableGauge, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -472,8 +501,7 @@ func (m *meter) RegisterCallback(f metric.Callback, insts ...metric.Observable) 
 	defer m.mtx.Unlock()
 
 	if m.delegate != nil {
-		insts = unwrapInstruments(insts)
-		return m.delegate.RegisterCallback(f, insts...)
+		return m.delegate.RegisterCallback(unwrapCallback(f), unwrapInstruments(insts)...)
 	}
 
 	reg := &registration{instruments: insts, function: f}
@@ -487,15 +515,11 @@ func (m *meter) RegisterCallback(f metric.Callback, insts ...metric.Observable) 
 	return reg, nil
 }
 
-type wrapped interface {
-	unwrap() metric.Observable
-}
-
 func unwrapInstruments(instruments []metric.Observable) []metric.Observable {
 	out := make([]metric.Observable, 0, len(instruments))
 
 	for _, inst := range instruments {
-		if in, ok := inst.(wrapped); ok {
+		if in, ok := inst.(unwrapper); ok {
 			out = append(out, in.unwrap())
 		} else {
 			out = append(out, inst)
@@ -515,9 +539,61 @@ type registration struct {
 	unregMu sync.Mutex
 }
 
-func (c *registration) setDelegate(m metric.Meter) {
-	insts := unwrapInstruments(c.instruments)
+type unwrapObs struct {
+	embedded.Observer
+	obs metric.Observer
+}
 
+// unwrapFloat64Observable returns an expected metric.Float64Observable after
+// unwrapping the global object.
+func unwrapFloat64Observable(inst metric.Float64Observable) metric.Float64Observable {
+	if unwrapped, ok := inst.(unwrapper); ok {
+		if floatObs, ok := unwrapped.unwrap().(metric.Float64Observable); ok {
+			// Note: if the unwrapped object does not
+			// unwrap as an observable for either of the
+			// predicates here, it means an internal bug in
+			// this package.  We avoid logging an error in
+			// this case, because the SDK has to try its
+			// own type conversion on the object.  The SDK
+			// will see this and be forced to respond with
+			// its own error.
+			//
+			// This code uses a double-nested if statement
+			// to avoid creating a branch that is
+			// impossible to cover.
+			inst = floatObs
+		}
+	}
+	return inst
+}
+
+// unwrapInt64Observable returns an expected metric.Int64Observable after
+// unwrapping the global object.
+func unwrapInt64Observable(inst metric.Int64Observable) metric.Int64Observable {
+	if unwrapped, ok := inst.(unwrapper); ok {
+		if unint, ok := unwrapped.unwrap().(metric.Int64Observable); ok {
+			// See the comment in unwrapFloat64Observable().
+			inst = unint
+		}
+	}
+	return inst
+}
+
+func (uo *unwrapObs) ObserveFloat64(inst metric.Float64Observable, value float64, opts ...metric.ObserveOption) {
+	uo.obs.ObserveFloat64(unwrapFloat64Observable(inst), value, opts...)
+}
+
+func (uo *unwrapObs) ObserveInt64(inst metric.Int64Observable, value int64, opts ...metric.ObserveOption) {
+	uo.obs.ObserveInt64(unwrapInt64Observable(inst), value, opts...)
+}
+
+func unwrapCallback(f metric.Callback) metric.Callback {
+	return func(ctx context.Context, obs metric.Observer) error {
+		return f(ctx, &unwrapObs{obs: obs})
+	}
+}
+
+func (c *registration) setDelegate(m metric.Meter) {
 	c.unregMu.Lock()
 	defer c.unregMu.Unlock()
 
@@ -526,7 +602,7 @@ func (c *registration) setDelegate(m metric.Meter) {
 		return
 	}
 
-	reg, err := m.RegisterCallback(c.function, insts...)
+	reg, err := m.RegisterCallback(unwrapCallback(c.function), unwrapInstruments(c.instruments)...)
 	if err != nil {
 		GetErrorHandler().Handle(err)
 		return

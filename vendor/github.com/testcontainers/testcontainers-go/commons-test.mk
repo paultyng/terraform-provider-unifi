@@ -6,13 +6,13 @@ define go_install
 endef
 
 $(GOBIN)/golangci-lint:
-	$(call go_install,github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0)
+	$(call go_install,github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.2)
 
 $(GOBIN)/gotestsum:
 	$(call go_install,gotest.tools/gotestsum@latest)
 
 $(GOBIN)/mockery:
-	$(call go_install,github.com/vektra/mockery/v2@v2.45)
+	$(call go_install,github.com/vektra/mockery/v2@v2.53.4)
 
 .PHONY: install
 install: $(GOBIN)/golangci-lint $(GOBIN)/gotestsum $(GOBIN)/mockery
@@ -30,7 +30,7 @@ dependencies-scan:
 
 .PHONY: lint
 lint: $(GOBIN)/golangci-lint
-	golangci-lint run --out-format=colored-line-number --path-prefix=. --verbose -c $(ROOT_DIR)/.golangci.yml --fix
+	golangci-lint run --verbose -c $(ROOT_DIR)/.golangci.yml --fix
 
 .PHONY: generate
 generate: $(GOBIN)/mockery

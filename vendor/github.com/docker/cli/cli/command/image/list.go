@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -24,10 +25,18 @@ type imagesOptions struct {
 	format      string
 	filter      opts.FilterOpt
 	calledAs    string
+	tree        bool
 }
 
 // NewImagesCommand creates a new `docker images` command
+//
+// Deprecated: Do not import commands directly. They will be removed in a future release.
 func NewImagesCommand(dockerCLI command.Cli) *cobra.Command {
+	return newImagesCommand(dockerCLI)
+}
+
+// newImagesCommand creates a new `docker images` command
+func newImagesCommand(dockerCLI command.Cli) *cobra.Command {
 	options := imagesOptions{filter: opts.NewFilterOpt()}
 
 	cmd := &cobra.Command{
@@ -59,11 +68,15 @@ func NewImagesCommand(dockerCLI command.Cli) *cobra.Command {
 	flags.StringVar(&options.format, "format", "", flagsHelper.FormatHelp)
 	flags.VarP(&options.filter, "filter", "f", "Filter output based on conditions provided")
 
+	flags.BoolVar(&options.tree, "tree", false, "List multi-platform images as a tree (EXPERIMENTAL)")
+	flags.SetAnnotation("tree", "version", []string{"1.47"})
+	flags.SetAnnotation("tree", "experimentalCLI", nil)
+
 	return cmd
 }
 
 func newListCommand(dockerCLI command.Cli) *cobra.Command {
-	cmd := *NewImagesCommand(dockerCLI)
+	cmd := *newImagesCommand(dockerCLI)
 	cmd.Aliases = []string{"list"}
 	cmd.Use = "ls [OPTIONS] [REPOSITORY[:TAG]]"
 	return &cmd
@@ -73,6 +86,26 @@ func runImages(ctx context.Context, dockerCLI command.Cli, options imagesOptions
 	filters := options.filter.Value()
 	if options.matchName != "" {
 		filters.Add("reference", options.matchName)
+	}
+
+	if options.tree {
+		if options.quiet {
+			return errors.New("--quiet is not yet supported with --tree")
+		}
+		if options.noTrunc {
+			return errors.New("--no-trunc is not yet supported with --tree")
+		}
+		if options.showDigests {
+			return errors.New("--show-digest is not yet supported with --tree")
+		}
+		if options.format != "" {
+			return errors.New("--format is not yet supported with --tree")
+		}
+
+		return runTree(ctx, dockerCLI, treeOptions{
+			all:     options.all,
+			filters: filters,
+		})
 	}
 
 	images, err := dockerCLI.Client().ImageList(ctx, image.ListOptions{
@@ -107,6 +140,14 @@ func runImages(ctx context.Context, dockerCLI command.Cli, options imagesOptions
 		printAmbiguousHint(dockerCLI.Err(), options.matchName)
 	}
 	return nil
+}
+
+// isDangling is a copy of [formatter.isDangling].
+func isDangling(img image.Summary) bool {
+	if len(img.RepoTags) == 0 && len(img.RepoDigests) == 0 {
+		return true
+	}
+	return len(img.RepoTags) == 1 && img.RepoTags[0] == "<none>:<none>" && len(img.RepoDigests) == 1 && img.RepoDigests[0] == "<none>@<none>"
 }
 
 // printAmbiguousHint prints an informational warning if the provided filter

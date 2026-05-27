@@ -29,12 +29,11 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
-	"github.com/hashicorp/go-multierror"
-
-	"github.com/compose-spec/compose-go/v2/types"
-	moby "github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/api/types/container"
+	"github.com/moby/go-archive"
+	"golang.org/x/sync/errgroup"
 )
 
 type archiveEntry struct {
@@ -44,7 +43,7 @@ type archiveEntry struct {
 }
 
 type LowLevelClient interface {
-	ContainersForService(ctx context.Context, projectName string, serviceName string) ([]moby.Container, error)
+	ContainersForService(ctx context.Context, projectName string, serviceName string) ([]container.Summary, error)
 
 	Exec(ctx context.Context, containerID string, cmd []string, in io.Reader) error
 	Untar(ctx context.Context, id string, reader io.ReadCloser) error
@@ -65,8 +64,8 @@ func NewTar(projectName string, client LowLevelClient) *Tar {
 	}
 }
 
-func (t *Tar) Sync(ctx context.Context, service types.ServiceConfig, paths []PathMapping) error {
-	containers, err := t.client.ContainersForService(ctx, t.projectName, service.Name)
+func (t *Tar) Sync(ctx context.Context, service string, paths []*PathMapping) error {
+	containers, err := t.client.ContainersForService(ctx, t.projectName, service)
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,7 @@ func (t *Tar) Sync(ctx context.Context, service types.ServiceConfig, paths []Pat
 		if _, err := os.Stat(p.HostPath); err != nil && errors.Is(err, fs.ErrNotExist) {
 			pathsToDelete = append(pathsToDelete, p.ContainerPath)
 		} else {
-			pathsToCopy = append(pathsToCopy, p)
+			pathsToCopy = append(pathsToCopy, *p)
 		}
 	}
 
@@ -85,7 +84,14 @@ func (t *Tar) Sync(ctx context.Context, service types.ServiceConfig, paths []Pat
 	if len(pathsToDelete) != 0 {
 		deleteCmd = append([]string{"rm", "-rf"}, pathsToDelete...)
 	}
-	var eg multierror.Group
+
+	var (
+		eg    errgroup.Group
+		errMu sync.Mutex
+		errs  = make([]error, 0, len(containers)*2) // max 2 errs per container
+	)
+
+	eg.SetLimit(16) // arbitrary limit, adjust to taste :D
 	for i := range containers {
 		containerID := containers[i].ID
 		tarReader := tarArchive(pathsToCopy)
@@ -93,17 +99,23 @@ func (t *Tar) Sync(ctx context.Context, service types.ServiceConfig, paths []Pat
 		eg.Go(func() error {
 			if len(deleteCmd) != 0 {
 				if err := t.client.Exec(ctx, containerID, deleteCmd, nil); err != nil {
-					return fmt.Errorf("deleting paths in %s: %w", containerID, err)
+					errMu.Lock()
+					errs = append(errs, fmt.Errorf("deleting paths in %s: %w", containerID, err))
+					errMu.Unlock()
 				}
 			}
 
 			if err := t.client.Untar(ctx, containerID, tarReader); err != nil {
-				return fmt.Errorf("copying files to %s: %w", containerID, err)
+				errMu.Lock()
+				errs = append(errs, fmt.Errorf("copying files to %s: %w", containerID, err))
+				errMu.Unlock()
 			}
-			return nil
+			return nil // don't fail-fast; collect all errors
 		})
 	}
-	return eg.Wait().ErrorOrNil()
+
+	_ = eg.Wait()
+	return errors.Join(errs...)
 }
 
 type ArchiveBuilder struct {
@@ -230,7 +242,7 @@ func (a *ArchiveBuilder) writeEntry(entry archiveEntry) error {
 	return nil
 }
 
-// tarPath writes the given source path into tarWriter at the given dest (recursively for directories).
+// entriesForPath writes the given source path into tarWriter at the given dest (recursively for directories).
 // e.g. tarring my_dir --> dest d: d/file_a, d/file_b
 // If source path does not exist, quietly skips it and returns no err
 func (a *ArchiveBuilder) entriesForPath(localPath, containerPath string) ([]archiveEntry, error) {

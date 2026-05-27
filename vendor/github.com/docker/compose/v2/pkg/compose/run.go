@@ -22,12 +22,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"slices"
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/cli/cli"
 	cmd "github.com/docker/cli/cli/command/container"
 	"github.com/docker/compose/v2/pkg/api"
-	"github.com/docker/compose/v2/pkg/utils"
+	"github.com/docker/compose/v2/pkg/progress"
 	"github.com/docker/docker/pkg/stringid"
 )
 
@@ -58,6 +59,19 @@ func (s *composeService) RunOneOffContainer(ctx context.Context, project *types.
 }
 
 func (s *composeService) prepareRun(ctx context.Context, project *types.Project, opts api.RunOptions) (string, error) {
+	// Temporary implementation of use_api_socket until we get actual support inside docker engine
+	project, err := s.useAPISocket(project)
+	if err != nil {
+		return "", err
+	}
+
+	err = progress.Run(ctx, func(ctx context.Context) error {
+		return s.startDependencies(ctx, project, opts)
+	}, s.stdinfo())
+	if err != nil {
+		return "", err
+	}
+
 	service, err := project.GetService(opts.Service)
 	if err != nil {
 		return "", err
@@ -93,7 +107,7 @@ func (s *composeService) prepareRun(ctx context.Context, project *types.Project,
 	}
 
 	if !opts.NoDeps {
-		if err := s.waitDependencies(ctx, project, service.Name, service.DependsOn, observedState); err != nil {
+		if err := s.waitDependencies(ctx, project, service.Name, service.DependsOn, observedState, 0); err != nil {
 			return "", err
 		}
 	}
@@ -104,16 +118,33 @@ func (s *composeService) prepareRun(ctx context.Context, project *types.Project,
 		Labels:            mergeLabels(service.Labels, service.CustomLabels),
 	}
 
-	err = newConvergence(project.ServiceNames(), observedState, s).resolveServiceReferences(&service)
+	err = newConvergence(project.ServiceNames(), observedState, nil, nil, s).resolveServiceReferences(&service)
 	if err != nil {
 		return "", err
 	}
 
-	created, err := s.createContainer(ctx, project, service, service.ContainerName, 1, createOpts)
+	err = s.ensureModels(ctx, project, opts.QuietPull)
 	if err != nil {
 		return "", err
 	}
-	return created.ID, nil
+
+	created, err := s.createContainer(ctx, project, service, service.ContainerName, -1, createOpts)
+	if err != nil {
+		return "", err
+	}
+
+	ctr, err := s.apiClient().ContainerInspect(ctx, created.ID)
+	if err != nil {
+		return "", err
+	}
+
+	err = s.injectSecrets(ctx, project, service, ctr.ID)
+	if err != nil {
+		return created.ID, err
+	}
+
+	err = s.injectConfigs(ctx, project, service, ctr.ID)
+	return created.ID, err
 }
 
 func applyRunOptions(project *types.Project, service *types.ServiceConfig, opts api.RunOptions) {
@@ -124,19 +155,19 @@ func applyRunOptions(project *types.Project, service *types.ServiceConfig, opts 
 	if len(opts.Command) > 0 {
 		service.Command = opts.Command
 	}
-	if len(opts.User) > 0 {
+	if opts.User != "" {
 		service.User = opts.User
 	}
 
 	if len(opts.CapAdd) > 0 {
 		service.CapAdd = append(service.CapAdd, opts.CapAdd...)
-		service.CapDrop = utils.Remove(service.CapDrop, opts.CapAdd...)
+		service.CapDrop = slices.DeleteFunc(service.CapDrop, func(e string) bool { return slices.Contains(opts.CapAdd, e) })
 	}
 	if len(opts.CapDrop) > 0 {
 		service.CapDrop = append(service.CapDrop, opts.CapDrop...)
-		service.CapAdd = utils.Remove(service.CapAdd, opts.CapDrop...)
+		service.CapAdd = slices.DeleteFunc(service.CapAdd, func(e string) bool { return slices.Contains(opts.CapDrop, e) })
 	}
-	if len(opts.WorkingDir) > 0 {
+	if opts.WorkingDir != "" {
 		service.WorkingDir = opts.WorkingDir
 	}
 	if opts.Entrypoint != nil {
@@ -151,9 +182,33 @@ func applyRunOptions(project *types.Project, service *types.ServiceConfig, opts 
 			v, ok := envResolver(project.Environment)(s)
 			return v, ok
 		}).RemoveEmpty()
+		if service.Environment == nil {
+			service.Environment = types.MappingWithEquals{}
+		}
 		service.Environment.OverrideBy(serviceOverrideEnv)
 	}
 	for k, v := range opts.Labels {
 		service.Labels = service.Labels.Add(k, v)
 	}
+}
+
+func (s *composeService) startDependencies(ctx context.Context, project *types.Project, options api.RunOptions) error {
+	project = project.WithServicesDisabled(options.Service)
+
+	err := s.Create(ctx, project, api.CreateOptions{
+		Build:         options.Build,
+		IgnoreOrphans: options.IgnoreOrphans,
+		RemoveOrphans: options.RemoveOrphans,
+		QuietPull:     options.QuietPull,
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(project.Services) > 0 {
+		return s.Start(ctx, project.Name, api.StartOptions{
+			Project: project,
+		})
+	}
+	return nil
 }

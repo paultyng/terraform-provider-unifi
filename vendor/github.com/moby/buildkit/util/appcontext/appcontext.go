@@ -25,11 +25,11 @@ func Context() context.Context {
 
 		ctx := context.Background()
 		for _, f := range inits {
-			ctx = f(ctx)
+			ctx = f(ctx) //nolint:fatcontext
 		}
 
 		ctx, cancel := context.WithCancelCause(ctx)
-		appContextCache = ctx
+		appContextCache = ctx //nolint:fatcontext
 
 		go func() {
 			for {
@@ -38,7 +38,7 @@ func Context() context.Context {
 				err := errors.Errorf("got %d SIGTERM/SIGINTs, forcing shutdown", retries)
 				cancel(err)
 				if retries >= exitLimit {
-					bklog.G(ctx).Errorf(err.Error())
+					bklog.G(ctx).Error(err.Error())
 					os.Exit(1)
 				}
 			}

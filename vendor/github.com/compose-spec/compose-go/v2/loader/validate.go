@@ -27,15 +27,27 @@ import (
 )
 
 // checkConsistency validate a compose model is consistent
-func checkConsistency(project *types.Project) error {
-	for _, s := range project.Services {
-		if s.Build == nil && s.Image == "" {
+func checkConsistency(project *types.Project) error { //nolint:gocyclo
+	for name, s := range project.Services {
+		if s.Build == nil && s.Image == "" && s.Provider == nil {
 			return fmt.Errorf("service %q has neither an image nor a build context specified: %w", s.Name, errdefs.ErrInvalid)
 		}
 
 		if s.Build != nil {
 			if s.Build.DockerfileInline != "" && s.Build.Dockerfile != "" {
 				return fmt.Errorf("service %q declares mutualy exclusive dockerfile and dockerfile_inline: %w", s.Name, errdefs.ErrInvalid)
+			}
+
+			for add, c := range s.Build.AdditionalContexts {
+				if target, ok := strings.CutPrefix(c, types.ServicePrefix); ok {
+					t, err := project.GetService(target)
+					if err != nil {
+						return fmt.Errorf("service %q declares unknown service %q as additional contexts %s", name, target, add)
+					}
+					if t.Build == nil {
+						return fmt.Errorf("service %q declares non-buildable service %q as additional contexts %s", name, target, add)
+					}
+				}
 			}
 
 			if len(s.Build.Platforms) > 0 && s.Platform != "" {
@@ -105,6 +117,12 @@ func checkConsistency(project *types.Project) error {
 			}
 		}
 
+		for model := range s.Models {
+			if _, ok := project.Models[model]; !ok {
+				return fmt.Errorf("service %q refers to undefined model %s: %w", s.Name, model, errdefs.ErrInvalid)
+			}
+		}
+
 		for _, secret := range s.Secrets {
 			if _, ok := project.Secrets[secret.Source]; !ok {
 				return fmt.Errorf("service %q refers to undefined secret %s: %w", s.Name, secret.Source, errdefs.ErrInvalid)
@@ -117,6 +135,13 @@ func checkConsistency(project *types.Project) error {
 					s.Name, errdefs.ErrInvalid)
 			}
 			s.Deploy.Replicas = s.Scale
+		}
+
+		if s.Scale != nil && *s.Scale < 0 {
+			return fmt.Errorf("services.%s.scale: must be greater than or equal to 0", s.Name)
+		}
+		if s.Deploy != nil && s.Deploy.Replicas != nil && *s.Deploy.Replicas < 0 {
+			return fmt.Errorf("services.%s.deploy.replicas: must be greater than or equal to 0", s.Name)
 		}
 
 		if s.CPUS != 0 && s.Deploy != nil {
@@ -155,12 +180,29 @@ func checkConsistency(project *types.Project) error {
 
 		if s.Develop != nil && s.Develop.Watch != nil {
 			for _, watch := range s.Develop.Watch {
-				if watch.Action != types.WatchActionRebuild && watch.Target == "" {
+				if watch.Target == "" && watch.Action != types.WatchActionRebuild && watch.Action != types.WatchActionRestart {
 					return fmt.Errorf("services.%s.develop.watch: target is required for non-rebuild actions: %w", s.Name, errdefs.ErrInvalid)
 				}
 			}
-
 		}
+
+		mounts := map[string]string{}
+		for i, tmpfs := range s.Tmpfs {
+			loc := fmt.Sprintf("services.%s.tmpfs[%d]", s.Name, i)
+			path, _, _ := strings.Cut(tmpfs, ":")
+			if p, ok := mounts[path]; ok {
+				return fmt.Errorf("%s: target %s already mounted as %s", loc, path, p)
+			}
+			mounts[path] = loc
+		}
+		for i, volume := range s.Volumes {
+			loc := fmt.Sprintf("services.%s.volumes[%d]", s.Name, i)
+			if p, ok := mounts[volume.Target]; ok {
+				return fmt.Errorf("%s: target %s already mounted as %s", loc, volume.Target, p)
+			}
+			mounts[volume.Target] = loc
+		}
+
 	}
 
 	for name, secret := range project.Secrets {

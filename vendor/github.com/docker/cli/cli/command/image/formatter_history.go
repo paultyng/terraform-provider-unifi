@@ -7,8 +7,7 @@ import (
 
 	"github.com/docker/cli/cli/command/formatter"
 	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/pkg/stringid"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 )
 
 const (
@@ -21,7 +20,14 @@ const (
 )
 
 // NewHistoryFormat returns a format for rendering an HistoryContext
+//
+// Deprecated: this function was only used internally and will be removed in the next release.
 func NewHistoryFormat(source string, quiet bool, human bool) formatter.Format {
+	return newHistoryFormat(source, quiet, human)
+}
+
+// newHistoryFormat returns a format for rendering a historyContext.
+func newHistoryFormat(source string, quiet bool, human bool) formatter.Format {
 	if source == formatter.TableFormatKey {
 		switch {
 		case quiet:
@@ -37,10 +43,17 @@ func NewHistoryFormat(source string, quiet bool, human bool) formatter.Format {
 }
 
 // HistoryWrite writes the context
-func HistoryWrite(ctx formatter.Context, human bool, histories []image.HistoryResponseItem) error {
+//
+// Deprecated: this function was only used internally and will be removed in the next release.
+func HistoryWrite(fmtCtx formatter.Context, human bool, histories []image.HistoryResponseItem) error {
+	return historyWrite(fmtCtx, human, histories)
+}
+
+// historyWrite writes the context
+func historyWrite(fmtCtx formatter.Context, human bool, histories []image.HistoryResponseItem) error {
 	render := func(format func(subContext formatter.SubContext) error) error {
 		for _, history := range histories {
-			historyCtx := &historyContext{trunc: ctx.Trunc, h: history, human: human}
+			historyCtx := &historyContext{trunc: fmtCtx.Trunc, h: history, human: human}
 			if err := format(historyCtx); err != nil {
 				return err
 			}
@@ -56,7 +69,7 @@ func HistoryWrite(ctx formatter.Context, human bool, histories []image.HistoryRe
 		"Size":         formatter.SizeHeader,
 		"Comment":      commentHeader,
 	}
-	return ctx.Write(historyCtx, render)
+	return fmtCtx.Write(historyCtx, render)
 }
 
 type historyContext struct {
@@ -72,7 +85,7 @@ func (c *historyContext) MarshalJSON() ([]byte, error) {
 
 func (c *historyContext) ID() string {
 	if c.trunc {
-		return stringid.TruncateID(c.h.ID)
+		return formatter.TruncateID(c.h.ID)
 	}
 	return c.h.ID
 }

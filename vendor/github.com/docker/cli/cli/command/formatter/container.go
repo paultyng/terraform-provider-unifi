@@ -1,19 +1,21 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.21
+//go:build go1.23
 
 package formatter
 
 import (
 	"fmt"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/stringid"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-units"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -25,7 +27,17 @@ const (
 	mountsHeader     = "MOUNTS"
 	localVolumes     = "LOCAL VOLUMES"
 	networksHeader   = "NETWORKS"
+	platformHeader   = "PLATFORM"
 )
+
+// Platform wraps a [ocispec.Platform] to implement the stringer interface.
+type Platform struct {
+	ocispec.Platform
+}
+
+func (p Platform) String() string {
+	return platforms.FormatAll(p.Platform)
+}
 
 // NewContainerFormat returns a Format for rendering using a Context
 func NewContainerFormat(source string, quiet bool, size bool) Format {
@@ -66,24 +78,22 @@ ports: {{- pad .Ports 1 0}}
 }
 
 // ContainerWrite renders the context for a list of containers
-func ContainerWrite(ctx Context, containers []types.Container) error {
-	render := func(format func(subContext SubContext) error) error {
-		for _, container := range containers {
-			err := format(&ContainerContext{trunc: ctx.Trunc, c: container})
-			if err != nil {
+func ContainerWrite(ctx Context, containers []container.Summary) error {
+	return ctx.Write(NewContainerContext(), func(format func(subContext SubContext) error) error {
+		for _, ctr := range containers {
+			if err := format(&ContainerContext{trunc: ctx.Trunc, c: ctr}); err != nil {
 				return err
 			}
 		}
 		return nil
-	}
-	return ctx.Write(NewContainerContext(), render)
+	})
 }
 
 // ContainerContext is a struct used for rendering a list of containers in a Go template.
 type ContainerContext struct {
 	HeaderContext
 	trunc bool
-	c     types.Container
+	c     container.Summary
 
 	// FieldsUsed is used in the pre-processing step to detect which fields are
 	// used in the template. It's currently only used to detect use of the .Size
@@ -110,6 +120,7 @@ func NewContainerContext() *ContainerContext {
 		"Mounts":       mountsHeader,
 		"LocalVolumes": localVolumes,
 		"Networks":     networksHeader,
+		"Platform":     platformHeader,
 	}
 	return &containerCtx
 }
@@ -123,7 +134,7 @@ func (c *ContainerContext) MarshalJSON() ([]byte, error) {
 // option being set, the full or truncated ID is returned.
 func (c *ContainerContext) ID() string {
 	if c.trunc {
-		return stringid.TruncateID(c.c.ID)
+		return TruncateID(c.c.ID)
 	}
 	return c.c.ID
 }
@@ -160,7 +171,7 @@ func (c *ContainerContext) Image() string {
 		return "<no image>"
 	}
 	if c.trunc {
-		if trunc := stringid.TruncateID(c.c.ImageID); trunc == stringid.TruncateID(c.c.Image) {
+		if trunc := TruncateID(c.c.ImageID); trunc == TruncateID(c.c.Image) {
 			return trunc
 		}
 		// truncate digest if no-trunc option was not selected
@@ -192,7 +203,9 @@ func (c *ContainerContext) Command() string {
 	return strconv.Quote(command)
 }
 
-// CreatedAt returns the "Created" date/time of the container as a unix timestamp.
+// CreatedAt returns the formatted string representing the container's creation date/time.
+// The format may include nanoseconds if present.
+// e.g. "2006-01-02 15:04:05.999999999 -0700 MST" or "2006-01-02 15:04:05 -0700 MST"
 func (c *ContainerContext) CreatedAt() string {
 	return time.Unix(c.c.Created, 0).String()
 }
@@ -207,6 +220,16 @@ func (c *ContainerContext) RunningFor() string {
 	return units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago"
 }
 
+// Platform returns a human-readable representation of the container's
+// platform if it is available.
+func (c *ContainerContext) Platform() *Platform {
+	p := c.c.ImageManifestDescriptor
+	if p == nil || p.Platform == nil {
+		return nil
+	}
+	return &Platform{*p.Platform}
+}
+
 // Ports returns a comma-separated string representing open ports of the container
 // e.g. "0.0.0.0:80->9090/tcp, 9988/tcp"
 // it's used by command 'docker ps'
@@ -215,7 +238,8 @@ func (c *ContainerContext) Ports() string {
 	return DisplayablePorts(c.c.Ports)
 }
 
-// State returns the container's current state (e.g. "running" or "paused")
+// State returns the container's current state (e.g. "running" or "paused").
+// Refer to [container.ContainerState] for possible states.
 func (c *ContainerContext) State() string {
 	return c.c.State
 }
@@ -252,6 +276,7 @@ func (c *ContainerContext) Labels() string {
 	for k, v := range c.c.Labels {
 		joinLabels = append(joinLabels, k+"="+v)
 	}
+	sort.Strings(joinLabels)
 	return strings.Join(joinLabels, ",")
 }
 
@@ -313,7 +338,7 @@ func (c *ContainerContext) Networks() string {
 // DisplayablePorts returns formatted string representing open ports of container
 // e.g. "0.0.0.0:80->9090/tcp, 9988/tcp"
 // it's used by command 'docker ps'
-func DisplayablePorts(ports []types.Port) string {
+func DisplayablePorts(ports []container.Port) string {
 	type portGroup struct {
 		first uint16
 		last  uint16
@@ -331,7 +356,8 @@ func DisplayablePorts(ports []types.Port) string {
 		portKey := port.Type
 		if port.IP != "" {
 			if port.PublicPort != current {
-				hostMappings = append(hostMappings, fmt.Sprintf("%s:%d->%d/%s", port.IP, port.PublicPort, port.PrivatePort, port.Type))
+				hAddrPort := net.JoinHostPort(port.IP, strconv.Itoa(int(port.PublicPort)))
+				hostMappings = append(hostMappings, fmt.Sprintf("%s->%d/%s", hAddrPort, port.PrivatePort, port.Type))
 				continue
 			}
 			portKey = port.IP + "/" + port.Type
@@ -373,12 +399,12 @@ func formGroup(key string, start, last uint16) string {
 		group = fmt.Sprintf("%s-%d", group, last)
 	}
 	if ip != "" {
-		group = fmt.Sprintf("%s:%s->%s", ip, group, group)
+		group = fmt.Sprintf("%s->%s", net.JoinHostPort(ip, group), group)
 	}
 	return group + "/" + groupType
 }
 
-func comparePorts(i, j types.Port) bool {
+func comparePorts(i, j container.Port) bool {
 	if i.PrivatePort != j.PrivatePort {
 		return i.PrivatePort < j.PrivatePort
 	}

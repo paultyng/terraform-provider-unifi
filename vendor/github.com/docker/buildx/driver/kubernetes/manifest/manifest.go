@@ -6,8 +6,7 @@ import (
 	"strings"
 
 	"github.com/docker/buildx/util/platformutil"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -33,6 +32,7 @@ type DeploymentOpt struct {
 	// files mounted at /etc/buildkitd
 	ConfigFiles map[string][]byte
 
+	BuildKitRootVolumeMemory string
 	Rootless                 bool
 	NodeSelector             map[string]string
 	CustomAnnotations        map[string]string
@@ -44,19 +44,29 @@ type DeploymentOpt struct {
 	LimitsCPU                string
 	LimitsMemory             string
 	LimitsEphemeralStorage   string
-	Platforms                []v1.Platform
+	Platforms                []ocispecs.Platform
+	Env                      []corev1.EnvVar // injected into main buildkitd container
 }
 
 const (
 	containerName      = "buildkitd"
 	AnnotationPlatform = "buildx.docker.com/platform"
 	LabelApp           = "app"
+	rootVolumeName     = "buildkit-memory"
+	rootVolumePath     = "/var/lib/buildkit"
 )
 
-var (
-	ErrReservedAnnotationPlatform = errors.Errorf("the annotation \"%s\" is reserved and cannot be customized", AnnotationPlatform)
-	ErrReservedLabelApp           = errors.Errorf("the label \"%s\" is reserved and cannot be customized", LabelApp)
-)
+type ErrReservedAnnotationPlatform struct{}
+
+func (ErrReservedAnnotationPlatform) Error() string {
+	return fmt.Sprintf("the annotation %q is reserved and cannot be customized", AnnotationPlatform)
+}
+
+type ErrReservedLabelApp struct{}
+
+func (ErrReservedLabelApp) Error() string {
+	return fmt.Sprintf("the label %q is reserved and cannot be customized", LabelApp)
+}
 
 func NewDeployment(opt *DeploymentOpt) (d *appsv1.Deployment, c []*corev1.ConfigMap, err error) {
 	labels := map[string]string{
@@ -73,14 +83,14 @@ func NewDeployment(opt *DeploymentOpt) (d *appsv1.Deployment, c []*corev1.Config
 
 	for k, v := range opt.CustomAnnotations {
 		if k == AnnotationPlatform {
-			return nil, nil, ErrReservedAnnotationPlatform
+			return nil, nil, ErrReservedAnnotationPlatform{}
 		}
 		annotations[k] = v
 	}
 
 	for k, v := range opt.CustomLabels {
 		if k == LabelApp {
-			return nil, nil, ErrReservedLabelApp
+			return nil, nil, ErrReservedLabelApp{}
 		}
 		labels[k] = v
 	}
@@ -241,6 +251,30 @@ func NewDeployment(opt *DeploymentOpt) (d *appsv1.Deployment, c []*corev1.Config
 		d.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceEphemeralStorage] = limEphemeralStorage
 	}
 
+	if opt.BuildKitRootVolumeMemory != "" {
+		buildKitRootVolumeMemory, err := resource.ParseQuantity(opt.BuildKitRootVolumeMemory)
+		if err != nil {
+			return nil, nil, err
+		}
+		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: rootVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium:    "Memory",
+					SizeLimit: &buildKitRootVolumeMemory,
+				},
+			},
+		})
+		d.Spec.Template.Spec.Containers[0].VolumeMounts = append(d.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      rootVolumeName,
+			MountPath: rootVolumePath,
+		})
+	}
+
+	if len(opt.Env) > 0 {
+		d.Spec.Template.Spec.Containers[0].Env = append(d.Spec.Template.Spec.Containers[0].Env, opt.Env...)
+	}
+
 	return
 }
 
@@ -254,10 +288,10 @@ func toRootless(d *appsv1.Deployment) error {
 			Type: corev1.SeccompProfileTypeUnconfined,
 		},
 	}
-	if d.Spec.Template.ObjectMeta.Annotations == nil {
-		d.Spec.Template.ObjectMeta.Annotations = make(map[string]string, 1)
+	if d.Spec.Template.Annotations == nil {
+		d.Spec.Template.Annotations = make(map[string]string, 1)
 	}
-	d.Spec.Template.ObjectMeta.Annotations["container.apparmor.security.beta.kubernetes.io/"+containerName] = "unconfined"
+	d.Spec.Template.Annotations["container.apparmor.security.beta.kubernetes.io/"+containerName] = "unconfined"
 
 	// Dockerfile has `VOLUME /home/user/.local/share/buildkit` by default too,
 	// but the default VOLUME does not work with rootless on Google's Container-Optimized OS

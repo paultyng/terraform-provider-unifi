@@ -8,10 +8,9 @@ import (
 
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
-	"github.com/docker/cli/cli/command/completion"
+	"github.com/docker/cli/internal/prompt"
 	"github.com/docker/cli/opts"
-	"github.com/docker/docker/errdefs"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +22,14 @@ type pruneOptions struct {
 }
 
 // NewPruneCommand returns a new cobra prune command for images
-func NewPruneCommand(dockerCli command.Cli) *cobra.Command {
+//
+// Deprecated: Do not import commands directly. They will be removed in a future release.
+func NewPruneCommand(dockerCLI command.Cli) *cobra.Command {
+	return newPruneCommand(dockerCLI)
+}
+
+// newPruneCommand returns a new cobra prune command for images
+func newPruneCommand(dockerCLI command.Cli) *cobra.Command {
 	options := pruneOptions{filter: opts.NewFilterOpt()}
 
 	cmd := &cobra.Command{
@@ -31,18 +37,18 @@ func NewPruneCommand(dockerCli command.Cli) *cobra.Command {
 		Short: "Remove unused images",
 		Args:  cli.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			spaceReclaimed, output, err := runPrune(cmd.Context(), dockerCli, options)
+			spaceReclaimed, output, err := runPrune(cmd.Context(), dockerCLI, options)
 			if err != nil {
 				return err
 			}
 			if output != "" {
-				fmt.Fprintln(dockerCli.Out(), output)
+				fmt.Fprintln(dockerCLI.Out(), output)
 			}
-			fmt.Fprintln(dockerCli.Out(), "Total reclaimed space:", units.HumanSize(float64(spaceReclaimed)))
+			fmt.Fprintln(dockerCLI.Out(), "Total reclaimed space:", units.HumanSize(float64(spaceReclaimed)))
 			return nil
 		},
 		Annotations:       map[string]string{"version": "1.25"},
-		ValidArgsFunction: completion.NoComplete,
+		ValidArgsFunction: cobra.NoFileCompletions,
 	}
 
 	flags := cmd.Flags()
@@ -70,12 +76,12 @@ func runPrune(ctx context.Context, dockerCli command.Cli, options pruneOptions) 
 		warning = allImageWarning
 	}
 	if !options.force {
-		r, err := command.PromptForConfirmation(ctx, dockerCli.In(), dockerCli.Out(), warning)
+		r, err := prompt.Confirm(ctx, dockerCli.In(), dockerCli.Out(), warning)
 		if err != nil {
 			return 0, "", err
 		}
 		if !r {
-			return 0, "", errdefs.Cancelled(errors.New("image prune has been cancelled"))
+			return 0, "", cancelledErr{errors.New("image prune has been cancelled")}
 		}
 	}
 
@@ -104,6 +110,10 @@ func runPrune(ctx context.Context, dockerCli command.Cli, options pruneOptions) 
 
 	return spaceReclaimed, output, nil
 }
+
+type cancelledErr struct{ error }
+
+func (cancelledErr) Cancelled() {}
 
 // RunPrune calls the Image Prune API
 // This returns the amount of space reclaimed and a detailed output string

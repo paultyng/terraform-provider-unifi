@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/distribution/reference"
@@ -32,19 +34,15 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/docker/docker/registry"
-	"github.com/hashicorp/go-multierror"
 	"github.com/opencontainers/go-digest"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/docker/compose/v2/internal/registry"
 	"github.com/docker/compose/v2/pkg/api"
 	"github.com/docker/compose/v2/pkg/progress"
 )
 
 func (s *composeService) Pull(ctx context.Context, project *types.Project, options api.PullOptions) error {
-	if options.Quiet {
-		return s.pull(ctx, project, options)
-	}
 	return progress.RunWithTitle(ctx, func(ctx context.Context) error {
 		return s.pull(ctx, project, options)
 	}, s.stdinfo(), "Pulling")
@@ -116,9 +114,9 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 
 		imagesBeingPulled[service.Image] = service.Name
 
-		idx, name, service := i, name, service
+		idx := i
 		eg.Go(func() error {
-			_, err := s.pullServiceImage(ctx, service, s.configFile(), w, false, project.Environment["DOCKER_DEFAULT_PLATFORM"])
+			_, err := s.pullServiceImage(ctx, service, s.configFile(), w, opts.Quiet, project.Environment["DOCKER_DEFAULT_PLATFORM"])
 			if err != nil {
 				pullErrors[idx] = err
 				if service.Build != nil {
@@ -153,20 +151,22 @@ func (s *composeService) pull(ctx context.Context, project *types.Project, opts 
 	if opts.IgnoreFailures {
 		return nil
 	}
-	return multierror.Append(nil, pullErrors...).ErrorOrNil()
+	return errors.Join(pullErrors...)
 }
 
-func imageAlreadyPresent(serviceImage string, localImages map[string]string) bool {
+func imageAlreadyPresent(serviceImage string, localImages map[string]api.ImageSummary) bool {
 	normalizedImage, err := reference.ParseDockerRef(serviceImage)
 	if err != nil {
 		return false
 	}
-	tagged, ok := normalizedImage.(reference.NamedTagged)
-	if !ok {
-		return false
+	switch refType := normalizedImage.(type) {
+	case reference.NamedTagged:
+		_, ok := localImages[serviceImage]
+		return ok && refType.Tag() != "latest"
+	default:
+		_, ok := localImages[serviceImage]
+		return ok
 	}
-	_, ok = localImages[serviceImage]
-	return ok && tagged.Tag() != "latest"
 }
 
 func getUnwrappedErrorMessage(err error) string {
@@ -178,7 +178,8 @@ func getUnwrappedErrorMessage(err error) string {
 }
 
 func (s *composeService) pullServiceImage(ctx context.Context, service types.ServiceConfig,
-	configFile driver.Auth, w progress.Writer, quietPull bool, defaultPlatform string) (string, error) {
+	configFile driver.Auth, w progress.Writer, quietPull bool, defaultPlatform string,
+) (string, error) {
 	w.Event(progress.Event{
 		ID:     service.Name,
 		Status: progress.Working,
@@ -204,6 +205,15 @@ func (s *composeService) pullServiceImage(ctx context.Context, service types.Ser
 		Platform:     platform,
 	})
 
+	if ctx.Err() != nil {
+		w.Event(progress.Event{
+			ID:         service.Name,
+			Status:     progress.Warning,
+			StatusText: "Interrupted",
+		})
+		return "", nil
+	}
+
 	// check if has error and the service has a build section
 	// then the status should be warning instead of error
 	if err != nil && service.Build != nil {
@@ -213,7 +223,7 @@ func (s *composeService) pullServiceImage(ctx context.Context, service types.Ser
 			Text:       "Warning",
 			StatusText: getUnwrappedErrorMessage(err),
 		})
-		return "", WrapCategorisedComposeError(err, PullFailure)
+		return "", err
 	}
 
 	if err != nil {
@@ -223,7 +233,7 @@ func (s *composeService) pullServiceImage(ctx context.Context, service types.Ser
 			Text:       "Error",
 			StatusText: getUnwrappedErrorMessage(err),
 		})
-		return "", WrapCategorisedComposeError(err, PullFailure)
+		return "", err
 	}
 
 	dec := json.NewDecoder(stream)
@@ -233,10 +243,10 @@ func (s *composeService) pullServiceImage(ctx context.Context, service types.Ser
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return "", WrapCategorisedComposeError(err, PullFailure)
+			return "", err
 		}
 		if jm.Error != nil {
-			return "", WrapCategorisedComposeError(errors.New(jm.Error.Message), PullFailure)
+			return "", errors.New(jm.Error.Message)
 		}
 		if !quietPull {
 			toPullProgressEvent(service.Name, jm, w)
@@ -248,7 +258,7 @@ func (s *composeService) pullServiceImage(ctx context.Context, service types.Ser
 		Text:   "Pulled",
 	})
 
-	inspected, _, err := s.apiClient().ImageInspectWithRaw(ctx, service.Image)
+	inspected, err := s.apiClient().ImageInspect(ctx, service.Image)
 	if err != nil {
 		return "", err
 	}
@@ -265,20 +275,14 @@ func ImageDigestResolver(ctx context.Context, file *configfile.ConfigFile, apiCl
 		inspect, err := apiClient.DistributionInspect(ctx, named.String(), auth)
 		if err != nil {
 			return "",
-				fmt.Errorf("failed ot resolve digest for %s: %w", named.String(), err)
+				fmt.Errorf("failed to resolve digest for %s: %w", named.String(), err)
 		}
 		return inspect.Descriptor.Digest, nil
 	}
 }
 
 func encodedAuth(ref reference.Named, configFile driver.Auth) (string, error) {
-	repoInfo, err := registry.ParseRepositoryInfo(ref)
-	if err != nil {
-		return "", err
-	}
-
-	key := registry.GetAuthConfigKey(repoInfo.Index)
-	authConfig, err := configFile.GetAuthConfig(key)
+	authConfig, err := configFile.GetAuthConfig(registry.GetAuthConfigKey(reference.Domain(ref)))
 	if err != nil {
 		return "", err
 	}
@@ -290,23 +294,29 @@ func encodedAuth(ref reference.Named, configFile driver.Auth) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf), nil
 }
 
-func (s *composeService) pullRequiredImages(ctx context.Context, project *types.Project, images map[string]string, quietPull bool) error {
-	var needPull []types.ServiceConfig
-	for _, service := range project.Services {
-		if service.Image == "" {
-			continue
+func (s *composeService) pullRequiredImages(ctx context.Context, project *types.Project, images map[string]api.ImageSummary, quietPull bool) error {
+	needPull := map[string]types.ServiceConfig{}
+	for name, service := range project.Services {
+		pull, err := mustPull(service, images)
+		if err != nil {
+			return err
 		}
-		switch service.PullPolicy {
-		case "", types.PullPolicyMissing, types.PullPolicyIfNotPresent:
-			if _, ok := images[service.Image]; ok {
-				continue
+		if pull {
+			needPull[name] = service
+		}
+		for i, vol := range service.Volumes {
+			if vol.Type == types.VolumeTypeImage {
+				if _, ok := images[vol.Source]; !ok {
+					// Hack: create a fake ServiceConfig so we pull missing volume image
+					n := fmt.Sprintf("%s:volume %d", name, i)
+					needPull[n] = types.ServiceConfig{
+						Name:  n,
+						Image: vol.Source,
+					}
+				}
 			}
-		case types.PullPolicyNever, types.PullPolicyBuild:
-			continue
-		case types.PullPolicyAlways:
-			// force pull
 		}
-		needPull = append(needPull, service)
+
 	}
 	if len(needPull) == 0 {
 		return nil
@@ -316,12 +326,18 @@ func (s *composeService) pullRequiredImages(ctx context.Context, project *types.
 		w := progress.ContextWriter(ctx)
 		eg, ctx := errgroup.WithContext(ctx)
 		eg.SetLimit(s.maxConcurrency)
-		pulledImages := make([]string, len(needPull))
-		for i, service := range needPull {
-			i, service := i, service
+		pulledImages := map[string]api.ImageSummary{}
+		var mutex sync.Mutex
+		for name, service := range needPull {
 			eg.Go(func() error {
 				id, err := s.pullServiceImage(ctx, service, s.configFile(), w, quietPull, project.Environment["DOCKER_DEFAULT_PLATFORM"])
-				pulledImages[i] = id
+				mutex.Lock()
+				defer mutex.Unlock()
+				pulledImages[name] = api.ImageSummary{
+					ID:          id,
+					Repository:  service.Image,
+					LastTagTime: time.Now(),
+				}
 				if err != nil && isServiceImageToBuild(service, project.Services) {
 					// image can be built, so we can ignore pull failure
 					return nil
@@ -331,12 +347,41 @@ func (s *composeService) pullRequiredImages(ctx context.Context, project *types.
 		}
 		err := eg.Wait()
 		for i, service := range needPull {
-			if pulledImages[i] != "" {
+			if pulledImages[i].ID != "" {
 				images[service.Image] = pulledImages[i]
 			}
 		}
 		return err
 	}, s.stdinfo())
+}
+
+func mustPull(service types.ServiceConfig, images map[string]api.ImageSummary) (bool, error) {
+	if service.Provider != nil {
+		return false, nil
+	}
+	if service.Image == "" {
+		return false, nil
+	}
+	policy, duration, err := service.GetPullPolicy()
+	if err != nil {
+		return false, err
+	}
+	switch policy {
+	case types.PullPolicyAlways:
+		// force pull
+		return true, nil
+	case types.PullPolicyNever, types.PullPolicyBuild:
+		return false, nil
+	case types.PullPolicyRefresh:
+		img, ok := images[service.Image]
+		if !ok {
+			return true, nil
+		}
+		return time.Now().After(img.LastTagTime.Add(duration)), nil
+	default: // Pull if missing
+		_, ok := images[service.Image]
+		return !ok, nil
+	}
 }
 
 func isServiceImageToBuild(service types.ServiceConfig, services types.Services) bool {
