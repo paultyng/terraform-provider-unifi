@@ -20,12 +20,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/docker/compose/v2/pkg/api"
-	"github.com/docker/compose/v2/pkg/utils"
 
 	"github.com/buger/goterm"
 	"github.com/docker/go-units"
@@ -77,7 +77,7 @@ func (w *ttyWriter) Event(e Event) {
 }
 
 func (w *ttyWriter) event(e Event) {
-	if !utils.StringContains(w.eventIDs, e.ID) {
+	if !slices.Contains(w.eventIDs, e.ID) {
 		w.eventIDs = append(w.eventIDs, e.ID)
 	}
 	if _, ok := w.events[e.ID]; ok {
@@ -110,7 +110,7 @@ func (w *ttyWriter) event(e Event) {
 		w.events[e.ID] = last
 	} else {
 		e.startTime = time.Now()
-		e.spinner = newSpinner()
+		e.spinner = NewSpinner()
 		if e.Status == Done || e.Status == Error {
 			e.stop()
 		}
@@ -140,7 +140,7 @@ func (w *ttyWriter) printTailEvents() {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	for _, msg := range w.tailEvents {
-		fmt.Fprintln(w.out, msg)
+		_, _ = fmt.Fprintln(w.out, msg)
 	}
 }
 
@@ -159,17 +159,19 @@ func (w *ttyWriter) print() { //nolint:gocyclo
 		b = b.Down(1)
 	}
 	w.repeated = true
-	fmt.Fprint(w.out, b.Column(0).ANSI)
+	_, _ = fmt.Fprint(w.out, b.Column(0).ANSI)
 
 	// Hide the cursor while we are printing
-	fmt.Fprint(w.out, aec.Hide)
-	defer fmt.Fprint(w.out, aec.Show)
+	_, _ = fmt.Fprint(w.out, aec.Hide)
+	defer func() {
+		_, _ = fmt.Fprint(w.out, aec.Show)
+	}()
 
-	firstLine := fmt.Sprintf("[+] %s %d/%d", w.progressTitle, numDone(w.events), w.numLines)
+	firstLine := fmt.Sprintf("[+] %s %d/%d", w.progressTitle, numDone(w.events), len(w.events))
 	if w.numLines != 0 && numDone(w.events) == w.numLines {
 		firstLine = DoneColor(firstLine)
 	}
-	fmt.Fprintln(w.out, firstLine)
+	_, _ = fmt.Fprintln(w.out, firstLine)
 
 	var statusPadding int
 	for _, v := range w.eventIDs {
@@ -193,7 +195,7 @@ func (w *ttyWriter) print() { //nolint:gocyclo
 			continue
 		}
 		line := w.lineText(event, "", terminalWidth, statusPadding, w.dryRun)
-		fmt.Fprint(w.out, line)
+		_, _ = fmt.Fprint(w.out, line)
 		numLines++
 		for _, v := range w.eventIDs {
 			ev := w.events[v]
@@ -202,14 +204,14 @@ func (w *ttyWriter) print() { //nolint:gocyclo
 					continue
 				}
 				line := w.lineText(ev, "  ", terminalWidth, statusPadding, w.dryRun)
-				fmt.Fprint(w.out, line)
+				_, _ = fmt.Fprint(w.out, line)
 				numLines++
 			}
 		}
 	}
 	for i := numLines; i < w.numLines; i++ {
 		if numLines < goterm.Height()-2 {
-			fmt.Fprintln(w.out, strings.Repeat(" ", terminalWidth))
+			_, _ = fmt.Fprintln(w.out, strings.Repeat(" ", terminalWidth))
 			numLines++
 		}
 	}
@@ -343,6 +345,4 @@ func lenAnsi(s string) int {
 	return length
 }
 
-var (
-	percentChars = strings.Split("⠀⡀⣀⣄⣤⣦⣶⣷⣿", "")
-)
+var percentChars = strings.Split("⠀⡀⣀⣄⣤⣦⣶⣷⣿", "")

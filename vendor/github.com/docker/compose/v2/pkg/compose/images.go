@@ -19,98 +19,137 @@ package compose
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/containerd/errdefs"
+	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
-	moby "github.com/docker/docker/api/types"
-	containerType "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/errdefs"
+	"github.com/docker/docker/api/types/versions"
+	"github.com/docker/docker/client"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/docker/compose/v2/pkg/api"
-	"github.com/docker/compose/v2/pkg/utils"
 )
 
-func (s *composeService) Images(ctx context.Context, projectName string, options api.ImagesOptions) ([]api.ImageSummary, error) {
+func (s *composeService) Images(ctx context.Context, projectName string, options api.ImagesOptions) (map[string]api.ImageSummary, error) {
 	projectName = strings.ToLower(projectName)
-	allContainers, err := s.apiClient().ContainerList(ctx, containerType.ListOptions{
+	allContainers, err := s.apiClient().ContainerList(ctx, container.ListOptions{
 		All:     true,
 		Filters: filters.NewArgs(projectFilter(projectName)),
 	})
 	if err != nil {
 		return nil, err
 	}
-	containers := []moby.Container{}
+	var containers []container.Summary
 	if len(options.Services) > 0 {
 		// filter service containers
 		for _, c := range allContainers {
-			if utils.StringContains(options.Services, c.Labels[api.ServiceLabel]) {
+			if slices.Contains(options.Services, c.Labels[api.ServiceLabel]) {
 				containers = append(containers, c)
-
 			}
 		}
 	} else {
 		containers = allContainers
 	}
 
-	imageIDs := []string{}
-	// aggregate image IDs
-	for _, c := range containers {
-		if !utils.StringContains(imageIDs, c.ImageID) {
-			imageIDs = append(imageIDs, c.ImageID)
-		}
-	}
-	images, err := s.getImages(ctx, imageIDs)
+	version, err := s.RuntimeVersion(ctx)
 	if err != nil {
 		return nil, err
 	}
-	summary := make([]api.ImageSummary, len(containers))
-	for i, container := range containers {
-		img, ok := images[container.ImageID]
-		if !ok {
-			return nil, fmt.Errorf("failed to retrieve image for container %s", getCanonicalContainerName(container))
-		}
+	withPlatform := versions.GreaterThanOrEqualTo(version, "1.49")
 
-		summary[i] = img
-		summary[i].ContainerName = getCanonicalContainerName(container)
+	summary := map[string]api.ImageSummary{}
+	var mux sync.Mutex
+	eg, ctx := errgroup.WithContext(ctx)
+	for _, c := range containers {
+		eg.Go(func() error {
+			image, err := s.apiClient().ImageInspect(ctx, c.Image)
+			if err != nil {
+				return err
+			}
+			id := image.ID // platform-specific image ID can't be combined with image tag, see https://github.com/moby/moby/issues/49995
+
+			if withPlatform && c.ImageManifestDescriptor != nil && c.ImageManifestDescriptor.Platform != nil {
+				image, err = s.apiClient().ImageInspect(ctx, c.Image, client.ImageInspectWithPlatform(c.ImageManifestDescriptor.Platform))
+				if err != nil {
+					return err
+				}
+			}
+
+			var repository, tag string
+			ref, err := reference.ParseDockerRef(c.Image)
+			if err == nil {
+				// ParseDockerRef will reject a local image ID
+				repository = reference.FamiliarName(ref)
+				if tagged, ok := ref.(reference.Tagged); ok {
+					tag = tagged.Tag()
+				}
+			}
+
+			created, err := time.Parse(time.RFC3339Nano, image.Created)
+			if err != nil {
+				return err
+			}
+
+			mux.Lock()
+			defer mux.Unlock()
+			summary[getCanonicalContainerName(c)] = api.ImageSummary{
+				ID:         id,
+				Repository: repository,
+				Tag:        tag,
+				Platform: platforms.Platform{
+					Architecture: image.Architecture,
+					OS:           image.Os,
+					OSVersion:    image.OsVersion,
+					Variant:      image.Variant,
+				},
+				Size:        image.Size,
+				Created:     created,
+				LastTagTime: image.Metadata.LastTagTime,
+			}
+			return nil
+		})
 	}
-	return summary, nil
+
+	err = eg.Wait()
+	return summary, err
 }
 
-func (s *composeService) getImages(ctx context.Context, images []string) (map[string]api.ImageSummary, error) {
+func (s *composeService) getImageSummaries(ctx context.Context, repoTags []string) (map[string]api.ImageSummary, error) {
 	summary := map[string]api.ImageSummary{}
 	l := sync.Mutex{}
 	eg, ctx := errgroup.WithContext(ctx)
-	for _, img := range images {
-		img := img
+	for _, repoTag := range repoTags {
 		eg.Go(func() error {
-			inspect, _, err := s.apiClient().ImageInspectWithRaw(ctx, img)
+			inspect, err := s.apiClient().ImageInspect(ctx, repoTag)
 			if err != nil {
 				if errdefs.IsNotFound(err) {
 					return nil
 				}
-				return fmt.Errorf("unable to get image '%s': %w", img, err)
+				return fmt.Errorf("unable to get image '%s': %w", repoTag, err)
 			}
 			tag := ""
 			repository := ""
-			if len(inspect.RepoTags) > 0 {
-				ref, err := reference.ParseDockerRef(inspect.RepoTags[0])
-				if err != nil {
-					return err
-				}
+			ref, err := reference.ParseDockerRef(repoTag)
+			if err == nil {
+				// ParseDockerRef will reject a local image ID
 				repository = reference.FamiliarName(ref)
 				if tagged, ok := ref.(reference.Tagged); ok {
 					tag = tagged.Tag()
 				}
 			}
 			l.Lock()
-			summary[img] = api.ImageSummary{
-				ID:         inspect.ID,
-				Repository: repository,
-				Tag:        tag,
-				Size:       inspect.Size,
+			summary[repoTag] = api.ImageSummary{
+				ID:          inspect.ID,
+				Repository:  repository,
+				Tag:         tag,
+				Size:        inspect.Size,
+				LastTagTime: inspect.Metadata.LastTagTime,
 			}
 			l.Unlock()
 			return nil

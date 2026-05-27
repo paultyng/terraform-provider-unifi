@@ -24,7 +24,13 @@ type portOptions struct {
 }
 
 // NewPortCommand creates a new cobra.Command for `docker port`
+//
+// Deprecated: Do not import commands directly. They will be removed in a future release.
 func NewPortCommand(dockerCli command.Cli) *cobra.Command {
+	return newPortCommand(dockerCli)
+}
+
+func newPortCommand(dockerCli command.Cli) *cobra.Command {
 	var opts portOptions
 
 	cmd := &cobra.Command{
@@ -68,7 +74,7 @@ func runPort(ctx context.Context, dockerCli command.Cli, opts *portOptions) erro
 			return errors.Wrapf(err, "Error: invalid port (%s)", port)
 		}
 		frontends, exists := c.NetworkSettings.Ports[nat.Port(port+"/"+proto)]
-		if !exists || frontends == nil {
+		if !exists || len(frontends) == 0 {
 			return errors.Errorf("Error: No public port '%s' published for %s", opts.port, opts.container)
 		}
 		for _, frontend := range frontends {

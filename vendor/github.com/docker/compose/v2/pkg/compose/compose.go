@@ -25,22 +25,20 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/docker/compose/v2/internal/desktop"
-	"github.com/docker/compose/v2/internal/experimental"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/jonboulle/clockwork"
-
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/flags"
 	"github.com/docker/cli/cli/streams"
-	"github.com/docker/compose/v2/pkg/api"
-	moby "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
+	"github.com/jonboulle/clockwork"
+
+	"github.com/docker/compose/v2/pkg/api"
 )
 
 var stdioToStdout bool
@@ -52,20 +50,35 @@ func init() {
 	}
 }
 
-// NewComposeService create a local implementation of the compose.Service API
-func NewComposeService(dockerCli command.Cli) api.Service {
-	return &composeService{
+type Option func(service *composeService)
+
+// NewComposeService create a local implementation of the compose.Compose API
+func NewComposeService(dockerCli command.Cli, options ...Option) api.Compose {
+	s := &composeService{
 		dockerCli:      dockerCli,
 		clock:          clockwork.NewRealClock(),
 		maxConcurrency: -1,
 		dryRun:         false,
 	}
+	for _, option := range options {
+		option(s)
+	}
+	return s
 }
 
+// WithPrompt configure a UI component for Compose service to interact with user and confirm actions
+func WithPrompt(prompt Prompt) Option {
+	return func(s *composeService) {
+		s.prompt = prompt
+	}
+}
+
+type Prompt func(message string, defaultValue bool) (bool, error)
+
 type composeService struct {
-	dockerCli   command.Cli
-	desktopCli  *desktop.Client
-	experiments *experimental.State
+	dockerCli command.Cli
+	// prompt is used to interact with user and confirm actions
+	prompt Prompt
 
 	clock          clockwork.Clock
 	maxConcurrency int
@@ -80,9 +93,6 @@ func (s *composeService) Close() error {
 	var errs []error
 	if s.dockerCli != nil {
 		errs = append(errs, s.dockerCli.Client().Close())
-	}
-	if s.isDesktopIntegrationActive() {
-		errs = append(errs, s.desktopCli.Close())
 	}
 	return errors.Join(errs...)
 }
@@ -139,7 +149,7 @@ func (s *composeService) stdinfo() *streams.Out {
 	return s.dockerCli.Err()
 }
 
-func getCanonicalContainerName(c moby.Container) string {
+func getCanonicalContainerName(c container.Summary) string {
 	if len(c.Names) == 0 {
 		// corner case, sometime happens on removal. return short ID as a safeguard value
 		return c.ID[:12]
@@ -154,7 +164,7 @@ func getCanonicalContainerName(c moby.Container) string {
 	return strings.TrimPrefix(c.Names[0], "/")
 }
 
-func getContainerNameWithoutProject(c moby.Container) string {
+func getContainerNameWithoutProject(c container.Summary) string {
 	project := c.Labels[api.ProjectLabel]
 	defaultName := getDefaultContainerName(project, c.Labels[api.ServiceLabel], c.Labels[api.ContainerNumberLabel])
 	name := getCanonicalContainerName(c)
@@ -176,7 +186,10 @@ func (s *composeService) projectFromName(containers Containers, projectName stri
 	}
 	set := types.Services{}
 	for _, c := range containers {
-		serviceLabel := c.Labels[api.ServiceLabel]
+		serviceLabel, ok := c.Labels[api.ServiceLabel]
+		if !ok {
+			serviceLabel = getCanonicalContainerName(c)
+		}
 		service, ok := set[serviceLabel]
 		if !ok {
 			service = types.ServiceConfig{
@@ -184,14 +197,13 @@ func (s *composeService) projectFromName(containers Containers, projectName stri
 				Image:  c.Image,
 				Labels: c.Labels,
 			}
-
 		}
 		service.Scale = increment(service.Scale)
 		set[serviceLabel] = service
 	}
 	for name, service := range set {
 		dependencies := service.Labels[api.DependenciesLabel]
-		if len(dependencies) > 0 {
+		if dependencies != "" {
 			service.DependsOn = types.DependsOnConfig{}
 			for _, dc := range strings.Split(dependencies, ",") {
 				dcArr := strings.Split(dc, ":")
@@ -318,16 +330,4 @@ func (s *composeService) RuntimeVersion(ctx context.Context) (string, error) {
 		runtimeVersion.val = version.APIVersion
 	})
 	return runtimeVersion.val, runtimeVersion.err
-
-}
-
-func (s *composeService) isDesktopIntegrationActive() bool {
-	return s.desktopCli != nil
-}
-
-func (s *composeService) isDesktopUIEnabled() bool {
-	if !s.isDesktopIntegrationActive() {
-		return false
-	}
-	return s.experiments.ComposeUI()
 }

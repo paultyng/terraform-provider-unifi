@@ -12,7 +12,7 @@ type Config struct {
 	// Root is the path to a directory where buildkit will store persistent data
 	Root string `toml:"root"`
 
-	// Entitlements e.g. security.insecure, network.host
+	// Entitlements e.g. security.insecure, network.host, device
 	Entitlements []string `toml:"insecure-entitlements"`
 
 	// LogFormat is the format of the logs. It can be "json" or "text".
@@ -22,6 +22,8 @@ type Config struct {
 	GRPC GRPCConfig `toml:"grpc"`
 
 	OTEL OTELConfig `toml:"otel"`
+
+	CDI CDIConfig `toml:"cdi"`
 
 	Workers struct {
 		OCI        OCIConfig        `toml:"oci"`
@@ -40,6 +42,10 @@ type Config struct {
 	} `toml:"frontend"`
 
 	System *SystemConfig `toml:"system"`
+
+	// ProvenanceEnvDir is the directory where extra config is loaded
+	// that is added to the provenance of builds. Defaults to /etc/buildkit/provenance.d/ ,
+	ProvenanceEnvDir string `toml:"provenanceEnvDir"`
 }
 
 type SystemConfig struct {
@@ -74,10 +80,20 @@ type OTELConfig struct {
 	SocketPath string `toml:"socketPath"`
 }
 
+type CDIConfig struct {
+	Disabled    *bool    `toml:"disabled"`
+	SpecDirs    []string `toml:"specDirs"`
+	AutoAllowed []string `toml:"autoAllowed"`
+}
+
 type GCConfig struct {
-	GC            *bool      `toml:"gc"`
-	GCKeepStorage DiskSpace  `toml:"gckeepstorage"`
-	GCPolicy      []GCPolicy `toml:"gcpolicy"`
+	GC *bool `toml:"gc"`
+	// Deprecated: use GCReservedSpace instead
+	GCKeepStorage   DiskSpace  `toml:"gckeepstorage"`
+	GCReservedSpace DiskSpace  `toml:"reservedSpace"`
+	GCMaxUsedSpace  DiskSpace  `toml:"maxUsedSpace"`
+	GCMinFreeSpace  DiskSpace  `toml:"minFreeSpace"`
+	GCPolicy        []GCPolicy `toml:"gcpolicy"`
 }
 
 type NetworkConfig struct {
@@ -92,7 +108,7 @@ type NetworkConfig struct {
 type OCIConfig struct {
 	Enabled          *bool             `toml:"enabled"`
 	Labels           map[string]string `toml:"labels"`
-	Platforms        []string          `toml:"platforms"`
+	Platforms        []string          `toml:"platforms,omitempty"`
 	Snapshotter      string            `toml:"snapshotter"`
 	Rootless         bool              `toml:"rootless"`
 	NoProcessSandbox bool              `toml:"noProcessSandbox"`
@@ -109,7 +125,7 @@ type OCIConfig struct {
 	// StargzSnapshotterConfig is configuration for stargz snapshotter.
 	// We use a generic map[string]interface{} in order to remove the dependency
 	// on stargz snapshotter's config pkg from our config.
-	StargzSnapshotterConfig map[string]interface{} `toml:"stargzSnapshotter"`
+	StargzSnapshotterConfig map[string]any `toml:"stargzSnapshotter"`
 
 	// ApparmorProfile is the name of the apparmor profile that should be used to constrain build containers.
 	// The profile should already be loaded (by a higher level system) before creating a worker.
@@ -126,7 +142,7 @@ type ContainerdConfig struct {
 	Address   string            `toml:"address"`
 	Enabled   *bool             `toml:"enabled"`
 	Labels    map[string]string `toml:"labels"`
-	Platforms []string          `toml:"platforms"`
+	Platforms []string          `toml:"platforms,omitempty"`
 	Namespace string            `toml:"namespace"`
 	Runtime   ContainerdRuntime `toml:"runtime"`
 	GCConfig
@@ -142,20 +158,41 @@ type ContainerdConfig struct {
 
 	MaxParallelism int `toml:"max-parallelism"`
 
+	DefaultCgroupParent string `toml:"defaultCgroupParent"`
+
 	Rootless bool `toml:"rootless"`
 }
 
 type ContainerdRuntime struct {
-	Name    string                 `toml:"name"`
-	Path    string                 `toml:"path"`
-	Options map[string]interface{} `toml:"options"`
+	Name    string         `toml:"name"`
+	Path    string         `toml:"path"`
+	Options map[string]any `toml:"options"`
 }
 
 type GCPolicy struct {
-	All          bool      `toml:"all"`
-	KeepBytes    DiskSpace `toml:"keepBytes"`
-	KeepDuration Duration  `toml:"keepDuration"`
-	Filters      []string  `toml:"filters"`
+	All     bool     `toml:"all"`
+	Filters []string `toml:"filters"`
+
+	KeepDuration Duration `toml:"keepDuration"`
+
+	// KeepBytes is the maximum amount of storage this policy is ever allowed
+	// to consume. Any storage above this mark can be cleared during a gc
+	// sweep.
+	//
+	// Deprecated: use ReservedSpace instead
+	KeepBytes DiskSpace `toml:"keepBytes"`
+
+	// ReservedSpace is the minimum amount of disk space this policy is guaranteed to retain.
+	// Any usage below this threshold will not be reclaimed during garbage collection.
+	ReservedSpace DiskSpace `toml:"reservedSpace"`
+
+	// MaxUsedSpace is the maximum amount of disk space this policy is allowed to use.
+	// Any usage exceeding this limit will be cleaned up during a garbage collection sweep.
+	MaxUsedSpace DiskSpace `toml:"maxUsedSpace"`
+
+	// MinFreeSpace is the target amount of free disk space the garbage collector will attempt to leave.
+	// However, it will never let the available space fall below ReservedSpace.
+	MinFreeSpace DiskSpace `toml:"minFreeSpace"`
 }
 
 type DNSConfig struct {

@@ -1,10 +1,10 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.21
+//go:build go1.23
 
 package manager
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 // pluginError is set as Plugin.Err by NewPlugin if the plugin
@@ -23,11 +23,6 @@ func (e *pluginError) Error() string {
 	return e.cause.Error()
 }
 
-// Cause satisfies the errors.causer interface for pluginError.
-func (e *pluginError) Cause() error {
-	return e.cause
-}
-
 // Unwrap provides compatibility for Go 1.13 error chains.
 func (e *pluginError) Unwrap() error {
 	return e.cause
@@ -39,16 +34,13 @@ func (e *pluginError) MarshalText() (text []byte, err error) {
 }
 
 // wrapAsPluginError wraps an error in a pluginError with an
-// additional message, analogous to errors.Wrapf.
+// additional message.
 func wrapAsPluginError(err error, msg string) error {
-	if err == nil {
-		return nil
-	}
-	return &pluginError{cause: errors.Wrap(err, msg)}
+	return &pluginError{cause: fmt.Errorf("%s: %w", msg, err)}
 }
 
-// NewPluginError creates a new pluginError, analogous to
+// newPluginError creates a new pluginError, analogous to
 // errors.Errorf.
-func NewPluginError(msg string, args ...any) error {
-	return &pluginError{cause: errors.Errorf(msg, args...)}
+func newPluginError(msg string, args ...any) error {
+	return &pluginError{cause: fmt.Errorf(msg, args...)}
 }

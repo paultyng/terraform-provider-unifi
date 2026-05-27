@@ -7,9 +7,10 @@ import (
 
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
+	"github.com/docker/cli/cli/command/completion"
+	"github.com/docker/cli/internal/jsonstream"
 	dockeropts "github.com/docker/cli/opts"
 	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,14 @@ type importOptions struct {
 }
 
 // NewImportCommand creates a new `docker import` command
-func NewImportCommand(dockerCli command.Cli) *cobra.Command {
+//
+// Deprecated: Do not import commands directly. They will be removed in a future release.
+func NewImportCommand(dockerCLI command.Cli) *cobra.Command {
+	return newImportCommand(dockerCLI)
+}
+
+// newImportCommand creates a new `docker import` command
+func newImportCommand(dockerCLI command.Cli) *cobra.Command {
 	var options importOptions
 
 	cmd := &cobra.Command{
@@ -34,7 +42,7 @@ func NewImportCommand(dockerCli command.Cli) *cobra.Command {
 			if len(args) > 1 {
 				options.reference = args[1]
 			}
-			return runImport(cmd.Context(), dockerCli, options)
+			return runImport(cmd.Context(), dockerCLI, options)
 		},
 		Annotations: map[string]string{
 			"aliases": "docker image import, docker import",
@@ -46,7 +54,8 @@ func NewImportCommand(dockerCli command.Cli) *cobra.Command {
 	options.changes = dockeropts.NewListOpts(nil)
 	flags.VarP(&options.changes, "change", "c", "Apply Dockerfile instruction to the created image")
 	flags.StringVarP(&options.message, "message", "m", "", "Set commit message for imported image")
-	command.AddPlatformFlag(flags, &options.platform)
+	addPlatformFlag(flags, &options.platform)
+	_ = cmd.RegisterFlagCompletionFunc("platform", completion.Platforms)
 
 	return cmd
 }
@@ -80,7 +89,7 @@ func runImport(ctx context.Context, dockerCli command.Cli, options importOptions
 
 	responseBody, err := dockerCli.Client().ImageImport(ctx, source, options.reference, image.ImportOptions{
 		Message:  options.message,
-		Changes:  options.changes.GetAll(),
+		Changes:  options.changes.GetSlice(),
 		Platform: options.platform,
 	})
 	if err != nil {
@@ -88,5 +97,5 @@ func runImport(ctx context.Context, dockerCli command.Cli, options importOptions
 	}
 	defer responseBody.Close()
 
-	return jsonmessage.DisplayJSONMessagesToStream(responseBody, dockerCli.Out(), nil)
+	return jsonstream.Display(ctx, responseBody, dockerCli.Out())
 }

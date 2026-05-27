@@ -1,5 +1,5 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.21
+//go:build go1.23
 
 package formatter
 
@@ -76,12 +76,15 @@ func (c *Context) preFormat() {
 func (c *Context) parseFormat() (*template.Template, error) {
 	tmpl, err := templates.Parse(c.finalFormat)
 	if err != nil {
-		return tmpl, errors.Wrap(err, "template parsing error")
+		return nil, errors.Wrap(err, "template parsing error")
 	}
-	return tmpl, err
+	return tmpl, nil
 }
 
 func (c *Context) postFormat(tmpl *template.Template, subContext SubContext) {
+	if c.Output == nil {
+		c.Output = io.Discard
+	}
 	if c.Format.IsTable() {
 		t := tabwriter.NewWriter(c.Output, 10, 1, 3, ' ', 0)
 		buffer := bytes.NewBufferString("")
@@ -111,7 +114,7 @@ type SubFormat func(func(SubContext) error) error
 
 // Write the template to the buffer using this Context
 func (c *Context) Write(sub SubContext, f SubFormat) error {
-	c.buffer = bytes.NewBufferString("")
+	c.buffer = &bytes.Buffer{}
 	c.preFormat()
 
 	tmpl, err := c.parseFormat()

@@ -19,9 +19,10 @@ package formatter
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
-	"github.com/docker/compose/v2/pkg/api"
+	"github.com/docker/cli/cli/command"
 )
 
 var names = []string{
@@ -58,8 +59,11 @@ const (
 	Auto = "auto"
 )
 
+// ansiColorOffset is the offset for basic foreground colors in ANSI escape codes.
+const ansiColorOffset = 30
+
 // SetANSIMode configure formatter for colored output on ANSI-compliant console
-func SetANSIMode(streams api.Streams, ansi string) {
+func SetANSIMode(streams command.Streams, ansi string) {
 	if !useAnsi(streams, ansi) {
 		nextColor = func() colorFunc {
 			return monochrome
@@ -68,7 +72,7 @@ func SetANSIMode(streams api.Streams, ansi string) {
 	}
 }
 
-func useAnsi(streams api.Streams, ansi string) bool {
+func useAnsi(streams command.Streams, ansi string) bool {
 	switch ansi {
 	case Always:
 		return true
@@ -91,11 +95,15 @@ func ansiColor(code, s string, formatOpts ...string) string {
 
 // Everything about ansiColorCode color https://hyperskill.org/learn/step/18193
 func ansiColorCode(code string, formatOpts ...string) string {
-	res := "\033["
+	var sb strings.Builder
+	sb.WriteString("\033[")
 	for _, c := range formatOpts {
-		res = fmt.Sprintf("%s%s;", res, c)
+		sb.WriteString(c)
+		sb.WriteString(";")
 	}
-	return fmt.Sprintf("%s%sm", res, code)
+	sb.WriteString(code)
+	sb.WriteString("m")
+	return sb.String()
 }
 
 func makeColorFunc(code string) colorFunc {
@@ -104,10 +112,12 @@ func makeColorFunc(code string) colorFunc {
 	}
 }
 
-var nextColor = rainbowColor
-var rainbow []colorFunc
-var currentIndex = 0
-var mutex sync.Mutex
+var (
+	nextColor    = rainbowColor
+	rainbow      []colorFunc
+	currentIndex = 0
+	mutex        sync.Mutex
+)
 
 func rainbowColor() colorFunc {
 	mutex.Lock()
@@ -120,8 +130,8 @@ func rainbowColor() colorFunc {
 func init() {
 	colors := map[string]colorFunc{}
 	for i, name := range names {
-		colors[name] = makeColorFunc(strconv.Itoa(30 + i))
-		colors["intense_"+name] = makeColorFunc(strconv.Itoa(30+i) + ";1")
+		colors[name] = makeColorFunc(strconv.Itoa(ansiColorOffset + i))
+		colors["intense_"+name] = makeColorFunc(strconv.Itoa(ansiColorOffset+i) + ";1")
 	}
 	rainbow = []colorFunc{
 		colors["cyan"],

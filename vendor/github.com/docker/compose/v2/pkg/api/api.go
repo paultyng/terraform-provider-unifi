@@ -19,15 +19,20 @@ package api
 import (
 	"context"
 	"fmt"
+	"io"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/compose-spec/compose-go/v2/types"
-	"github.com/docker/compose/v2/pkg/utils"
+	"github.com/containerd/platforms"
+	"github.com/docker/cli/opts"
+	"github.com/docker/docker/api/types/volume"
 )
 
-// Service manages a compose project
-type Service interface {
+// Compose is the API interface one can use to programmatically use docker/compose in a third-party software
+// Use [compose.NewComposeService] to get an actual instance
+type Compose interface {
 	// Build executes the equivalent to a `compose build`
 	Build(ctx context.Context, project *types.Project, options BuildOptions) error
 	// Push executes the equivalent to a `compose push`
@@ -77,20 +82,34 @@ type Service interface {
 	// Publish executes the equivalent to a `compose publish`
 	Publish(ctx context.Context, project *types.Project, repository string, options PublishOptions) error
 	// Images executes the equivalent of a `compose images`
-	Images(ctx context.Context, projectName string, options ImagesOptions) ([]ImageSummary, error)
+	Images(ctx context.Context, projectName string, options ImagesOptions) (map[string]ImageSummary, error)
 	// MaxConcurrency defines upper limit for concurrent operations against engine API
 	MaxConcurrency(parallel int)
 	// DryRunMode defines if dry run applies to the command
 	DryRunMode(ctx context.Context, dryRun bool) (context.Context, error)
 	// Watch services' development context and sync/notify/rebuild/restart on changes
-	Watch(ctx context.Context, project *types.Project, services []string, options WatchOptions) error
+	Watch(ctx context.Context, project *types.Project, options WatchOptions) error
 	// Viz generates a graphviz graph of the project services
 	Viz(ctx context.Context, project *types.Project, options VizOptions) (string, error)
 	// Wait blocks until at least one of the services' container exits
 	Wait(ctx context.Context, projectName string, options WaitOptions) (int64, error)
 	// Scale manages numbers of container instances running per service
 	Scale(ctx context.Context, project *types.Project, options ScaleOptions) error
+	// Export a service container's filesystem as a tar archive
+	Export(ctx context.Context, projectName string, options ExportOptions) error
+	// Create a new image from a service container's changes
+	Commit(ctx context.Context, projectName string, options CommitOptions) error
+	// Generate generates a Compose Project from existing containers
+	Generate(ctx context.Context, options GenerateOptions) (*types.Project, error)
+	// Volumes executes the equivalent to a `docker volume ls`
+	Volumes(ctx context.Context, project string, options VolumesOptions) ([]VolumesSummary, error)
 }
+
+type VolumesOptions struct {
+	Services []string
+}
+
+type VolumesSummary = *volume.Volume
 
 type ScaleOptions struct {
 	Services []string
@@ -119,8 +138,10 @@ const WatchLogger = "#watch"
 
 // WatchOptions group options of the Watch API
 type WatchOptions struct {
-	Build *BuildOptions
-	LogTo LogConsumer
+	Build    *BuildOptions
+	LogTo    LogConsumer
+	Prune    bool
+	Services []string
 }
 
 // BuildOptions group options of the Build API
@@ -147,13 +168,25 @@ type BuildOptions struct {
 	Memory int64
 	// Builder name passed in the command line
 	Builder string
+	// Print don't actually run builder but print equivalent build config
+	Print bool
+	// Check let builder validate build configuration
+	Check bool
+	// Attestations allows to enable attestations generation
+	Attestations bool
+	// Provenance generate a provenance attestation
+	Provenance string
+	// SBOM generate a SBOM attestation
+	SBOM string
+	// Out is the stream to write build progress
+	Out io.Writer
 }
 
 // Apply mutates project according to build options
 func (o BuildOptions) Apply(project *types.Project) error {
 	platform := project.Environment["DOCKER_DEFAULT_PLATFORM"]
 	for name, service := range project.Services {
-		if service.Image == "" && service.Build == nil {
+		if service.Provider == nil && service.Image == "" && service.Build == nil {
 			return fmt.Errorf("invalid service %q. Must specify either image or build", name)
 		}
 
@@ -161,13 +194,13 @@ func (o BuildOptions) Apply(project *types.Project) error {
 			continue
 		}
 		if platform != "" {
-			if len(service.Build.Platforms) > 0 && !utils.StringContains(service.Build.Platforms, platform) {
+			if len(service.Build.Platforms) > 0 && !slices.Contains(service.Build.Platforms, platform) {
 				return fmt.Errorf("service %q build.platforms does not support value set by DOCKER_DEFAULT_PLATFORM: %s", name, platform)
 			}
 			service.Platform = platform
 		}
 		if service.Platform != "" {
-			if len(service.Build.Platforms) > 0 && !utils.StringContains(service.Build.Platforms, service.Platform) {
+			if len(service.Build.Platforms) > 0 && !slices.Contains(service.Build.Platforms, service.Platform) {
 				return fmt.Errorf("service %q build configuration does not support platform: %s", name, service.Platform)
 			}
 		}
@@ -195,10 +228,12 @@ type CreateOptions struct {
 	RecreateDependencies string
 	// Inherit reuse anonymous volumes from previous container
 	Inherit bool
-	// Timeout set delay to wait for container to gracelfuly stop before sending SIGKILL
+	// Timeout set delay to wait for container to gracefully stop before sending SIGKILL
 	Timeout *time.Duration
 	// QuietPull makes the pulling process quiet
 	QuietPull bool
+	// AssumeYes assume "yes" as answer to all prompts and run non-interactively
+	AssumeYes bool
 }
 
 // StartOptions group options of the Start API
@@ -288,6 +323,7 @@ type ConfigOptions struct {
 type PushOptions struct {
 	Quiet          bool
 	IgnoreFailures bool
+	ImageMandatory bool
 }
 
 // PullOptions group options of the Pull API
@@ -332,7 +368,7 @@ type RemoveOptions struct {
 
 // RunOptions group options of the Run API
 type RunOptions struct {
-	Build *BuildOptions
+	CreateOptions
 	// Project is the compose project used to define this app. Might be nil if user ran command just with project name
 	Project           *types.Project
 	Name              string
@@ -352,8 +388,6 @@ type RunOptions struct {
 	Privileged        bool
 	UseNetworkAliases bool
 	NoDeps            bool
-	// QuietPull makes the pulling process quiet
-	QuietPull bool
 	// used by exec
 	Index int
 }
@@ -372,6 +406,8 @@ type AttachOptions struct {
 type EventsOptions struct {
 	Services []string
 	Consumer func(event Event) error
+	Since    string
+	Until    string
 }
 
 // Event is a container runtime event served by Events API
@@ -409,7 +445,10 @@ const (
 // PublishOptions group options of the Publish API
 type PublishOptions struct {
 	ResolveImageDigests bool
+	Application         bool
+	WithEnvironment     bool
 
+	AssumeYes  bool
 	OCIVersion OCIVersion
 }
 
@@ -420,7 +459,6 @@ func (e Event) String() string {
 		attr = append(attr, fmt.Sprintf("%s=%s", k, v))
 	}
 	return fmt.Sprintf("%s container %s %s (%s)\n", t, e.Status, e.Container, strings.Join(attr, ", "))
-
 }
 
 // ListOptions group options of the ls API
@@ -511,15 +549,19 @@ type ContainerProcSummary struct {
 	Name      string
 	Processes [][]string
 	Titles    []string
+	Service   string
+	Replica   string
 }
 
 // ImageSummary holds container image description
 type ImageSummary struct {
-	ID            string
-	ContainerName string
-	Repository    string
-	Tag           string
-	Size          int64
+	ID          string
+	Repository  string
+	Tag         string
+	Platform    platforms.Platform
+	Size        int64
+	Created     time.Time
+	LastTagTime time.Time
 }
 
 // ServiceStatus hold status about a service
@@ -550,6 +592,33 @@ type PauseOptions struct {
 	Services []string
 	// Project is the compose project used to define this app. Might be nil if user ran command just with project name
 	Project *types.Project
+}
+
+// ExportOptions group options of the Export API
+type ExportOptions struct {
+	Service string
+	Index   int
+	Output  string
+}
+
+// CommitOptions group options of the Commit API
+type CommitOptions struct {
+	Service   string
+	Reference string
+
+	Pause   bool
+	Comment string
+	Author  string
+	Changes opts.ListOpts
+
+	Index int
+}
+
+type GenerateOptions struct {
+	// ProjectName to set in the Compose file
+	ProjectName string
+	// Containers passed in the command line to be used as reference for service definition
+	Containers []string
 }
 
 const (
@@ -590,7 +659,6 @@ type LogConsumer interface {
 	Log(containerName, message string)
 	Err(containerName, message string)
 	Status(container, msg string)
-	Register(container string)
 }
 
 // ContainerEventListener is a callback to process ContainerEvent from services
@@ -598,16 +666,18 @@ type ContainerEventListener func(event ContainerEvent)
 
 // ContainerEvent notify an event has been collected on source container implementing Service
 type ContainerEvent struct {
-	Type int
-	// Container is the name of the container _without the project prefix_.
+	Type      int
+	Time      int64
+	Container *ContainerSummary
+	// Source is the name of the container _without the project prefix_.
 	//
 	// This is only suitable for display purposes within Compose, as it's
 	// not guaranteed to be unique across services.
-	Container string
-	ID        string
-	Service   string
-	Line      string
-	// ContainerEventExit only
+	Source  string
+	ID      string
+	Service string
+	Line    string
+	// ExitCode is only set on ContainerEventExited events
 	ExitCode   int
 	Restarting bool
 }
@@ -617,16 +687,20 @@ const (
 	ContainerEventLog = iota
 	// ContainerEventErr is a ContainerEvent of type log on stderr. Line is set
 	ContainerEventErr
-	// ContainerEventAttach is a ContainerEvent of type attach. First event sent about a container
-	ContainerEventAttach
+	// ContainerEventStarted let consumer know a container has been started
+	ContainerEventStarted
+	// ContainerEventRestarted let consumer know a container has been restarted
+	ContainerEventRestarted
 	// ContainerEventStopped is a ContainerEvent of type stopped.
 	ContainerEventStopped
+	// ContainerEventCreated let consumer know a new container has been created
+	ContainerEventCreated
 	// ContainerEventRecreated let consumer know container stopped but his being replaced
 	ContainerEventRecreated
-	// ContainerEventExit is a ContainerEvent of type exit. ExitCode is set
-	ContainerEventExit
+	// ContainerEventExited is a ContainerEvent of type exit. ExitCode is set
+	ContainerEventExited
 	// UserCancel user cancelled compose up, we are stopping containers
-	UserCancel
+	HookEventLog
 )
 
 // Separator is used for naming components

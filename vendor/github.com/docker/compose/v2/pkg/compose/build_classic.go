@@ -24,26 +24,21 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-
-	"github.com/docker/cli/cli/command"
-
-	"github.com/docker/docker/api/types/registry"
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/cli/cli"
+	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/command/image/build"
-	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/compose/v2/pkg/api"
+	buildtypes "github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/builder/remotecontext/urlutil"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/idtools"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
-
-	"github.com/docker/compose/v2/pkg/api"
+	"github.com/moby/go-archive"
+	"github.com/sirupsen/logrus"
 )
 
 //nolint:gocyclo
@@ -52,16 +47,8 @@ func (s *composeService) doBuildClassic(ctx context.Context, project *types.Proj
 		buildCtx      io.ReadCloser
 		dockerfileCtx io.ReadCloser
 		contextDir    string
-		tempDir       string
 		relDockerfile string
-
-		err error
 	)
-
-	dockerfileName := dockerFilePath(service.Build.Context, service.Build.Dockerfile)
-	specifiedContext := service.Build.Context
-	progBuff := s.stdout()
-	buildBuff := s.stdout()
 
 	if len(service.Build.Platforms) > 1 {
 		return "", fmt.Errorf("the classic builder doesn't support multi-arch build, set DOCKER_BUILDKIT=1 to use BuildKit")
@@ -84,32 +71,49 @@ func (s *composeService) doBuildClassic(ctx context.Context, project *types.Proj
 	}
 	service.Build.Labels[api.ImageBuilderLabel] = "classic"
 
-	switch {
-	case isLocalDir(specifiedContext):
+	dockerfileName := dockerFilePath(service.Build.Context, service.Build.Dockerfile)
+	specifiedContext := service.Build.Context
+	progBuff := s.stdout()
+	buildBuff := s.stdout()
+
+	contextType, err := build.DetectContextType(specifiedContext)
+	if err != nil {
+		return "", err
+	}
+
+	switch contextType {
+	case build.ContextTypeStdin:
+		return "", fmt.Errorf("building from STDIN is not supported")
+	case build.ContextTypeLocal:
 		contextDir, relDockerfile, err = build.GetContextFromLocalDir(specifiedContext, dockerfileName)
-		if err == nil && strings.HasPrefix(relDockerfile, ".."+string(filepath.Separator)) {
-			// Dockerfile is outside of build-context; read the Dockerfile and pass it as dockerfileCtx
+		if err != nil {
+			return "", fmt.Errorf("unable to prepare context: %w", err)
+		}
+		if strings.HasPrefix(relDockerfile, ".."+string(filepath.Separator)) {
+			// Dockerfile is outside build-context; read the Dockerfile and pass it as dockerfileCtx
 			dockerfileCtx, err = os.Open(dockerfileName)
 			if err != nil {
 				return "", fmt.Errorf("unable to open Dockerfile: %w", err)
 			}
 			defer dockerfileCtx.Close() //nolint:errcheck
 		}
-	case urlutil.IsGitURL(specifiedContext):
+	case build.ContextTypeGit:
+		var tempDir string
 		tempDir, relDockerfile, err = build.GetContextFromGitURL(specifiedContext, dockerfileName)
-	case urlutil.IsURL(specifiedContext):
+		if err != nil {
+			return "", fmt.Errorf("unable to prepare context: %w", err)
+		}
+		defer func() {
+			_ = os.RemoveAll(tempDir)
+		}()
+		contextDir = tempDir
+	case build.ContextTypeRemote:
 		buildCtx, relDockerfile, err = build.GetContextFromURL(progBuff, specifiedContext, dockerfileName)
+		if err != nil {
+			return "", fmt.Errorf("unable to prepare context: %w", err)
+		}
 	default:
 		return "", fmt.Errorf("unable to prepare context: path %q not found", specifiedContext)
-	}
-
-	if err != nil {
-		return "", fmt.Errorf("unable to prepare context: %w", err)
-	}
-
-	if tempDir != "" {
-		defer os.RemoveAll(tempDir) //nolint:errcheck
-		contextDir = tempDir
 	}
 
 	// read from a directory into tar archive
@@ -129,7 +133,7 @@ func (s *composeService) doBuildClassic(ctx context.Context, project *types.Proj
 		excludes = build.TrimBuildFilesFromExcludes(excludes, relDockerfile, false)
 		buildCtx, err = archive.TarWithOptions(contextDir, &archive.TarOptions{
 			ExcludePatterns: excludes,
-			ChownOpts:       &idtools.Identity{},
+			ChownOpts:       &archive.ChownOpts{UID: 0, GID: 0},
 		})
 		if err != nil {
 			return "", err
@@ -149,6 +153,7 @@ func (s *composeService) doBuildClassic(ctx context.Context, project *types.Proj
 		return "", err
 	}
 
+	// Setup an upload progress bar
 	progressOutput := streamformatter.NewProgressOutput(progBuff)
 	body := progress.NewProgressReader(buildCtx, progressOutput, 0, "", "Sending build context to Docker daemon")
 
@@ -158,19 +163,28 @@ func (s *composeService) doBuildClassic(ctx context.Context, project *types.Proj
 		return "", err
 	}
 	authConfigs := make(map[string]registry.AuthConfig, len(creds))
-	for k, auth := range creds {
-		authConfigs[k] = registry.AuthConfig(auth)
+	for k, authConfig := range creds {
+		authConfigs[k] = registry.AuthConfig{
+			Username:      authConfig.Username,
+			Password:      authConfig.Password,
+			ServerAddress: authConfig.ServerAddress,
+
+			// TODO(thaJeztah): Are these expected to be included? See https://github.com/docker/cli/pull/6516#discussion_r2387586472
+			Auth:          authConfig.Auth,
+			IdentityToken: authConfig.IdentityToken,
+			RegistryToken: authConfig.RegistryToken,
+		}
 	}
-	buildOptions := imageBuildOptions(s.dockerCli, project, service, options)
+	buildOpts := imageBuildOptions(s.dockerCli, project, service, options)
 	imageName := api.GetImageNameOrDefault(service, project.Name)
-	buildOptions.Tags = append(buildOptions.Tags, imageName)
-	buildOptions.Dockerfile = relDockerfile
-	buildOptions.AuthConfigs = authConfigs
-	buildOptions.Memory = options.Memory
+	buildOpts.Tags = append(buildOpts.Tags, imageName)
+	buildOpts.Dockerfile = relDockerfile
+	buildOpts.AuthConfigs = authConfigs
+	buildOpts.Memory = options.Memory
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	response, err := s.apiClient().ImageBuild(ctx, body, buildOptions)
+	response, err := s.apiClient().ImageBuild(ctx, body, buildOpts)
 	if err != nil {
 		return "", err
 	}
@@ -178,9 +192,9 @@ func (s *composeService) doBuildClassic(ctx context.Context, project *types.Proj
 
 	imageID := ""
 	aux := func(msg jsonmessage.JSONMessage) {
-		var result dockertypes.BuildResult
+		var result buildtypes.Result
 		if err := json.Unmarshal(*msg.Aux, &result); err != nil {
-			fmt.Fprintf(s.stderr(), "Failed to parse aux message: %s", err)
+			logrus.Errorf("Failed to parse aux message: %s", err)
 		} else {
 			imageID = result.ID
 		}
@@ -198,30 +212,13 @@ func (s *composeService) doBuildClassic(ctx context.Context, project *types.Proj
 		}
 		return "", err
 	}
-
-	// Windows: show error message about modified file permissions if the
-	// daemon isn't running Windows.
-	if response.OSType != "windows" && runtime.GOOS == "windows" {
-		// if response.OSType != "windows" && runtime.GOOS == "windows" && !options.quiet {
-		fmt.Fprintln(s.stdout(), "SECURITY WARNING: You are building a Docker "+
-			"image from Windows against a non-Windows Docker host. All files and "+
-			"directories added to build context will have '-rwxr-xr-x' permissions. "+
-			"It is recommended to double check and reset permissions for sensitive "+
-			"files and directories.")
-	}
-
 	return imageID, nil
 }
 
-func isLocalDir(c string) bool {
-	_, err := os.Stat(c)
-	return err == nil
-}
-
-func imageBuildOptions(dockerCli command.Cli, project *types.Project, service types.ServiceConfig, options api.BuildOptions) dockertypes.ImageBuildOptions {
+func imageBuildOptions(dockerCli command.Cli, project *types.Project, service types.ServiceConfig, options api.BuildOptions) buildtypes.ImageBuildOptions {
 	config := service.Build
-	return dockertypes.ImageBuildOptions{
-		Version:     dockertypes.BuilderV1,
+	return buildtypes.ImageBuildOptions{
+		Version:     buildtypes.BuilderV1,
 		Tags:        config.Tags,
 		NoCache:     config.NoCache,
 		Remove:      true,

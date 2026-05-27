@@ -15,7 +15,14 @@ type tagOptions struct {
 }
 
 // NewTagCommand creates a new `docker tag` command
-func NewTagCommand(dockerCli command.Cli) *cobra.Command {
+//
+// Deprecated: Do not import commands directly. They will be removed in a future release.
+func NewTagCommand(dockerCLI command.Cli) *cobra.Command {
+	return newTagCommand(dockerCLI)
+}
+
+// newTagCommand creates a new `docker tag` command
+func newTagCommand(dockerCli command.Cli) *cobra.Command {
 	var opts tagOptions
 
 	cmd := &cobra.Command{
@@ -30,7 +37,7 @@ func NewTagCommand(dockerCli command.Cli) *cobra.Command {
 		Annotations: map[string]string{
 			"aliases": "docker image tag, docker tag",
 		},
-		ValidArgsFunction: completion.ImageNames(dockerCli),
+		ValidArgsFunction: completion.ImageNames(dockerCli, 2),
 	}
 
 	flags := cmd.Flags()

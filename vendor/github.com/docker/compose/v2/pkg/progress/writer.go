@@ -18,6 +18,7 @@ package progress
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 
@@ -64,6 +65,25 @@ func Run(ctx context.Context, pf progressFunc, out *streams.Out) error {
 	return err
 }
 
+func RunWithLog(ctx context.Context, pf progressFunc, out *streams.Out, logConsumer api.LogConsumer) error {
+	dryRun, ok := ctx.Value(api.DryRunKey{}).(bool)
+	if !ok {
+		dryRun = false
+	}
+	w := NewMixedWriter(out, logConsumer, dryRun)
+	eg, _ := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return w.Start(context.Background())
+	})
+	eg.Go(func() error {
+		defer w.Stop()
+		ctx = WithContextWriter(ctx, w)
+		err := pf(ctx)
+		return err
+	})
+	return eg.Wait()
+}
+
 func RunWithTitle(ctx context.Context, pf progressFunc, out *streams.Out, progressTitle string) error {
 	_, err := RunWithStatus(ctx, func(ctx context.Context) (string, error) {
 		return "", pf(ctx)
@@ -107,6 +127,8 @@ const (
 	ModePlain = "plain"
 	// ModeQuiet don't display events
 	ModeQuiet = "quiet"
+	// ModeJSON outputs a machine-readable JSON stream
+	ModeJSON = "json"
 )
 
 // Mode define how progress should be rendered, either as ModePlain or ModeTTY
@@ -119,22 +141,30 @@ func NewWriter(ctx context.Context, out *streams.Out, progressTitle string) (Wri
 	if !ok {
 		dryRun = false
 	}
-	if Mode == ModeQuiet {
+	switch Mode {
+	case ModeQuiet:
 		return quiet{}, nil
-	}
-
-	tty := Mode == ModeTTY
-	if Mode == ModeAuto && isTerminal {
-		tty = true
-	}
-	if tty {
+	case ModeJSON:
+		return &jsonWriter{
+			out:    out,
+			done:   make(chan bool),
+			dryRun: dryRun,
+		}, nil
+	case ModeTTY:
 		return newTTYWriter(out, dryRun, progressTitle)
+	case ModeAuto, "":
+		if isTerminal {
+			return newTTYWriter(out, dryRun, progressTitle)
+		}
+		fallthrough
+	case ModePlain:
+		return &plainWriter{
+			out:    out,
+			done:   make(chan bool),
+			dryRun: dryRun,
+		}, nil
 	}
-	return &plainWriter{
-		out:    out,
-		done:   make(chan bool),
-		dryRun: dryRun,
-	}, nil
+	return nil, fmt.Errorf("unknown progress mode: %s", Mode)
 }
 
 func newTTYWriter(out io.Writer, dryRun bool, progressTitle string) (Writer, error) {

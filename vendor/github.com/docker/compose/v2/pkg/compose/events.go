@@ -18,6 +18,7 @@ package compose
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -25,13 +26,14 @@ import (
 	"github.com/docker/docker/api/types/filters"
 
 	"github.com/docker/compose/v2/pkg/api"
-	"github.com/docker/compose/v2/pkg/utils"
 )
 
 func (s *composeService) Events(ctx context.Context, projectName string, options api.EventsOptions) error {
 	projectName = strings.ToLower(projectName)
 	evts, errors := s.apiClient().Events(ctx, events.ListOptions{
 		Filters: filters.NewArgs(projectFilter(projectName)),
+		Since:   options.Since,
+		Until:   options.Until,
 	})
 	for {
 		select {
@@ -47,7 +49,7 @@ func (s *composeService) Events(ctx context.Context, projectName string, options
 				continue
 			}
 			service := event.Actor.Attributes[api.ServiceLabel]
-			if len(options.Services) > 0 && !utils.StringContains(options.Services, service) {
+			if len(options.Services) > 0 && !slices.Contains(options.Services, service) {
 				continue
 			}
 

@@ -31,8 +31,7 @@ import (
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/compose/v2/pkg/api"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/system"
+	"github.com/moby/go-archive"
 )
 
 type copyDirection int
@@ -61,11 +60,6 @@ func (s *composeService) copy(ctx context.Context, projectName string, options a
 		direction |= fromService
 		serviceName = srcService
 		copyFunc = s.copyFromContainer
-
-		// copying from multiple containers of a services doesn't make sense.
-		if options.All {
-			return errors.New("cannot use the --all flag when copying from a service")
-		}
 	}
 	if destService != "" {
 		direction |= toService
@@ -80,7 +74,7 @@ func (s *composeService) copy(ctx context.Context, projectName string, options a
 		return errors.New("unknown copy direction")
 	}
 
-	containers, err := s.listContainersTargetedForCopy(ctx, projectName, options.Index, direction, serviceName)
+	containers, err := s.listContainersTargetedForCopy(ctx, projectName, options, direction, serviceName)
 	if err != nil {
 		return err
 	}
@@ -119,18 +113,22 @@ func (s *composeService) copy(ctx context.Context, projectName string, options a
 	return g.Wait()
 }
 
-func (s *composeService) listContainersTargetedForCopy(ctx context.Context, projectName string, index int, direction copyDirection, serviceName string) (Containers, error) {
+func (s *composeService) listContainersTargetedForCopy(ctx context.Context, projectName string, options api.CopyOptions, direction copyDirection, serviceName string) (Containers, error) {
 	var containers Containers
 	var err error
 	switch {
-	case index > 0:
-		ctr, err := s.getSpecifiedContainer(ctx, projectName, oneOffExclude, true, serviceName, index)
+	case options.Index > 0:
+		ctr, err := s.getSpecifiedContainer(ctx, projectName, oneOffExclude, true, serviceName, options.Index)
 		if err != nil {
 			return nil, err
 		}
 		return append(containers, ctr), nil
 	default:
-		containers, err = s.getContainers(ctx, projectName, oneOffExclude, true, serviceName)
+		withOneOff := oneOffExclude
+		if options.All {
+			withOneOff = oneOffInclude
+		}
+		containers, err = s.getContainers(ctx, projectName, withOneOff, true, serviceName)
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +138,6 @@ func (s *composeService) listContainersTargetedForCopy(ctx context.Context, proj
 		}
 		if direction == fromService {
 			return containers[:1], err
-
 		}
 		return containers, err
 	}
@@ -163,7 +160,7 @@ func (s *composeService) copyToContainer(ctx context.Context, containerID string
 	// If the destination is a symbolic link, we should evaluate it.
 	if err == nil && dstStat.Mode&os.ModeSymlink != 0 {
 		linkTarget := dstStat.LinkTarget
-		if !system.IsAbs(linkTarget) {
+		if !isAbs(linkTarget) {
 			// Join with the parent directory.
 			dstParent, _ := archive.SplitPathDirEntry(dstPath)
 			linkTarget = filepath.Join(dstParent, linkTarget)
@@ -266,7 +263,7 @@ func (s *composeService) copyFromContainer(ctx context.Context, containerID, src
 		// If the destination is a symbolic link, we should follow it.
 		if err == nil && srcStat.Mode&os.ModeSymlink != 0 {
 			linkTarget := srcStat.LinkTarget
-			if !system.IsAbs(linkTarget) {
+			if !isAbs(linkTarget) {
 				// Join with the parent directory.
 				srcParent, _ := archive.SplitPathDirEntry(srcPath)
 				linkTarget = filepath.Join(srcParent, linkTarget)
@@ -304,8 +301,20 @@ func (s *composeService) copyFromContainer(ctx context.Context, containerID, src
 	return archive.CopyTo(preArchive, srcInfo, dstPath)
 }
 
+// IsAbs is a platform-agnostic wrapper for filepath.IsAbs.
+//
+// On Windows, golang filepath.IsAbs does not consider a path \windows\system32
+// as absolute as it doesn't start with a drive-letter/colon combination. However,
+// in docker we need to verify things such as WORKDIR /windows/system32 in
+// a Dockerfile (which gets translated to \windows\system32 when being processed
+// by the daemon). This SHOULD be treated as absolute from a docker processing
+// perspective.
+func isAbs(path string) bool {
+	return filepath.IsAbs(path) || strings.HasPrefix(path, string(os.PathSeparator))
+}
+
 func splitCpArg(arg string) (ctr, path string) {
-	if system.IsAbs(arg) {
+	if isAbs(arg) {
 		// Explicit local absolute path, e.g., `C:\foo` or `/foo`.
 		return "", arg
 	}

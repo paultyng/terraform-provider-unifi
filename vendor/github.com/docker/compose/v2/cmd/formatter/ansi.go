@@ -27,67 +27,71 @@ var disableAnsi bool
 func ansi(code string) string {
 	return fmt.Sprintf("\033%s", code)
 }
-func SaveCursor() {
+
+func saveCursor() {
 	if disableAnsi {
 		return
 	}
 	fmt.Print(ansi("7"))
 }
-func RestoreCursor() {
+
+func restoreCursor() {
 	if disableAnsi {
 		return
 	}
 	fmt.Print(ansi("8"))
 }
-func HideCursor() {
-	if disableAnsi {
-		return
-	}
-	fmt.Print(ansi("[?25l"))
-}
-func ShowCursor() {
+
+func showCursor() {
 	if disableAnsi {
 		return
 	}
 	fmt.Print(ansi("[?25h"))
 }
-func MoveCursor(y, x int) {
+
+func moveCursor(y, x int) {
 	if disableAnsi {
 		return
 	}
 	fmt.Print(ansi(fmt.Sprintf("[%d;%dH", y, x)))
 }
-func MoveCursorX(pos int) {
+
+func carriageReturn() {
 	if disableAnsi {
 		return
 	}
-	fmt.Print(ansi(fmt.Sprintf("[%dG", pos)))
+	fmt.Print(ansi(fmt.Sprintf("[%dG", 0)))
 }
-func ClearLine() {
+
+func clearLine() {
 	if disableAnsi {
 		return
 	}
 	// Does not move cursor from its current position
 	fmt.Print(ansi("[2K"))
 }
-func MoveCursorUp(lines int) {
+
+func moveCursorUp(lines int) {
 	if disableAnsi {
 		return
 	}
 	// Does not add new lines
 	fmt.Print(ansi(fmt.Sprintf("[%dA", lines)))
 }
-func MoveCursorDown(lines int) {
+
+func moveCursorDown(lines int) {
 	if disableAnsi {
 		return
 	}
 	// Does not add new lines
 	fmt.Print(ansi(fmt.Sprintf("[%dB", lines)))
 }
-func NewLine() {
+
+func newLine() {
 	// Like \n
 	fmt.Print("\012")
 }
+
 func lenAnsi(s string) int {
 	// len has into consideration ansi codes, if we want
 	// the len of the actual len(string) we need to strip

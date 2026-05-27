@@ -3,6 +3,7 @@ package trust
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -10,15 +11,16 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/distribution/reference"
 	"github.com/docker/cli/cli/config"
+	"github.com/docker/cli/internal/registry"
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/auth/challenge"
 	"github.com/docker/distribution/registry/client/transport"
 	registrytypes "github.com/docker/docker/api/types/registry"
-	"github.com/docker/docker/registry"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -40,9 +42,24 @@ var (
 	ActionsPullOnly = []string{"pull"}
 	// ActionsPushAndPull defines the actions for read-write interactions with a Notary Repository
 	ActionsPushAndPull = []string{"pull", "push"}
-	// NotaryServer is the endpoint serving the Notary trust server
-	NotaryServer = "https://notary.docker.io"
 )
+
+// Enabled returns whether content-trust is enabled through the DOCKER_CONTENT_TRUST env-var.
+//
+// IMPORTANT: this function is for internal use, and may be removed at any moment.
+func Enabled() bool {
+	var enabled bool
+	if e := os.Getenv("DOCKER_CONTENT_TRUST"); e != "" {
+		if t, err := strconv.ParseBool(e); t || err != nil {
+			// treat any other value as true
+			enabled = true
+		}
+	}
+	return enabled
+}
+
+// NotaryServer is the endpoint serving the Notary trust server
+const NotaryServer = "https://notary.docker.io"
 
 // GetTrustDirectory returns the base trust directory name
 func GetTrustDirectory() string {
@@ -89,15 +106,23 @@ func (scs simpleCredentialStore) RefreshToken(*url.URL, string) string {
 	return scs.auth.IdentityToken
 }
 
-func (scs simpleCredentialStore) SetRefreshToken(*url.URL, string, string) {}
+func (simpleCredentialStore) SetRefreshToken(*url.URL, string, string) {}
+
+const dctDeprecation = `WARNING: Docker is retiring DCT for Docker Official Images (DOI).
+         For details, refer to https://docs.docker.com/go/dct-deprecation/
+
+`
 
 // GetNotaryRepository returns a NotaryRepository which stores all the
 // information needed to operate on a notary repository.
 // It creates an HTTP transport providing authentication support.
-func GetNotaryRepository(in io.Reader, out io.Writer, userAgent string, repoInfo *registry.RepositoryInfo, authConfig *registrytypes.AuthConfig, actions ...string) (client.Repository, error) {
+func GetNotaryRepository(in io.Reader, out io.Writer, userAgent string, repoInfo *RepositoryInfo, authConfig *registrytypes.AuthConfig, actions ...string) (client.Repository, error) {
 	server, err := Server(repoInfo.Index)
 	if err != nil {
 		return nil, err
+	}
+	if server == NotaryServer {
+		_, _ = fmt.Fprint(os.Stderr, dctDeprecation)
 	}
 
 	cfg := tlsconfig.ClientDefault()
@@ -157,16 +182,14 @@ func GetNotaryRepository(in io.Reader, out io.Writer, userAgent string, repoInfo
 	scope := auth.RepositoryScope{
 		Repository: repoInfo.Name.Name(),
 		Actions:    actions,
-		Class:      repoInfo.Class, // TODO(thaJeztah): Class is no longer needed for plugins and can likely be removed; see https://github.com/docker/cli/pull/4114#discussion_r1145430825
 	}
 	creds := simpleCredentialStore{auth: *authConfig}
-	tokenHandlerOptions := auth.TokenHandlerOptions{
+	tokenHandler := auth.NewTokenHandlerWithOptions(auth.TokenHandlerOptions{
 		Transport:   authTransport,
 		Credentials: creds,
 		Scopes:      []auth.Scope{scope},
 		ClientID:    registry.AuthClientID,
-	}
-	tokenHandler := auth.NewTokenHandlerWithOptions(tokenHandlerOptions)
+	})
 	basicHandler := auth.NewBasicHandler(creds)
 	modifiers = append(modifiers, auth.NewAuthorizer(challengeManager, tokenHandler, basicHandler))
 	tr := transport.NewTransport(base, modifiers...)
@@ -239,6 +262,20 @@ func NotaryError(repoName string, err error) error {
 	return err
 }
 
+// AddToAllSignableRoles attempts to add the image target to all the top level
+// delegation roles we can (based on whether we have the signing key and whether
+// the role's path allows us to).
+//
+// If there are no delegation roles, we add to the targets role.
+func AddToAllSignableRoles(repo client.Repository, target *client.Target) error {
+	signableRoles, err := GetSignableRoles(repo, target)
+	if err != nil {
+		return err
+	}
+
+	return repo.AddTarget(target, signableRoles...)
+}
+
 // GetSignableRoles returns a list of roles for which we have valid signing
 // keys, given a notary repository and a target
 func GetSignableRoles(repo client.Repository, target *client.Target) ([]data.RoleName, error) {
@@ -291,9 +328,16 @@ type ImageRefAndAuth struct {
 	original   string
 	authConfig *registrytypes.AuthConfig
 	reference  reference.Named
-	repoInfo   *registry.RepositoryInfo
+	repoInfo   *RepositoryInfo
 	tag        string
 	digest     digest.Digest
+}
+
+// RepositoryInfo describes a repository
+type RepositoryInfo struct {
+	Name reference.Named
+	// Index points to registry information
+	Index *registrytypes.IndexInfo
 }
 
 // GetImageReferencesAndAuth retrieves the necessary reference and auth information for an image name
@@ -307,20 +351,22 @@ func GetImageReferencesAndAuth(ctx context.Context,
 		return ImageRefAndAuth{}, err
 	}
 
-	// Resolve the Repository name from fqn to RepositoryInfo
-	repoInfo, err := registry.ParseRepositoryInfo(ref)
-	if err != nil {
-		return ImageRefAndAuth{}, err
-	}
-
-	authConfig := authResolver(ctx, repoInfo.Index)
+	// Resolve the Repository name from fqn to RepositoryInfo, and create an
+	// IndexInfo. Docker Content Trust uses the IndexInfo.Official field to
+	// select the right domain for Docker Hub's Notary server;
+	// https://github.com/docker/cli/blob/v28.4.0/cli/trust/trust.go#L65-L79
+	indexInfo := registry.NewIndexInfo(ref)
+	authConfig := authResolver(ctx, indexInfo)
 	return ImageRefAndAuth{
 		original:   imgName,
 		authConfig: &authConfig,
 		reference:  ref,
-		repoInfo:   repoInfo,
-		tag:        getTag(ref),
-		digest:     getDigest(ref),
+		repoInfo: &RepositoryInfo{
+			Name:  reference.TrimNamed(ref),
+			Index: indexInfo,
+		},
+		tag:    getTag(ref),
+		digest: getDigest(ref),
 	}, nil
 }
 
@@ -357,7 +403,7 @@ func (imgRefAuth *ImageRefAndAuth) Reference() reference.Named {
 }
 
 // RepoInfo returns the repository information for a given ImageRefAndAuth
-func (imgRefAuth *ImageRefAndAuth) RepoInfo() *registry.RepositoryInfo {
+func (imgRefAuth *ImageRefAndAuth) RepoInfo() *RepositoryInfo {
 	return imgRefAuth.repoInfo
 }
 

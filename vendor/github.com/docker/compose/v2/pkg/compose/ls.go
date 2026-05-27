@@ -19,19 +19,18 @@ package compose
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/docker/compose/v2/pkg/api"
-	"github.com/docker/compose/v2/pkg/utils"
-	moby "github.com/docker/docker/api/types"
-	containerType "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/sirupsen/logrus"
 )
 
 func (s *composeService) List(ctx context.Context, opts api.ListOptions) ([]api.Stack, error) {
-	list, err := s.apiClient().ContainerList(ctx, containerType.ListOptions{
+	list, err := s.apiClient().ContainerList(ctx, container.ListOptions{
 		Filters: filters.NewArgs(hasProjectLabelFilter(), hasConfigHashLabel()),
 		All:     opts.All,
 	})
@@ -42,7 +41,7 @@ func (s *composeService) List(ctx context.Context, opts api.ListOptions) ([]api.
 	return containersToStacks(list)
 }
 
-func containersToStacks(containers []moby.Container) ([]api.Stack, error) {
+func containersToStacks(containers []container.Summary) ([]api.Stack, error) {
 	containersByLabel, keys, err := groupContainerByLabel(containers, api.ProjectLabel)
 	if err != nil {
 		return nil, err
@@ -65,17 +64,17 @@ func containersToStacks(containers []moby.Container) ([]api.Stack, error) {
 	return projects, nil
 }
 
-func combinedConfigFiles(containers []moby.Container) (string, error) {
+func combinedConfigFiles(containers []container.Summary) (string, error) {
 	configFiles := []string{}
 
 	for _, c := range containers {
 		files, ok := c.Labels[api.ConfigFilesLabel]
 		if !ok {
-			return "", fmt.Errorf("No label %q set on container %q of compose project", api.ConfigFilesLabel, c.ID)
+			return "", fmt.Errorf("no label %q set on container %q of compose project", api.ConfigFilesLabel, c.ID)
 		}
 
 		for _, f := range strings.Split(files, ",") {
-			if !utils.StringContains(configFiles, f) {
+			if !slices.Contains(configFiles, f) {
 				configFiles = append(configFiles, f)
 			}
 		}
@@ -84,7 +83,7 @@ func combinedConfigFiles(containers []moby.Container) (string, error) {
 	return strings.Join(configFiles, ","), nil
 }
 
-func containerToState(containers []moby.Container) []string {
+func containerToState(containers []container.Summary) []string {
 	statuses := []string{}
 	for _, c := range containers {
 		statuses = append(statuses, c.State)
@@ -115,17 +114,17 @@ func combinedStatus(statuses []string) string {
 	return result
 }
 
-func groupContainerByLabel(containers []moby.Container, labelName string) (map[string][]moby.Container, []string, error) {
-	containersByLabel := map[string][]moby.Container{}
+func groupContainerByLabel(containers []container.Summary, labelName string) (map[string][]container.Summary, []string, error) {
+	containersByLabel := map[string][]container.Summary{}
 	keys := []string{}
 	for _, c := range containers {
 		label, ok := c.Labels[labelName]
 		if !ok {
-			return nil, nil, fmt.Errorf("No label %q set on container %q of compose project", labelName, c.ID)
+			return nil, nil, fmt.Errorf("no label %q set on container %q of compose project", labelName, c.ID)
 		}
 		labelContainers, ok := containersByLabel[label]
 		if !ok {
-			labelContainers = []moby.Container{}
+			labelContainers = []container.Summary{}
 			keys = append(keys, label)
 		}
 		labelContainers = append(labelContainers, c)

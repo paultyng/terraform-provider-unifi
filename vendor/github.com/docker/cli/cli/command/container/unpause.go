@@ -2,14 +2,13 @@ package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/command/completion"
-	"github.com/docker/docker/api/types"
-	"github.com/pkg/errors"
+	"github.com/docker/docker/api/types/container"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +17,13 @@ type unpauseOptions struct {
 }
 
 // NewUnpauseCommand creates a new cobra.Command for `docker unpause`
+//
+// Deprecated: Do not import commands directly. They will be removed in a future release.
 func NewUnpauseCommand(dockerCli command.Cli) *cobra.Command {
+	return newUnpauseCommand(dockerCli)
+}
+
+func newUnpauseCommand(dockerCli command.Cli) *cobra.Command {
 	var opts unpauseOptions
 
 	cmd := &cobra.Command{
@@ -32,25 +37,23 @@ func NewUnpauseCommand(dockerCli command.Cli) *cobra.Command {
 		Annotations: map[string]string{
 			"aliases": "docker container unpause, docker unpause",
 		},
-		ValidArgsFunction: completion.ContainerNames(dockerCli, false, func(container types.Container) bool {
-			return container.State == "paused"
+		ValidArgsFunction: completion.ContainerNames(dockerCli, false, func(ctr container.Summary) bool {
+			return ctr.State == container.StatePaused
 		}),
 	}
 	return cmd
 }
 
-func runUnpause(ctx context.Context, dockerCli command.Cli, opts *unpauseOptions) error {
-	var errs []string
-	errChan := parallelOperation(ctx, opts.containers, dockerCli.Client().ContainerUnpause)
-	for _, container := range opts.containers {
+func runUnpause(ctx context.Context, dockerCLI command.Cli, opts *unpauseOptions) error {
+	apiClient := dockerCLI.Client()
+	errChan := parallelOperation(ctx, opts.containers, apiClient.ContainerUnpause)
+	var errs []error
+	for _, ctr := range opts.containers {
 		if err := <-errChan; err != nil {
-			errs = append(errs, err.Error())
+			errs = append(errs, err)
 			continue
 		}
-		fmt.Fprintln(dockerCli.Out(), container)
+		_, _ = fmt.Fprintln(dockerCLI.Out(), ctr)
 	}
-	if len(errs) > 0 {
-		return errors.New(strings.Join(errs, "\n"))
-	}
-	return nil
+	return errors.Join(errs...)
 }

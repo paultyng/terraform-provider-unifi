@@ -60,7 +60,7 @@ type Event struct {
 	Total     int64
 	startTime time.Time
 	endTime   time.Time
-	spinner   *spinner
+	spinner   *Spinner
 }
 
 // ErrorMessageEvent creates a new Error Event with message
@@ -151,6 +151,16 @@ func RemovingEvent(id string) Event {
 // RemovedEvent creates a new removed (done) Event
 func RemovedEvent(id string) Event {
 	return NewEvent(id, Done, "Removed")
+}
+
+// BuildingEvent creates a new Building in progress Event
+func BuildingEvent(id string) Event {
+	return NewEvent(id, Working, "Building")
+}
+
+// BuiltEvent creates a new built (done) Event
+func BuiltEvent(id string) Event {
+	return NewEvent(id, Done, "Built")
 }
 
 // SkippedEvent creates a new Skipped Event

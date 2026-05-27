@@ -22,23 +22,6 @@ import (
 	moby "github.com/docker/docker/api/types"
 )
 
-const (
-	// ContainerCreated created status
-	ContainerCreated = "created"
-	// ContainerRestarting restarting status
-	ContainerRestarting = "restarting"
-	// ContainerRunning running status
-	ContainerRunning = "running"
-	// ContainerRemoving removing status
-	ContainerRemoving = "removing"
-	// ContainerPaused paused status
-	ContainerPaused = "paused"
-	// ContainerExited exited status
-	ContainerExited = "exited"
-	// ContainerDead dead status
-	ContainerDead = "dead"
-)
-
 var _ io.ReadCloser = ContainerStdout{}
 
 // ContainerStdout implement ReadCloser for moby.HijackedResponse
