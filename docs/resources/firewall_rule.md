@@ -37,7 +37,6 @@ resource "unifi_firewall_rule" "drop_all" {
 
 - `action` (String) The action of the firewall rule. Must be one of `drop`, `accept`, or `reject`.
 - `name` (String) The name of the firewall rule.
-- `rule_index` (Number) The index of the rule. Must be >= 2000 < 3000 or >= 4000 < 5000.
 - `ruleset` (String) The ruleset for the rule. This is from the perspective of the security gateway. Must be one of `WAN_IN`, `WAN_OUT`, `WAN_LOCAL`, `LAN_IN`, `LAN_OUT`, `LAN_LOCAL`, `GUEST_IN`, `GUEST_OUT`, `GUEST_LOCAL`, `WANv6_IN`, `WANv6_OUT`, `WANv6_LOCAL`, `LANv6_IN`, `LANv6_OUT`, `LANv6_LOCAL`, `GUESTv6_IN`, `GUESTv6_OUT`, or `GUESTv6_LOCAL`.
 
 ### Optional
@@ -55,6 +54,7 @@ resource "unifi_firewall_rule" "drop_all" {
 - `logging` (Boolean) Enable logging for the firewall rule.
 - `protocol` (String) The protocol of the rule.
 - `protocol_v6` (String) The IPv6 protocol of the rule.
+- `rule_index` (Number) The index of the rule. Must be >= 2000 < 3000 or >= 4000 < 5000.
 - `site` (String) The name of the site to associate the firewall rule with.
 - `src_address` (String) The source address for the firewall rule.
 - `src_address_ipv6` (String) The IPv6 source address for the firewall rule.

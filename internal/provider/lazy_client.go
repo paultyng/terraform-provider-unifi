@@ -334,6 +334,12 @@ func (c *lazyClient) UpdateFirewallRule(ctx context.Context, site string, d *uni
 	}
 	return c.inner.UpdateFirewallRule(ctx, site, d)
 }
+func (c *lazyClient) ReorderFirewallRules(ctx context.Context, site, ruleset string, reorder []unifi.FirewallRuleIndexUpdate) error {
+	if err := c.init(ctx); err != nil {
+		return err
+	}
+	return c.inner.ReorderFirewallRules(ctx, site, ruleset, reorder)
+}
 func (c *lazyClient) GetPortForward(ctx context.Context, site, id string) (*unifi.PortForward, error) {
 	if err := c.init(ctx); err != nil {
 		return nil, err

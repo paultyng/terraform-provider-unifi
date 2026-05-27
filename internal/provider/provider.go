@@ -79,20 +79,21 @@ func New(version string) func() *schema.Provider {
 			},
 			ResourcesMap: map[string]*schema.Resource{
 				// TODO: "unifi_ap_group"
-				"unifi_device":         resourceDevice(),
-				"unifi_dynamic_dns":    resourceDynamicDNS(),
-				"unifi_firewall_group": resourceFirewallGroup(),
-				"unifi_firewall_rule":  resourceFirewallRule(),
-				"unifi_network":        resourceNetwork(),
-				"unifi_port_forward":   resourcePortForward(),
-				"unifi_port_profile":   resourcePortProfile(),
-				"unifi_radius_profile": resourceRadiusProfile(),
-				"unifi_site":           resourceSite(),
-				"unifi_static_route":   resourceStaticRoute(),
-				"unifi_user_group":     resourceUserGroup(),
-				"unifi_user":           resourceUser(),
-				"unifi_wlan":           resourceWLAN(),
-				"unifi_account":        resourceAccount(),
+				"unifi_device":           resourceDevice(),
+				"unifi_dynamic_dns":      resourceDynamicDNS(),
+				"unifi_firewall_group":   resourceFirewallGroup(),
+				"unifi_firewall_rule":    resourceFirewallRule(),
+				"unifi_firewall_ruleset": resourceFirewallRuleset(),
+				"unifi_network":          resourceNetwork(),
+				"unifi_port_forward":     resourcePortForward(),
+				"unifi_port_profile":     resourcePortProfile(),
+				"unifi_radius_profile":   resourceRadiusProfile(),
+				"unifi_site":             resourceSite(),
+				"unifi_static_route":     resourceStaticRoute(),
+				"unifi_user_group":       resourceUserGroup(),
+				"unifi_user":             resourceUser(),
+				"unifi_wlan":             resourceWLAN(),
+				"unifi_account":          resourceAccount(),
 
 				"unifi_setting_mgmt":   resourceSettingMgmt(),
 				"unifi_setting_radius": resourceSettingRadius(),
@@ -147,6 +148,7 @@ type unifiClient interface {
 	CreateFirewallRule(ctx context.Context, site string, d *unifi.FirewallRule) (*unifi.FirewallRule, error)
 	GetFirewallRule(ctx context.Context, site, id string) (*unifi.FirewallRule, error)
 	UpdateFirewallRule(ctx context.Context, site string, d *unifi.FirewallRule) (*unifi.FirewallRule, error)
+	ReorderFirewallRules(ctx context.Context, site, ruleset string, reorder []unifi.FirewallRuleIndexUpdate) error
 
 	ListWLANGroup(ctx context.Context, site string) ([]unifi.WLANGroup, error)
 
